@@ -5,6 +5,7 @@ import type { ProviderInterface } from "@polkadot/rpc-provider/types";
 import { keccakAsU8a, secp256k1Compress, secp256k1Expand, secp256k1Recover } from "@polkadot/util-crypto";
 import { u8aConcat, u8aEq } from "@polkadot/util";
 import { ScaleReader, toHex, toU8a, type Hex } from "./scale";
+import { BEEFY_NEXT_AUTHORITIES_KEY, BEEFY_VALIDATOR_SET_ID_KEY } from "./storage";
 
 /** Payload id of the MMR root inside a BEEFY commitment ("mh"). */
 export const MMR_ROOT_PAYLOAD_ID: Hex = "0x6d68";
@@ -18,6 +19,8 @@ export interface BeefyCommitment {
 }
 
 export interface DecodedJustification {
+  /** The justification as received: `0x01 ‖ CompactSignedCommitment`. */
+  raw: Hex;
   commitment: BeefyCommitment;
   /** Exact SCALE bytes of the commitment; keccak256 of these is what the validators signed. */
   commitmentScale: Hex;
@@ -79,7 +82,7 @@ export function decodeJustification(raw: Hex | Uint8Array): DecodedJustification
   }
   const mh = commitment.payload.find((p) => p.id === MMR_ROOT_PAYLOAD_ID);
   if (!mh || toU8a(mh.data).length !== 32) throw new Error("commitment has no 32-byte MMR root payload");
-  return { commitment, commitmentScale, mmrRoot: mh.data, validatorSetLen, indices, signatures };
+  return { raw: toHex(bytes), commitment, commitmentScale, mmrRoot: mh.data, validatorSetLen, indices, signatures };
 }
 
 /** Turns a justification into the calldata of `submitCommitment`. */
@@ -241,4 +244,95 @@ export async function fetchStoredJustification(api: ApiPromise, blockNumber: num
   if (block.justifications.isNone) return undefined;
   const j = block.justifications.unwrap().find(([engine]) => engine.toHex() === BEEFY_ENGINE_ID);
   return j ? (j[1].toHex() as Hex) : undefined;
+}
+
+// ------------------------------------------------------------------ chain reads for the light client
+
+async function stateAt(api: ApiPromise, n: number) {
+  return api.at(await api.rpc.chain.getBlockHash(n));
+}
+
+/** `Beefy::ValidatorSetId` in the state of block `n`. */
+export async function validatorSetIdAt(api: ApiPromise, n: number): Promise<bigint> {
+  return BigInt((await (await stateAt(api, n)).query.beefy.validatorSetId()).toString());
+}
+
+/** `Beefy::Authorities` (or `NextAuthorities`) in the state of block `n`, as 33-byte keys. */
+export async function authoritiesAt(api: ApiPromise, n: number, next = false): Promise<Hex[]> {
+  const at = await stateAt(api, n);
+  const v = next ? await at.query.beefy.nextAuthorities() : await at.query.beefy.authorities();
+  return decodeAuthorities(v.toHex() as Hex);
+}
+
+/**
+ * First block whose state has `Beefy::ValidatorSetId >= setId`: the session's first block, which
+ * carries the set's mandatory justification. `hint` must be a block where the set is active.
+ */
+export async function sessionStartOf(api: ApiPromise, setId: bigint, hint: number): Promise<number> {
+  let hi = hint;
+  if ((await validatorSetIdAt(api, hi)) < setId) throw new Error(`set ${setId} is not active at block ${hi}`);
+  let lo = Math.max(0, hi - 1500);
+  while (lo > 0 && (await validatorSetIdAt(api, lo)) >= setId) lo = Math.max(0, lo - 1500);
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if ((await validatorSetIdAt(api, mid)) >= setId) hi = mid;
+    else lo = mid;
+  }
+  return hi;
+}
+
+/** Constructor arguments of `PortaldotLightClient`. */
+export interface Checkpoint {
+  setId: bigint;
+  signers: Hex[];
+  checkpointBlock: number;
+  checkpointMmrRoot: Hex;
+}
+
+/**
+ * A checkpoint at the first block of the session in force at block `at` (default: the
+ * BEEFY-finalized head), checked against the mandatory justification stored in that block.
+ */
+export async function fetchCheckpoint(api: ApiPromise, at?: number): Promise<Checkpoint> {
+  const head = at ?? (await api.rpc.chain.getHeader(await api.rpc.beefy.getFinalizedHead())).number.toNumber();
+  const setId = await validatorSetIdAt(api, head);
+  const start = await sessionStartOf(api, setId, head);
+  const proof = await fetchStoredJustification(api, start);
+  if (!proof) throw new Error(`no justification stored at session start ${start}`);
+  const j = decodeJustification(proof);
+  if (j.commitment.validatorSetId !== setId || j.commitment.blockNumber !== start) {
+    throw new Error("mandatory justification does not match the session start");
+  }
+  const authorities = await authoritiesAt(api, start);
+  const recovered = recoverSigners(j);
+  j.indices.forEach((idx, i) => {
+    if (recovered[i] !== authorities[idx]) throw new Error(`checkpoint signature ${i} is not authority ${idx}`);
+  });
+  return {
+    setId,
+    signers: authorities.map((a) => uncompressKey(a).address),
+    checkpointBlock: start,
+    checkpointMmrRoot: j.mmrRoot,
+  };
+}
+
+/** Arguments of `PortaldotLightClient.rotate` for an imported header of the current session. */
+export interface RotationArgs {
+  headerNumber: number;
+  proof: Hex[];
+  uncompressedKeys: [bigint, bigint][];
+}
+
+export async function buildRotation(api: ApiPromise, headerNumber: number): Promise<RotationArgs> {
+  const hash = await api.rpc.chain.getBlockHash(headerNumber);
+  const read = await api.rpc.state.getReadProof([BEEFY_VALIDATOR_SET_ID_KEY, BEEFY_NEXT_AUTHORITIES_KEY], hash);
+  const next = await authoritiesAt(api, headerNumber, true);
+  return {
+    headerNumber,
+    proof: read.proof.map((n) => n.toHex() as Hex),
+    uncompressedKeys: next.map((c) => {
+      const k = uncompressKey(c);
+      return [k.x, k.y];
+    }),
+  };
 }

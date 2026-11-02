@@ -1,7 +1,9 @@
 import { existsSync, mkdirSync, openSync, closeSync, readFileSync, writeSync } from "node:fs";
 import { dirname } from "node:path";
 import { cryptoWaitReady, keccakAsU8a } from "@polkadot/util-crypto";
+import type { ApiPromise } from "@polkadot/api";
 import { fetchBlockHashes, finalizedNumber, type PortaldotClient } from "./client";
+import { decodeHeader, fetchHeaderScale } from "./header";
 import { concat, le32, toHex, toU8a, type Hex } from "./scale";
 
 /**
@@ -233,4 +235,31 @@ class Level {
   get(i: number): Uint8Array {
     return this.buf.subarray(i * 32, i * 32 + 32);
   }
+}
+
+/** Arguments of `PortaldotLightClient.importHeader`. */
+export interface HeaderImportArgs {
+  commitmentBlock: number;
+  headerScale: Hex;
+  proof: MmrLeafProof;
+}
+
+/**
+ * Proof that header `headerNumber` is leaf `headerNumber` of the MMR committed at
+ * `commitmentBlock` (which must be greater than `headerNumber`).
+ */
+export async function buildHeaderImport(
+  api: ApiPromise,
+  mirror: MmrMirror,
+  headerNumber: number,
+  commitmentBlock: number,
+): Promise<HeaderImportArgs> {
+  const headerScale = await fetchHeaderScale(api, headerNumber);
+  const { hash } = decodeHeader(headerScale);
+  if (hash !== mirror.blockHash(headerNumber)) throw new Error(`header ${headerNumber} is not the mirrored block`);
+  const proof = mirror.proof(headerNumber, commitmentBlock);
+  if (!verifyLeafProof(mirror.root(commitmentBlock), leafHash(headerNumber, hash), proof)) {
+    throw new Error("header proof does not verify against the mirror");
+  }
+  return { commitmentBlock, headerScale, proof };
 }
