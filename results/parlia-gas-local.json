@@ -1,11 +1,15 @@
 {
+  "bscVerifierCodeBytes": 8420,
   "note": "Local forge measurements (solc 0.8.28, via-IR, optimizer 200). executionGas is the callee's gas (vm.lastCallGas) on a fresh client, so the finalized header goes to an empty ring slot; intrinsicGas = 21000 + 16/4 gas per non-zero/zero calldata byte. proofs: library calls through an external harness. Real windows: BSC testnet epoch 140342000 (rotation) and blocks from E+2.",
   "parliaClientCodeBytes": 5834,
   "proofs": {
     "receiptLogLegacy": 261589,
     "receiptLogTyped": 151063,
     "storageAtAbsent": 1840670,
-    "storageAtExisting": 1852429
+    "storageAtExisting": 1852429,
+    "verifyAbsenceReal": 1913201,
+    "verifyAbsenceSynthetic": 184721,
+    "verifyCommitmentSynthetic": 170040
   },
   "submitWindow": {
     "realEpochRotation41": {

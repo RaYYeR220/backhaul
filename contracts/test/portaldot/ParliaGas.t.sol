@@ -4,6 +4,7 @@ pragma solidity ^0.8.28;
 import {BscFixtures} from "../bsc-lib/BscFixtures.sol";
 import {EthProofsHarness} from "../bsc-lib/EthProofs.t.sol";
 import {ParliaClient} from "../../src/portaldot/ParliaClient.sol";
+import {BscVerifier} from "../../src/portaldot/BscVerifier.sol";
 
 /// @dev Measures gas for the Parlia light client and its proofs, and writes results/parlia-gas-local.json.
 contract ParliaGasTest is BscFixtures {
@@ -36,7 +37,8 @@ contract ParliaGasTest is BscFixtures {
 
         string memory proofs = "proofs";
         _recordProofs(proofs);
-        string memory proofsJson = vm.serializeUint(proofs, "receiptLogLegacy", _receiptGas(".legacy"));
+        vm.serializeUint(proofs, "receiptLogLegacy", _receiptGas(".legacy"));
+        string memory proofsJson = _recordVerifier(proofs, syn);
 
         string memory root = "root";
         vm.serializeString(
@@ -47,6 +49,7 @@ contract ParliaGasTest is BscFixtures {
             "21000 + 16/4 gas per non-zero/zero calldata byte. proofs: library calls through an external harness. Real windows: BSC testnet epoch 140342000 (rotation) and blocks from E+2."
         );
         vm.serializeUint(root, "parliaClientCodeBytes", address(_realClient(real)).code.length);
+        vm.serializeUint(root, "bscVerifierCodeBytes", address(new BscVerifier(_realClient(real), address(1))).code.length);
         vm.serializeString(root, "submitWindow", windowsJson);
         string memory out = vm.serializeString(root, "proofs", proofsJson);
         vm.writeJson(out, OUT);
@@ -103,6 +106,43 @@ contract ParliaGasTest is BscFixtures {
                 vm.parseJsonBytesArray(s, ".absent.proof")
             )
         );
+    }
+
+    /// @dev BscVerifier end to end (finalized-header lookup, proof decoding, trie walk).
+    function _recordVerifier(string memory obj, string memory syn) internal returns (string memory) {
+        ParliaClient lc = _synthClient(syn);
+        lc.submitWindow(vm.parseJsonBytesArray(syn, ".segments.verifier.rlps"));
+        BscVerifier v = new BscVerifier(lc, vm.parseJsonAddress(syn, ".verifier.outbox"));
+        require(
+            v.verifyCommitment(
+                vm.parseJsonBytes32(syn, ".verifier.key1"),
+                vm.parseJsonBytes32(syn, ".verifier.value1"),
+                vm.parseJsonBytes(syn, ".verifier.encoded.commitment1")
+            )
+        );
+        vm.serializeUint(obj, "verifyCommitmentSynthetic", vm.lastCallGas().gasTotalUsed);
+        require(
+            v.verifyAbsence(
+                vm.parseJsonBytes32(syn, ".verifier.absentKey"), 0, vm.parseJsonBytes(syn, ".verifier.encoded.absent")
+            )
+        );
+        vm.serializeUint(obj, "verifyAbsenceSynthetic", vm.lastCallGas().gasTotalUsed);
+
+        // Real WBNB storage on BSC testnet: an absent slot behind an 11-node account proof.
+        string memory s = _fixture("bsc-storage.json");
+        CheckpointFixture memory c = _checkpoint(s, ".checkpoint");
+        ParliaClient rlc = new ParliaClient(
+            97, 1000, 7 days, ParliaClient.Checkpoint(c.epoch, c.timestamp, c.activeFrom, c.turnLength, c.validators)
+        );
+        rlc.submitWindow(_slice(vm.parseJsonBytesArray(s, ".rlps"), 0, 48));
+        BscVerifier rv = new BscVerifier(rlc, vm.parseJsonAddress(s, ".account"));
+        bytes memory proof = abi.encode(
+            uint64(vm.parseJsonUint(s, ".blockNumber")),
+            vm.parseJsonBytesArray(s, ".accountProof"),
+            vm.parseJsonBytesArray(s, ".absent.proof")
+        );
+        require(rv.verifyAbsence(vm.parseJsonBytes32(s, ".absentKey"), 0, proof));
+        return vm.serializeUint(obj, "verifyAbsenceReal", vm.lastCallGas().gasTotalUsed);
     }
 
     function _receiptGas(string memory at) internal returns (uint256 used) {

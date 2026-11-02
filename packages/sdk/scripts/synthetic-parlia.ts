@@ -17,6 +17,7 @@ import { bigIntToUnpaddedBytes, bytesToHex, concatBytes, hexToBytes } from '@eth
 import { encodeAbiParameters, keccak256, stringToHex, toHex, type Address, type Hex } from 'viem';
 import { privateKeyToAddress, sign } from 'viem/accounts';
 import { sealHash, switchOffset } from '../src/bsc/header.js';
+import { encodeAbsenceProof, encodeCommitmentProof } from '../src/bsc/verifier.js';
 
 export const CHAIN_ID = 9797n;
 export const EPOCH_LENGTH = 1000n;
@@ -150,6 +151,7 @@ const turns = (list: number[]) => (i: number) => list[Math.floor(i / TURN_LENGTH
 
 // ---- verifier block (receipts and state tries for the BscVerifier tests) ----
 
+const VERIFIER_BLOCK = 1200n;
 const OUTBOX: Address = '0x00000000000000000000000000000000000B0B0B';
 const IMPOSTOR: Address = '0x000000000000000000000000000000000000BAD0';
 const COMMITTED = keccak256(toHex('Committed(bytes32,bytes32)'));
@@ -192,6 +194,16 @@ async function verifierBlock() {
   await stateTrie.put(hexToBytes(IMPOSTOR), account(EMPTY_TRIE));
 
   const proof = async (t: Trie, key: Uint8Array) => (await t.createProof(key)).map((n) => bytesToHex(n) as Hex);
+  const receiptProofs = await Promise.all(
+    receipts.map(async (_r, i) => {
+      const key = RLP.encode(bigIntToUnpaddedBytes(BigInt(i)));
+      return { key: bytesToHex(key) as Hex, proof: await proof(receiptsTrie, key) };
+    }),
+  );
+  const accountProof = await proof(stateTrie, hexToBytes(OUTBOX));
+  const presentProof = await proof(storageTrie, hexToBytes(outboxSlot(key1)));
+  const absentProof = await proof(storageTrie, hexToBytes(outboxSlot(absentKey)));
+  const blockNumber = VERIFIER_BLOCK;
   return {
     trie: { stateRoot: stateTrie.root(), receiptsRoot: receiptsTrie.root() },
     json: {
@@ -207,15 +219,18 @@ async function verifierBlock() {
       absentKey,
       stateRoot: bytesToHex(stateTrie.root()),
       receiptsRoot: bytesToHex(receiptsTrie.root()),
-      receipts: await Promise.all(
-        receipts.map(async (_r, i) => {
-          const key = RLP.encode(bigIntToUnpaddedBytes(BigInt(i)));
-          return { key: bytesToHex(key), proof: await proof(receiptsTrie, key) };
-        }),
-      ),
-      accountProof: await proof(stateTrie, hexToBytes(OUTBOX)),
-      presentProof: await proof(storageTrie, hexToBytes(outboxSlot(key1))),
-      absentProof: await proof(storageTrie, hexToBytes(outboxSlot(absentKey))),
+      receipts: receiptProofs,
+      accountProof,
+      presentProof,
+      absentProof,
+      // The same proofs, encoded by the SDK the way BscVerifier takes them.
+      encoded: {
+        commitment1: encodeCommitmentProof({ blockNumber, ...receiptProofs[0], logIndex: 1 }),
+        commitment2: encodeCommitmentProof({ blockNumber, ...receiptProofs[1], logIndex: 0 }),
+        impostor: encodeCommitmentProof({ blockNumber, ...receiptProofs[2], logIndex: 0 }),
+        absent: encodeAbsenceProof({ blockNumber, accountProof, storageProof: absentProof }),
+        present: encodeAbsenceProof({ blockNumber, accountProof, storageProof: presentProof }),
+      },
     },
   };
 }
@@ -292,7 +307,7 @@ async function main() {
     ring: await segment({ start: 1356n, length: 48, sealer: turns([0, 1, 2, 3, 4, 5]) }),
     // Under A: block 1200 commits to the verifier tries.
     verifier: await segment({
-      start: 1200n,
+      start: VERIFIER_BLOCK,
       length: 48,
       sealer: turns([0, 1, 2, 3, 4, 5]),
       tweak: (i, spec) => {
