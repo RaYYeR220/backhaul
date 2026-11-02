@@ -11,13 +11,15 @@ import {
     FillInstruction
 } from "./ERC7683.sol";
 import {BackhaulOrder, BackhaulOrders} from "./BackhaulOrder.sol";
-import {outboxKey} from "../core/Outbox.sol";
+import {Outbox, outboxKey} from "../core/Outbox.sol";
 import {IRemoteVerifier} from "../interfaces/IRemoteVerifier.sol";
 
 /// @title OriginSettler
-/// @notice ERC-7683 origin settler. Escrows the input on `open`; pays it to the solver's `repayTo`
-/// once the destination chain's fill is proven, or back to the user once its absence after the
-/// deadline is proven. Each order ends exactly once: Open -> Settled | Refunded.
+/// @notice ERC-7683 origin settler. Escrows the input on `open` and commits the order to the local
+/// Outbox (commitments[keyFor(this, orderId)] = keccak256(originData)), which is what LP vaults on
+/// the other chain prove before they fill. Pays the escrow to the solver's `repayTo` once the
+/// destination chain's fill is proven, or back to the user once its absence after the deadline is
+/// proven. Each order ends exactly once: Open -> Settled | Refunded.
 /// @dev Same selectors and Open event as IOriginSettler. It doesn't inherit the interface only
 ///      because `open` must be payable for native inputs, and Solidity won't let a payable
 ///      function override a non-payable one.
@@ -32,6 +34,7 @@ contract OriginSettler {
     }
 
     IRemoteVerifier public immutable verifier;
+    Outbox public immutable outbox;
     address private immutable _deployer;
 
     /// the DestinationSettler on the other chain
@@ -60,8 +63,9 @@ contract OriginSettler {
     error NotWired();
     error ZeroAddress();
 
-    constructor(IRemoteVerifier verifier_) {
+    constructor(IRemoteVerifier verifier_, Outbox outbox_) {
         verifier = verifier_;
+        outbox = outbox_;
         _deployer = msg.sender;
     }
 
@@ -79,6 +83,8 @@ contract OriginSettler {
         if (o.user != msg.sender) revert NotUser();
         if (statusOf[r.orderId] != Status.None) revert OrderExists();
         statusOf[r.orderId] = Status.Open;
+        // orderId is keccak256(originData), so this commits keccak256(originData)
+        outbox.commit(r.orderId, r.orderId);
 
         if (o.inputToken == address(0)) {
             if (msg.value != o.inputAmount) revert WrongValue();

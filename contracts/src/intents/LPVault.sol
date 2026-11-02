@@ -4,20 +4,23 @@ pragma solidity ^0.8.28;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import {BackhaulOrder} from "./BackhaulOrder.sol";
+import {BackhaulOrder, BackhaulOrders} from "./BackhaulOrder.sol";
 import {DestinationSettler} from "./DestinationSettler.sol";
+import {outboxKey} from "../core/Outbox.sol";
+import {IRemoteVerifier} from "../interfaces/IRemoteVerifier.sol";
 
 /// @title LPVault
-/// @notice Pooled solver inventory on the destination chain. LPs deposit `asset` for shares; an
-/// operator key fills orders from the pool through the DestinationSettler, and the fee comes back
-/// with the repayment.
+/// @notice Pooled solver inventory on the destination chain. LPs deposit `asset` for shares, and
+/// the pool fills orders through the DestinationSettler; the fee comes back with the repayment.
 ///
-/// The operator can only `fill`, and only orders that
-/// - pay out this vault's asset,
-/// - are paid for in the pinned input token on the pinned origin chain, and
-/// - pay at least `minFeeBps` over the output.
+/// There is no operator. Anyone may trigger `fill`, and it goes through only for an order that
+/// - is proven open on the origin chain: the remote OriginSettler committed it to its Outbox,
+///   checked through this chain's light-client verifier,
+/// - pays out this vault's asset,
+/// - is paid for in the pinned input token on the pinned origin chain, and
+/// - pays at least `minFeeBps` over the output.
 /// The repayment is always committed to `remoteVault`, a RepayForwarder on the origin chain that
-/// sends it back here over the canonical bridge. The operator has no withdraw path.
+/// sends it back here over the canonical bridge. Nobody can move LP funds any other way.
 ///
 /// Accounting: `idle` is the asset the vault has counted; `pendingRepay` is principal sent out on
 /// fills and not back yet. Anything above `idle` in the balance is new money: it first pays down
@@ -32,12 +35,13 @@ contract LPVault {
 
     address public immutable asset; // address(0) = native
     DestinationSettler public immutable dst;
-    address public immutable operator;
+    IRemoteVerifier public immutable verifier; // proves the origin chain
     uint16 public immutable minFeeBps;
     address private immutable _deployer;
 
     address public remoteVault;
     uint64 public originChainId;
+    address public remoteOriginSettler;
     address public remoteAsset;
 
     uint128 public idle;
@@ -49,9 +53,9 @@ contract LPVault {
     event Withdraw(address indexed lp, uint256 assets, uint256 shares);
     event VaultFill(bytes32 indexed orderId, uint256 outputAmount, uint256 inputAmount);
     event Repaid(uint256 principal, uint256 gain);
-    event RemoteSet(address remoteVault, address remoteAsset, uint64 originChainId);
+    event RemoteSet(address remoteVault, address remoteOriginSettler, address remoteAsset, uint64 originChainId);
 
-    error NotOperator();
+    error InvalidProof();
     error NotDeployer();
     error RemoteAlreadySet();
     error NotWired();
@@ -68,24 +72,29 @@ contract LPVault {
     error NativeNotAccepted();
     error NativeTransferFailed();
 
-    constructor(address asset_, DestinationSettler dst_, address operator_, uint16 minFeeBps_) {
+    constructor(address asset_, DestinationSettler dst_, IRemoteVerifier verifier_, uint16 minFeeBps_) {
         asset = asset_;
         dst = dst_;
-        operator = operator_;
+        verifier = verifier_;
         minFeeBps = minFeeBps_;
         _deployer = msg.sender;
     }
 
-    /// @notice One-time wiring: where repayments land on the origin chain, which token they come
-    ///         in, and which chain that is. Locked forever once set.
-    function setRemote(address remoteVault_, address remoteAsset_, uint64 originChainId_) external {
+    /// @notice One-time wiring: where repayments land on the origin chain, which settler opens
+    ///         orders there, which token pays for them, and which chain that is. Locked forever.
+    function setRemote(address remoteVault_, address remoteOriginSettler_, address remoteAsset_, uint64 originChainId_)
+        external
+    {
         if (msg.sender != _deployer) revert NotDeployer();
-        if (remoteVault_ == address(0) || originChainId_ == 0) revert ZeroAddress();
+        if (remoteVault_ == address(0) || remoteOriginSettler_ == address(0) || originChainId_ == 0) {
+            revert ZeroAddress();
+        }
         if (remoteVault != address(0)) revert RemoteAlreadySet();
         remoteVault = remoteVault_;
         originChainId = originChainId_;
+        remoteOriginSettler = remoteOriginSettler_;
         remoteAsset = remoteAsset_;
-        emit RemoteSet(remoteVault_, remoteAsset_, originChainId_);
+        emit RemoteSet(remoteVault_, remoteOriginSettler_, remoteAsset_, originChainId_);
     }
 
     // ---------------------------------------------------------------- LPs
@@ -127,16 +136,23 @@ contract LPVault {
         emit Withdraw(msg.sender, assets, shares);
     }
 
-    // ---------------------------------------------------------------- operator
+    // ---------------------------------------------------------------- fills
 
-    function fill(bytes32 orderId, bytes calldata originData) external {
-        if (msg.sender != operator) revert NotOperator();
+    /// @notice Fills an order from the pool. Permissionless: the order must be proven open on the
+    ///         origin chain, and the repayment always goes to `remoteVault`.
+    /// @param openProof proof, for `verifier`, that the remote OriginSettler committed
+    ///        keccak256(originData) under `orderId` in the origin Outbox
+    function fill(bytes32 orderId, bytes calldata originData, bytes calldata openProof) external {
         address repayTo = remoteVault;
         if (repayTo == address(0)) revert NotWired();
-        (BackhaulOrder memory o, uint64 fromChain,) = abi.decode(originData, (BackhaulOrder, uint64, uint32));
+        (bytes32 id, BackhaulOrder memory o, uint64 fromChain,) = BackhaulOrders.decode(originData);
         if (o.outputToken != asset) revert WrongAsset();
         if (o.inputToken != remoteAsset || fromChain != originChainId) revert WrongRoute();
         if (o.inputAmount * 10_000 < o.outputAmount * (10_000 + uint256(minFeeBps))) revert Unprofitable();
+        // `id` is the canonical keccak256(originData); a mismatched `orderId` has no such commitment
+        if (!verifier.verifyCommitment(outboxKey(remoteOriginSettler, orderId), id, openProof)) {
+            revert InvalidProof();
+        }
 
         _sync(0);
         uint256 out = o.outputAmount;

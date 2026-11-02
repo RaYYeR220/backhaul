@@ -74,6 +74,7 @@ contract SettlersTest is Test {
     uint64 internal constant PORTALDOT = 420420777;
     uint64 internal constant BSC = 97;
 
+    Outbox internal outboxP;
     Outbox internal outboxB;
     MockRemoteVerifier internal verP;
     OriginSettler internal origin;
@@ -92,10 +93,11 @@ contract SettlersTest is Test {
         vm.warp(1_800_000_000);
         deadline = uint32(block.timestamp + 600);
 
+        outboxP = new Outbox();
         outboxB = new Outbox();
         verP = new MockRemoteVerifier();
         verP.setMirror(address(outboxB));
-        origin = new OriginSettler(verP);
+        origin = new OriginSettler(verP, outboxP);
         dest = new DestinationSettler(outboxB, BSC);
         origin.setRemoteDestination(address(dest));
 
@@ -146,6 +148,8 @@ contract SettlersTest is Test {
         BackhaulOrder memory o = _defaultOrder();
         (bytes32 orderId, bytes memory originData) = _open(o);
         assertEq(uint8(origin.statusOf(orderId)), 1);
+        // the Open fact other chains prove before an LP vault fills
+        assertEq(outboxP.commitments(outboxKey(address(origin), orderId)), keccak256(originData));
         assertEq(tokenIn.balanceOf(address(origin)), 10e18);
 
         vm.expectEmit(address(dest));
@@ -479,7 +483,7 @@ contract SettlersTest is Test {
     }
 
     function test_setRemoteDestinationOnce() public {
-        OriginSettler o = new OriginSettler(verP);
+        OriginSettler o = new OriginSettler(verP, outboxP);
         vm.prank(user);
         vm.expectRevert(OriginSettler.NotDeployer.selector);
         o.setRemoteDestination(address(dest));

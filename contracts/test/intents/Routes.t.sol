@@ -10,9 +10,11 @@ import {DestinationSettler} from "../../src/intents/DestinationSettler.sol";
 import {LPVault} from "../../src/intents/LPVault.sol";
 import {RepayForwarder, PortaldotRepayForwarder, BscRepayForwarder} from "../../src/intents/RepayForwarder.sol";
 
-/// All four fast routes end to end on the real gateways: the user is paid by a vault on the
-/// destination, the solver repayment is proven on the origin, and it comes home to the vault
-/// through the canonical bridge. Fees end up in the vault's share price.
+/// All four routes end to end on the real gateways. Vault fills are proof-gated: anyone can
+/// trigger one, but only for an order proven open on the origin chain. The solver repayment is
+/// proven back on the origin and comes home to the vault through the canonical bridge, so fees
+/// end up in the vault's share price. Independent solvers can still fill instantly with their
+/// own money and no proof.
 contract RoutesTest is BridgeFixture {
     uint64 internal constant PORTALDOT = 420420777;
     uint64 internal constant BSC = 97;
@@ -34,34 +36,34 @@ contract RoutesTest is BridgeFixture {
     BscRepayForwarder internal ppotFwd; // repays potVault
     BscRepayForwarder internal bnbFwd; // repays bnbbVault
 
-    address internal operator = makeAddr("operator");
+    address internal keeper = makeAddr("keeper"); // anyone; triggers vault fills
     address internal lp = makeAddr("lp");
     address internal user = makeAddr("user");
     address internal recipient = makeAddr("recipient");
 
     function setUp() public override {
         super.setUp();
-        originP = new OriginSettler(verP);
-        originB = new OriginSettler(verB);
+        originP = new OriginSettler(verP, outboxP);
+        originB = new OriginSettler(verB, outboxB);
         destP = new DestinationSettler(outboxP, PORTALDOT);
         destB = new DestinationSettler(outboxB, BSC);
         originP.setRemoteDestination(address(destB));
         originB.setRemoteDestination(address(destP));
 
-        potVault = new LPVault(address(0), destP, operator, MIN_FEE);
-        bnbbVault = new LPVault(BNBB, destP, operator, MIN_FEE);
-        ppotVault = new LPVault(address(ppot), destB, operator, MIN_FEE);
-        bnbVault = new LPVault(address(0), destB, operator, MIN_FEE);
+        potVault = new LPVault(address(0), destP, verP, MIN_FEE);
+        bnbbVault = new LPVault(BNBB, destP, verP, MIN_FEE);
+        ppotVault = new LPVault(address(ppot), destB, verB, MIN_FEE);
+        bnbVault = new LPVault(address(0), destB, verB, MIN_FEE);
 
         potFwd = new PortaldotRepayForwarder(pGw, address(0), address(ppotVault));
         bnbbFwd = new PortaldotRepayForwarder(pGw, BNBB, address(bnbVault));
         ppotFwd = new BscRepayForwarder(bGw, address(ppot), address(potVault));
         bnbFwd = new BscRepayForwarder(bGw, address(0), address(bnbbVault));
 
-        ppotVault.setRemote(address(potFwd), address(0), PORTALDOT);
-        bnbVault.setRemote(address(bnbbFwd), BNBB, PORTALDOT);
-        potVault.setRemote(address(ppotFwd), address(ppot), BSC);
-        bnbbVault.setRemote(address(bnbFwd), address(0), BSC);
+        ppotVault.setRemote(address(potFwd), address(originP), address(0), PORTALDOT);
+        bnbVault.setRemote(address(bnbbFwd), address(originP), BNBB, PORTALDOT);
+        potVault.setRemote(address(ppotFwd), address(originB), address(ppot), BSC);
+        bnbbVault.setRemote(address(bnbFwd), address(originB), address(0), BSC);
 
         // the LP and the user get bridged assets the slow way first
         bGw.finalize(_lockPOT(lp, 1_000e18, lp), "");
@@ -108,8 +110,8 @@ contract RoutesTest is BridgeFixture {
         BackhaulOrder memory o = BackhaulOrder(user, address(0), 10e18, address(ppot), 9.96e18, recipient, BSC, 1);
         (bytes32 id, bytes memory d) = _open(originP, PORTALDOT, o);
 
-        vm.prank(operator);
-        ppotVault.fill(id, d);
+        vm.prank(keeper);
+        ppotVault.fill(id, d, ""); // proves the Open on Portaldot
         assertEq(ppot.balanceOf(recipient), 9.96e18);
 
         originP.settle(d, address(potFwd), ""); // proves the fill on BSC
@@ -131,8 +133,8 @@ contract RoutesTest is BridgeFixture {
         BackhaulOrder memory o = BackhaulOrder(user, address(ppot), 10e18, address(0), 9.96e18, recipient, PORTALDOT, 1);
         (bytes32 id, bytes memory d) = _open(originB, BSC, o);
 
-        vm.prank(operator);
-        potVault.fill(id, d);
+        vm.prank(keeper);
+        potVault.fill(id, d, "");
         assertEq(recipient.balance, 9.96e18);
 
         originB.settle(d, address(ppotFwd), "");
@@ -150,8 +152,8 @@ contract RoutesTest is BridgeFixture {
         BackhaulOrder memory o = BackhaulOrder(user, address(0), 1e18, BNBB, 0.996e18, recipient, PORTALDOT, 1);
         (bytes32 id, bytes memory d) = _open(originB, BSC, o);
 
-        vm.prank(operator);
-        bnbbVault.fill(id, d);
+        vm.prank(keeper);
+        bnbbVault.fill(id, d, "");
         assertEq(bnbb.balanceOf(recipient), 0.996e18);
 
         originB.settle(d, address(bnbFwd), "");
@@ -170,8 +172,8 @@ contract RoutesTest is BridgeFixture {
         BackhaulOrder memory o = BackhaulOrder(user, BNBB, 1e18, address(0), 0.996e18, recipient, BSC, 1);
         (bytes32 id, bytes memory d) = _open(originP, PORTALDOT, o);
 
-        vm.prank(operator);
-        bnbVault.fill(id, d);
+        vm.prank(keeper);
+        bnbVault.fill(id, d, "");
         assertEq(recipient.balance, 0.996e18);
 
         originP.settle(d, address(bnbbFwd), "");
@@ -181,6 +183,31 @@ contract RoutesTest is BridgeFixture {
 
         assertEq(bnbVault.pendingRepay(), 0);
         assertEq(bnbVault.totalAssets(), 50.004e18);
+    }
+
+    /// tPOT on Portaldot -> pPOT on BSC, filled at once by an independent solver with its own
+    /// pPOT (no proof needed to fill), repaid in tPOT once its fill is proven on Portaldot.
+    function test_routeFastSolver() public {
+        address solver = makeAddr("solver");
+        bGw.finalize(_lockPOT(solver, 50e18, solver), "");
+        _depositToken(ppotVault, address(ppot), 100e18);
+        BackhaulOrder memory o = BackhaulOrder(user, address(0), 10e18, address(ppot), 9.97e18, recipient, BSC, 2);
+        (bytes32 id, bytes memory d) = _open(originP, PORTALDOT, o);
+
+        vm.startPrank(solver);
+        ppot.approve(address(destB), 9.97e18);
+        destB.fill(id, d, abi.encode(solver));
+        vm.stopPrank();
+        assertEq(ppot.balanceOf(recipient), 9.97e18);
+
+        // a vault can't fill it again
+        vm.prank(keeper);
+        vm.expectRevert(DestinationSettler.AlreadyFilled.selector);
+        ppotVault.fill(id, d, "");
+
+        uint256 before = solver.balance;
+        originP.settle(d, solver, "");
+        assertEq(solver.balance - before, 10e18);
     }
 
     function test_forwarderRoundsToPotUnitAndKeepsDust() public {
