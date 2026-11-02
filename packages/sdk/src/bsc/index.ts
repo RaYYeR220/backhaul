@@ -3,3 +3,4 @@ export * from './header.js';
 export * from './receipts.js';
 export * from './storage.js';
 export * from './checkpoint.js';
+export * from './window.js';
