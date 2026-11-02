@@ -1,4 +1,4 @@
-// Merkle-Patricia proof vectors for the EthProofs trie walker, generated with @ethereumjs/trie.
+// Merkle-Patricia proof vectors for the EthProofs trie walker, built with @ethereumjs/trie.
 //
 //   npx tsx scripts/fixtures-bsc-mpt.ts
 //
