@@ -69,10 +69,21 @@ export async function readProof(api: ApiPromise, keys: Hex[], atBlock: number): 
   return p.proof.map((n) => n.toHex() as Hex);
 }
 
-/** Child-trie read proof (`state_getChildReadProof`) of `keys` at block `atBlock`. */
-export async function childReadProof(api: ApiPromise, trieId: Hex, keys: Hex[], atBlock: number): Promise<Hex[]> {
+/**
+ * Child-trie read proof of `keys` at block `atBlock`. `state_getChildReadProof` also returns the
+ * main-trie path to the child root; nodes already in `mainProof` are dropped, since the verifier
+ * reads the child root from the main proof and only walks the child trie with this one.
+ */
+export async function childReadProof(
+  api: ApiPromise,
+  trieId: Hex,
+  keys: Hex[],
+  atBlock: number,
+  mainProof: Hex[] = [],
+): Promise<Hex[]> {
   const p = await api.rpc.state.getChildReadProof(childInfoKey(trieId), keys, await blockHashOf(api, atBlock));
-  return p.proof.map((n) => n.toHex() as Hex);
+  const known = new Set(mainProof);
+  return p.proof.map((n) => n.toHex() as Hex).filter((n) => !known.has(n));
 }
 
 /** trieId of a revive contract at block `atBlock`, read from `Revive::AccountInfoOf`. */
@@ -99,10 +110,8 @@ export async function buildSlotProof(
 ): Promise<Hex> {
   const trieId = await trieIdOf(api, contractH160, atBlock);
   const mainKeys = withTimestamp ? [childInfoKey(trieId), TIMESTAMP_NOW_KEY] : [childInfoKey(trieId)];
-  const [mainProof, childProof] = await Promise.all([
-    readProof(api, mainKeys, atBlock),
-    childReadProof(api, trieId, [reviveSlotKey(slot)], atBlock),
-  ]);
+  const mainProof = await readProof(api, mainKeys, atBlock);
+  const childProof = await childReadProof(api, trieId, [reviveSlotKey(slot)], atBlock, mainProof);
   return encodeAbiParameters(PROOF_ABI, [atBlock, mainProof, childProof]);
 }
 

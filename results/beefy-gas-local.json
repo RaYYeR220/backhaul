@@ -1,0 +1,48 @@
+{
+  "bindTrieId": {
+    "calldata": 34924,
+    "calldataBytes": 2788,
+    "execution": 414714,
+    "transaction": 470638
+  },
+  "commitmentBlock": 298232,
+  "headerNumber": 298222,
+  "importHeader": {
+    "calldata": 11040,
+    "calldataBytes": 900,
+    "execution": 77442,
+    "transaction": 109482
+  },
+  "network": "local forge EVM (cancun), live Portaldot V3 testnet fixtures",
+  "rotate": {
+    "calldata": 18980,
+    "calldataBytes": 1604,
+    "execution": 380373,
+    "transaction": 420353
+  },
+  "submitCommitment": {
+    "calldata": 4808,
+    "calldataBytes": 644,
+    "execution": 77562,
+    "transaction": 103370
+  },
+  "submitCommitmentNewSet": {
+    "calldata": 4820,
+    "calldataBytes": 644,
+    "execution": 77574,
+    "transaction": 103394
+  },
+  "validators": 2,
+  "verifyAbsence": {
+    "calldata": 45344,
+    "calldataBytes": 3812,
+    "execution": 674431,
+    "transaction": 740775
+  },
+  "verifyCommitment": {
+    "calldata": 41240,
+    "calldataBytes": 3428,
+    "execution": 511082,
+    "transaction": 573322
+  }
+}

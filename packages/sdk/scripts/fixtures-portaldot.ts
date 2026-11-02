@@ -15,13 +15,15 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blake2AsU8a, keccakAsU8a } from "@polkadot/util-crypto";
 import {
-  decodeAuthorities,
+  authoritiesAt,
   decodeJustification,
   encodeCommitment,
   fetchStoredJustification,
   JustificationArchive,
   recoverSigners,
+  sessionStartOf,
   uncompressKey,
+  validatorSetIdAt,
   type DecodedJustification,
 } from "../src/portaldot/beefy";
 import { connectPortaldot, disconnectPortaldot, finalizedNumber, type PortaldotClient } from "../src/portaldot/client";
@@ -112,24 +114,6 @@ async function at(c: PortaldotClient, n: number) {
   return c.api.at(await c.api.rpc.chain.getBlockHash(n));
 }
 
-async function setIdAt(c: PortaldotClient, n: number): Promise<bigint> {
-  return BigInt((await (await at(c, n)).query.beefy.validatorSetId()).toString());
-}
-
-/** First block whose state has `Beefy::ValidatorSetId >= setId` (the session's mandatory block). */
-async function sessionStartOf(c: PortaldotClient, setId: bigint, hint: number): Promise<number> {
-  let hi = hint;
-  if ((await setIdAt(c, hi)) < setId) throw new Error(`set ${setId} not active at ${hi}`);
-  let lo = Math.max(0, hi - 1500);
-  while (lo > 0 && (await setIdAt(c, lo)) >= setId) lo = Math.max(0, lo - 1500);
-  while (hi - lo > 1) {
-    const mid = (lo + hi) >> 1;
-    if ((await setIdAt(c, mid)) >= setId) hi = mid;
-    else lo = mid;
-  }
-  return hi;
-}
-
 async function capture(c: PortaldotClient, pinned?: number): Promise<Capture> {
   const archive = JustificationArchive.open(ARCHIVE);
   let entry = pinned !== undefined ? archive.get(pinned) : undefined;
@@ -144,7 +128,7 @@ async function capture(c: PortaldotClient, pinned?: number): Promise<Capture> {
   }
   const commitment = decodeJustification(entry.proof);
   const setId = commitment.commitment.validatorSetId;
-  const sessionStart = await sessionStartOf(c, setId, commitment.commitment.blockNumber);
+  const sessionStart = await sessionStartOf(c.api, setId, commitment.commitment.blockNumber);
   const headerNumber = commitment.commitment.blockNumber - 10;
   if (headerNumber < sessionStart) throw new Error("commitment too close to the session start");
   const olderEntry = archive
@@ -170,6 +154,7 @@ function commitmentJson(j: DecodedJustification) {
     commitmentScale: e.commitmentScale,
     indices: e.indices,
     signatures: e.signatures,
+    justification: j.raw,
   };
 }
 
@@ -181,12 +166,6 @@ function checkSigners(j: DecodedJustification, authorities: Hex[]): void {
       throw new Error(`signature ${i} of block ${j.commitment.blockNumber} is not authority ${idx}`);
     }
   });
-}
-
-async function authoritiesAt(c: PortaldotClient, n: number, next = false): Promise<Hex[]> {
-  const a = await at(c, n);
-  const v = next ? await a.query.beefy.nextAuthorities() : await a.query.beefy.authorities();
-  return decodeAuthorities(v.toHex() as Hex);
 }
 
 // ------------------------------------------------------------------ MMR
@@ -222,8 +201,8 @@ async function waitForNextSet(c: PortaldotClient, cap: Capture): Promise<{ start
   const target = cap.setId + 1n;
   for (;;) {
     const head = await finalizedNumber(c.api);
-    if ((await setIdAt(c, head)) >= target) {
-      const start = await sessionStartOf(c, target, head);
+    if ((await validatorSetIdAt(c.api, head)) >= target) {
+      const start = await sessionStartOf(c.api, target, head);
       const archived = JustificationArchive.open(ARCHIVE).get(start)?.proof;
       const proof = archived ?? (await fetchStoredJustification(c.api, start));
       if (proof) return { start, j: decodeJustification(proof) };
@@ -238,7 +217,7 @@ async function waitForNextSet(c: PortaldotClient, cap: Capture): Promise<{ start
 async function beefyFixture(c: PortaldotClient, mirror: MmrMirror, cap: Capture, waitNext: boolean): Promise<void> {
   const C = cap.commitment.commitment.blockNumber;
   const H = cap.headerNumber;
-  const authorities = await authoritiesAt(c, H);
+  const authorities = await authoritiesAt(c.api, H);
   for (const j of [cap.checkpoint, cap.older, cap.commitment]) checkSigners(j, authorities);
 
   const headerScale = await fetchHeaderScale(c.api, H);
@@ -247,9 +226,9 @@ async function beefyFixture(c: PortaldotClient, mirror: MmrMirror, cap: Capture,
   const mmrProof = mirror.proof(H, C);
   if (!verifyLeafProof(cap.commitment.mmrRoot, leafHash(H, hdr.hash), mmrProof)) throw new Error("header proof fails");
 
-  if ((await setIdAt(c, H)) !== cap.setId) throw new Error("header is outside the commitment's session");
+  if ((await validatorSetIdAt(c.api, H)) !== cap.setId) throw new Error("header is outside the commitment's session");
   const storageProof = await readProof(c.api, [BEEFY_VALIDATOR_SET_ID_KEY, BEEFY_NEXT_AUTHORITIES_KEY], H);
-  const next = await authoritiesAt(c, H, true);
+  const next = await authoritiesAt(c.api, H, true);
   const nextKeys = next.map(uncompressKey);
 
   const fixture: Record<string, unknown> = {
@@ -341,12 +320,13 @@ async function storageFixture(c: PortaldotClient, cap: Capture): Promise<void> {
   const slot0Value = await childValue(c, generic.trieId, slot0, H);
   if (!slot0Value || BigInt(slot0Value) === 0n) throw new Error("slot 0 is empty");
   if ((await childValue(c, generic.trieId, emptySlot, H)) !== null) throw new Error("empty slot is set");
+  const genericMain = await readProof(c.api, [childInfoKey(generic.trieId)], H);
   const slotEntry = async (slot: Hex, value: Hex | null) => ({
     slot,
     key: reviveSlotKey(slot),
     value: value ?? word(0n),
     present: value !== null,
-    childProof: await childReadProof(c.api, generic.trieId, [reviveSlotKey(slot)], H),
+    childProof: await childReadProof(c.api, generic.trieId, [reviveSlotKey(slot)], H, genericMain),
   });
 
   // Outbox semantics on a live mapping at slot 0: commitments[key] lives at keccak256(key ‖ 0).
@@ -365,7 +345,7 @@ async function storageFixture(c: PortaldotClient, cap: Capture): Promise<void> {
     generic: {
       ...generic,
       childInfoKey: childInfoKey(generic.trieId),
-      mainProof: await readProof(c.api, [childInfoKey(generic.trieId)], H),
+      mainProof: genericMain,
       slot: await slotEntry(slot0, slot0Value),
       emptySlot: await slotEntry(emptySlot, null),
     },
