@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import {Rlp} from "./Rlp.sol";
+
 /// @notice A BNB Smart Chain block header, decoded and with its seal recovered.
 /// @param hash keccak256 of the header RLP (the block hash).
 /// @param signer Address recovered from the Parlia seal in the last 65 bytes of `extra`.
@@ -69,7 +71,7 @@ library BscHeader {
         Layout memory l;
         (h, l) = _walk(rlp);
         h.hash = keccak256(rlp);
-        h.extra = _copy(l.extraData, l.extraLen);
+        h.extra = Rlp.copy(l.extraData, l.extraLen);
         h.signer = _recover(_sealHash(l, chainId), l.extraData + l.extraLen - EXTRA_SEAL);
     }
 
@@ -113,14 +115,14 @@ library BscHeader {
             start := add(rlp, 32)
         }
         uint256 end = start + rlp.length;
-        (uint256 ptr, uint256 len, bool isList) = _item(start, end);
+        (uint256 ptr, uint256 len, bool isList) = Rlp.item(start, end);
         if (!isList || ptr + len != end) revert InvalidRlp();
         l.first = ptr;
 
-        uint256 i;
+        uint256 i = 0;
         while (ptr < end) {
             if (i == MAX_ITEMS) revert InvalidHeader();
-            (uint256 data, uint256 size, bool list) = _item(ptr, end);
+            (uint256 data, uint256 size, bool list) = Rlp.item(ptr, end);
             if (list) revert InvalidHeader();
             uint256 next = data + size;
             if (i == 0) h.parentHash = _bytes32(data, size);
@@ -145,35 +147,6 @@ library BscHeader {
         if (i < BASE_ITEMS) revert InvalidHeader();
         if (i >= BEACON_ITEMS) l.tailEnd = end;
         if (l.extraLen < EXTRA_VANITY + EXTRA_SEAL) revert InvalidHeader();
-    }
-
-    /// @dev Decodes the RLP prefix at `ptr`. Returns the payload position and size, bounded by `end`.
-    function _item(uint256 ptr, uint256 end) private pure returns (uint256 data, uint256 size, bool isList) {
-        if (ptr >= end) revert InvalidRlp();
-        uint256 b0;
-        assembly ("memory-safe") {
-            b0 := byte(0, mload(ptr))
-        }
-        if (b0 < 0x80) return (ptr, 1, false);
-        if (b0 < 0xb8) {
-            (data, size) = (ptr + 1, b0 - 0x80);
-        } else if (b0 < 0xc0) {
-            (data, size) = _long(ptr, end, b0 - 0xb7);
-        } else if (b0 < 0xf8) {
-            (data, size, isList) = (ptr + 1, b0 - 0xc0, true);
-        } else {
-            (data, size) = _long(ptr, end, b0 - 0xf7);
-            isList = true;
-        }
-        if (data + size > end) revert InvalidRlp();
-    }
-
-    function _long(uint256 ptr, uint256 end, uint256 lenOfLen) private pure returns (uint256 data, uint256 size) {
-        if (lenOfLen > 4 || ptr + 1 + lenOfLen > end) revert InvalidRlp();
-        assembly ("memory-safe") {
-            size := shr(sub(256, mul(8, lenOfLen)), mload(add(ptr, 1)))
-        }
-        data = ptr + 1 + lenOfLen;
     }
 
     function _bytes32(uint256 data, uint256 size) private pure returns (bytes32 v) {
@@ -281,12 +254,5 @@ library BscHeader {
         if (v > 1 || uint256(s) > HALF_ORDER) revert InvalidSignature();
         signer = ecrecover(digest, uint8(v + 27), r, s);
         if (signer == address(0)) revert InvalidSignature();
-    }
-
-    function _copy(uint256 src, uint256 len) private pure returns (bytes memory out) {
-        out = new bytes(len);
-        assembly ("memory-safe") {
-            mcopy(add(out, 32), src, len)
-        }
     }
 }
