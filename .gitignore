@@ -1,0 +1,39 @@
+# deps / build
+node_modules/
+contracts/out/
+contracts/cache/
+contracts/broadcast/*/dry-run/
+ink/**/target/
+.next/
+dist/
+coverage/
+*.tsbuildinfo
+
+# secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets/
+
+# local data
+services/relayer/data/
+packages/sdk/.cache/
+
+# working notes (not part of the product)
+BRIEF.md
+SHIP-STATE.md
+DESIGN.md
+PLAN.md
+.remember/
+.claude/
+docs/superpowers/
+ui-prototypes/
+mockups/
+variants/
+design-ref/
+video/
+*-internal/
+*-backup*
+*.bundle

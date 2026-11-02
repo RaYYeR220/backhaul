@@ -1,0 +1,10 @@
+{
+  "name": "backhaul",
+  "private": true,
+  "workspaces": ["packages/*", "services/*"],
+  "scripts": {
+    "test:contracts": "cd contracts && forge test",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "engines": { "node": ">=22" }
+}
