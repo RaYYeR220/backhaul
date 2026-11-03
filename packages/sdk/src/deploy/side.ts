@@ -1,6 +1,6 @@
 // One chain's half of a deployment: deploys and calls that resume from deployments/<chain>.json.
 
-import { encodeDeployData, encodeFunctionData, getAddress, type Abi, type Address, type Hex } from 'viem';
+import { encodeDeployData, encodeFunctionData, getAddress, keccak256, type Abi, type Address, type Hex } from 'viem';
 import { loadArtifact, runtimeSize } from '../artifacts.js';
 import type { ChainName } from '../chains.js';
 import { saveDeployment, type Deployment } from '../deployments.js';
@@ -18,6 +18,8 @@ export interface TxLog {
   gasUsed: bigint;
   gasPrice: bigint;
   codeBytes: number;
+  /** keccak256 of the runtime code a deploy left on a local node (revive stores code once per hash). */
+  runtimeHash?: Hex;
   /** Storage slots created (local nodes only, from the prestate diff). */
   newSlots?: number;
   /** Constructor depends on contracts that only exist in this run (no live dry-run possible). */
@@ -80,7 +82,13 @@ export class Side {
       codeBytes,
       dependsOnLocal,
     };
-    if (this.opts.trace) log.newSlots = (await stateDiff(this.need().pub, r.hash)).newSlots;
+    if (this.opts.trace) {
+      log.newSlots = (await stateDiff(this.need().pub, r.hash)).newSlots;
+      if (kind === 'deploy' && r.receipt.contractAddress) {
+        const code = await this.need().pub.getCode({ address: r.receipt.contractAddress });
+        if (code) log.runtimeHash = keccak256(code);
+      }
+    }
     this.txs.push(log);
   }
 

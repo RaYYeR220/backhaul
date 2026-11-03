@@ -239,20 +239,27 @@ async function costReport(ptxs: TxLog[], btxs: TxLog[], api: any, ops: SampleOp[
   const pdLive = createPublicClient({ transport: http(pdRpc, { timeout: 120_000 }) }) as PublicClient;
   const bscLive = createPublicClient({ transport: http(bscRpc) }) as PublicClient;
   log('calibrating the Portaldot cost model with live estimates');
-  const rates = await calibratePortaldot(pdLive, estimateFrom, DUMMY_EOA);
+  // any live contract will do to measure what re-deploying identical code costs
+  const rates = await calibratePortaldot(pdLive, estimateFrom, DUMMY_EOA, '0x1d0c17a0ee1dcf15bd05a45ae789058a0586aa68');
   const r = (x: bigint) => fmtUnits(x, 18, 4);
   log(
     `rates: deploy base ${r(rates.deployBase)}, code ${r(rates.codeRate * 1000n)}/KB, storage item ${r(rates.slotRate)}, ` +
-      `call base ${r(rates.callBase)}, calldata ${r(rates.byteRate * 1000n)}/KB (tPOT, gas price ${rates.gasPrice})`,
+      `call base ${r(rates.callBase)}, calldata ${r(rates.byteRate * 1000n)}/KB, reused code ${r(rates.reuseCodeRate * 1000n)}/KB (tPOT, gas price ${rates.gasPrice})`,
   );
 
   const pLines: Line[] = [];
+  const seen = new Set<string>();
   for (const t of ptxs) {
     // The local run mints BNB.b on a mock ERC-20; live, that is a substrate extrinsic (priced below).
     if (t.step.startsWith('bnbb.')) continue;
     let fee: bigint | undefined;
     let method = 'model';
-    if (t.kind === 'deploy' && !t.dependsOnLocal) {
+    const reused = t.kind === 'deploy' && !!t.runtimeHash && seen.has(t.runtimeHash);
+    if (t.runtimeHash) seen.add(t.runtimeHash);
+    if (reused) {
+      fee = modelCost(rates, { kind: 'deploy', reused, dataBytes: (t.data.length - 2) / 2, codeBytes: t.codeBytes, newSlots: t.newSlots ?? 0 });
+      method = 'model: code already stored under this hash';
+    } else if (t.kind === 'deploy' && !t.dependsOnLocal) {
       try {
         fee = (await pdLive.estimateGas({ account: estimateFrom, data: t.data, value: t.value })) * rates.gasPrice;
         method = 'live estimate';

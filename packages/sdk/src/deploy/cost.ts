@@ -17,6 +17,8 @@ export interface PortaldotRates {
   slotRate: bigint;
   callBase: bigint;
   byteRate: bigint;
+  /** Per byte of code that is already stored under the same hash (revive keeps code once per hash). */
+  reuseCodeRate: bigint;
 }
 
 /** Init code whose constructor writes `slots` storage slots and returns `runtimeLen` bytes of code. */
@@ -31,7 +33,17 @@ export function probeInitcode(slots: number, runtimeLen: number): Hex {
 }
 
 /** Measures the model's rates with live eth_estimateGas calls from a funded account. */
-export async function calibratePortaldot(pub: PublicClient, from: Address, eoa: Address): Promise<PortaldotRates> {
+/** Init code that returns `runtime` verbatim. */
+export function wrapRuntime(runtime: Hex): Hex {
+  const l = ((runtime.length - 2) / 2).toString(16).padStart(4, '0');
+  return `0x61${l}61000f600039${'61'}${l}6000f3${runtime.slice(2)}`;
+}
+
+/**
+ * Measures the model's rates with live eth_estimateGas calls from a funded account. `existing` is
+ * any contract already on chain: deploying its exact runtime again prices reused code.
+ */
+export async function calibratePortaldot(pub: PublicClient, from: Address, eoa: Address, existing?: Address): Promise<PortaldotRates> {
   const gasPrice = await pub.getGasPrice();
   const est = async (p: { to?: Address; data: Hex }) => (await pub.estimateGas({ account: from, to: p.to, data: p.data, value: 0n })) * gasPrice;
   const base = await est({ data: probeInitcode(0, 1) });
@@ -39,7 +51,16 @@ export async function calibratePortaldot(pub: PublicClient, from: Address, eoa: 
   const slot = await est({ data: probeInitcode(1, 1) });
   const callBase = await est({ to: eoa, data: '0x' });
   const call10k = await est({ to: eoa, data: `0x${'11'.repeat(10_000)}` });
+  let reuseCodeRate = ((code - base) / 1000n) * 23n / 100n; // measured 2026-11-03: ~23% of a fresh upload
+  if (existing) {
+    const runtime = await pub.getCode({ address: existing });
+    if (runtime && runtime !== '0x') {
+      const again = await est({ data: wrapRuntime(runtime) });
+      reuseCodeRate = (again - base) / BigInt((runtime.length - 2) / 2);
+    }
+  }
   return {
+    reuseCodeRate,
     gasPrice,
     deployBase: base,
     codeRate: (code - base) / 1000n,
@@ -51,6 +72,8 @@ export async function calibratePortaldot(pub: PublicClient, from: Address, eoa: 
 
 export interface ModelInput {
   kind: 'deploy' | 'call';
+  /** The runtime code is already stored on chain under the same hash. */
+  reused?: boolean;
   dataBytes: number;
   codeBytes: number;
   newSlots: number;
@@ -59,7 +82,7 @@ export interface ModelInput {
 export function modelCost(r: PortaldotRates, x: ModelInput): bigint {
   const slots = BigInt(x.newSlots) * r.slotRate;
   const bytes = BigInt(x.dataBytes) * r.byteRate;
-  if (x.kind === 'deploy') return r.deployBase + BigInt(x.codeBytes) * r.codeRate + slots + bytes;
+  if (x.kind === 'deploy') return r.deployBase + BigInt(x.codeBytes) * (x.reused ? r.reuseCodeRate : r.codeRate) + slots + bytes;
   return r.callBase + bytes + slots;
 }
 
