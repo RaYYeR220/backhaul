@@ -1,0 +1,163 @@
+{
+  "tests": {
+    "suites": [
+      {
+        "name": "forge",
+        "count": 249
+      },
+      {
+        "name": "sdk",
+        "count": 86
+      },
+      {
+        "name": "relayer",
+        "count": 34
+      },
+      {
+        "name": "ink",
+        "count": 32
+      }
+    ],
+    "total": 401,
+    "source": "last full suite run"
+  },
+  "gas": {
+    "network": "local forge EVM (cancun), live Portaldot V3 testnet fixtures",
+    "beefyCommitment": 77562,
+    "headerImport": 77442,
+    "setHandoff": 380373,
+    "storageProof": 511082
+  },
+  "beefy": {
+    "network": "anvil fork of BSC testnet, live Portaldot V3 testnet data",
+    "at": "2026-11-03T17:30:45.275Z",
+    "fromSet": 520,
+    "toSet": 521,
+    "rotations": 1,
+    "signers": [
+      "0x4d13b6aea6cd423cc48d7159ac10b26927c2b421",
+      "0x4a69b8f722a9b486f9db0d243c908170012d7413"
+    ],
+    "commitmentBlock": 309019,
+    "commitmentGas": 77328,
+    "header": 309018,
+    "headerGas": 76296,
+    "mmrRoot": "0x41f9faf72c817783e17aef5c95db050b12915faf3666926ecadb65a647ca4038",
+    "stateRoot": "0x6faf9a8f58f5680382b6369eb665c051acfa33011c13c160d0e44d14e00b5b29",
+    "trieId": "0x2ced995fc955c9abb8d4a3009e7795ce5712518250f73272b6969031ffa93eb8",
+    "storageProofBytes": 3296,
+    "storageProofGas": 510670
+  },
+  "parlia": {
+    "network": "local anvil node standing in for Portaldot, live BSC testnet data",
+    "at": "2026-11-03T17:23:07.497Z",
+    "validators": [
+      "0x08265dA01E1A65d62b903c7B34c08cB389bF3D99",
+      "0x1a3d9D7A717D64e6088aC937d5aAcDD3E20ca963",
+      "0x32415e630B9B3489639dEE7de21274Ab64016226",
+      "0x53387F3321FD69d1E030BB921230dFb188826AFF",
+      "0x798443fb327CaD5dFD47CA4dDB15BB876D6C40E0",
+      "0x7f5f2cF1aec83bF0c74DF566a41aa7ed65EA84Ea",
+      "0x90409F56966B5da954166eB005Cb1A8790430BA1",
+      "0xd447b49CD040D20BC21e49ffEa6487F5638e4346",
+      "0xF9a1Db0d6f22Bd78ffAECCbc8F47c83Df9FBdbCf"
+    ],
+    "turnLength": 8,
+    "block": 140612765,
+    "headers": 44,
+    "bytes": 39303,
+    "distinctSealers": 7,
+    "untrustedSealers": 1,
+    "untrustedSeals": 8,
+    "gas": 1669820,
+    "finalizedHashMatches": true,
+    "receiptProofNodes": 2,
+    "receiptProofBytes": 11264
+  },
+  "attacks": {
+    "total": 12,
+    "items": [
+      {
+        "id": "beefy-forged-signature",
+        "reason": "InvalidSignature(0)",
+        "rejected": true
+      },
+      {
+        "id": "beefy-stale-set",
+        "reason": "UnknownValidatorSet(503, 520)",
+        "rejected": true
+      },
+      {
+        "id": "mmr-wrong-leaf",
+        "reason": "HeaderNotInMmr",
+        "rejected": true
+      },
+      {
+        "id": "header-not-in-mmr",
+        "reason": "HeaderNotInMmr",
+        "rejected": true
+      },
+      {
+        "id": "tampered-storage-proof",
+        "reason": "false",
+        "rejected": true
+      },
+      {
+        "id": "replayed-nonce",
+        "reason": null,
+        "rejected": false
+      },
+      {
+        "id": "refund-filled-order",
+        "reason": "false",
+        "rejected": true
+      },
+      {
+        "id": "parlia-forged-header",
+        "reason": "BrokenLink(140612766)",
+        "rejected": true
+      },
+      {
+        "id": "parlia-too-few-sealers",
+        "reason": "TooFewSigners(5, 6)",
+        "rejected": true
+      },
+      {
+        "id": "receipt-not-included",
+        "reason": "LogIndexOutOfRange(67, 8)",
+        "rejected": true
+      },
+      {
+        "id": "settle-unfilled-order",
+        "reason": "InvalidProof",
+        "rejected": true
+      },
+      {
+        "id": "bnbb-beyond-locked",
+        "reason": "InvalidProof",
+        "rejected": true
+      }
+    ]
+  },
+  "wasm": {
+    "wasmBytes": 20088,
+    "window48Headers": 48,
+    "window48RefTimeMs": 12.32,
+    "window48ProofSize": 30837,
+    "evmWindow48Gas": 1827194
+  },
+  "deployCost": {
+    "portaldotTpot": 3004.243327,
+    "bscTbnb": 0.001233
+  },
+  "deployment": null,
+  "transfers": [],
+  "sources": [
+    "results/rehearsal-beefy.json",
+    "results/rehearsal-parlia.json",
+    "results/beefy-gas-local.json",
+    "results/benchmark-wasm-local.json",
+    "results/benchmark-evm-local.json",
+    "results/deploy-cost-estimate.json"
+  ]
+}

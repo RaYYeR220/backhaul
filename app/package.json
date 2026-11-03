@@ -4,11 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/deck-facts.mjs",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "sync:deployments": "node scripts/sync-deployments.mjs",
-    "mock:relayer": "node scripts/mock-relayer.mjs"
+    "mock:relayer": "node scripts/mock-relayer.mjs",
+    "sync:deck": "node scripts/deck-facts.mjs"
   },
   "dependencies": {
     "next": "15.5.28",
