@@ -19,6 +19,7 @@ export const ABI_CONTRACTS = [
   'PortaldotGateway',
   'ParliaClient',
   'BscVerifier',
+  'BscFeed',
   'OriginSettler',
   'DestinationSettler',
   'LPVault',
