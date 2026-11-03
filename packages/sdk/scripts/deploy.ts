@@ -15,6 +15,7 @@
  * Options: --out <dir>  --asset-id <n>  --seed-gas <tPOT>  --seed-pot-vault <tPOT>
  *          --seed-bnb-vault <tBNB>  --approval-fund <tPOT>  --min-fee-bps <n>
  *          --estimate-from <0x funded Portaldot address>  --keep (leave local nodes running)
+ *          --minimal (= --no-bnb-vaults: no LP vaults on the BNB routes; BNB still bridges)
  */
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -145,6 +146,7 @@ async function main() {
     assetId,
     bnbbSupply: SUPPLY,
     minFeeBps,
+    bnbVaults: !flag('no-bnb-vaults') && !flag('minimal'),
     trustingPeriod: TRUSTING_PERIOD,
     seeds,
     portaldot,
@@ -307,7 +309,8 @@ async function costReport(ptxs: TxLog[], btxs: TxLog[], api: any, ops: SampleOp[
     bsc: { gasPrice: bscPrice, lines: bLines, ...bt },
     running: { parliaWindowFresh: window, parliaWindowWarm: windowWarm, storageItem: rates.slotRate, userOps },
   };
-  const path = resolve(ROOT, 'results', 'deploy-cost-estimate.json');
+  const minimal = flag('no-bnb-vaults') || flag('minimal');
+  const path = resolve(ROOT, 'results', minimal ? 'deploy-cost-estimate-minimal.json' : 'deploy-cost-estimate.json');
   writeFileSync(path, JSON.stringify(out, jsonReplacer, 2) + '\n');
   log(`wrote ${path}`);
 }

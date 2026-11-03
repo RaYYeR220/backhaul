@@ -44,6 +44,11 @@ export interface PlanConfig {
   assetId: number;
   bnbbSupply: bigint;
   minFeeBps: number;
+  /**
+   * Deploy the BNB route vaults (BNB.b vault + forwarder on Portaldot, tBNB vault + forwarder on
+   * BSC). Without them BNB still bridges canonically and independent solvers can still fill.
+   */
+  bnbVaults?: boolean;
   trustingPeriod: bigint;
   seeds: Seeds;
   /** Live Portaldot substrate client (BEEFY checkpoint, BNB.b, bindTrieId). */
@@ -72,6 +77,12 @@ async function step(cfg: PlanConfig, name: string, fn: () => Promise<unknown>): 
     }
     throw e;
   }
+}
+
+/** Like {@link step}, but skipped when the BNB route vaults are left out. */
+async function bnbStep(cfg: PlanConfig, name: string, fn: () => Promise<unknown>): Promise<boolean> {
+  if (cfg.bnbVaults === false) return false;
+  return step(cfg, name, fn);
 }
 
 const nonZero = (a: Address) => getAddress(a) !== zeroAddress;
@@ -220,13 +231,13 @@ export async function runPlan(P: Side, B: Side, cfg: PlanConfig): Promise<void> 
   await step(cfg, 'PotVault', () =>
     P.deploy('PotVault', 'LPVault', () => Promise.resolve([zeroAddress, P.addr('DestinationSettler'), P.addr('BscVerifier'), fee])),
   );
-  await step(cfg, 'BnbbVault', () =>
+  await bnbStep(cfg, 'BnbbVault', () =>
     P.deploy('BnbbVault', 'LPVault', () => Promise.resolve([precompile, P.addr('DestinationSettler'), P.addr('BscVerifier'), fee])),
   );
   await step(cfg, 'PpotVault', () =>
     B.deploy('PpotVault', 'LPVault', () => Promise.resolve([B.addr('PPOT'), B.addr('DestinationSettler'), B.addr('PortaldotVerifier'), fee])),
   );
-  await step(cfg, 'BnbVault', () =>
+  await bnbStep(cfg, 'BnbVault', () =>
     B.deploy('BnbVault', 'LPVault', () => Promise.resolve([zeroAddress, B.addr('DestinationSettler'), B.addr('PortaldotVerifier'), fee])),
   );
 
@@ -234,7 +245,7 @@ export async function runPlan(P: Side, B: Side, cfg: PlanConfig): Promise<void> 
   await step(cfg, 'PotForwarder', () =>
     P.deploy('PotForwarder', 'PortaldotRepayForwarder', () => Promise.resolve([P.addr('PortaldotGateway'), zeroAddress, B.addr('PpotVault')])),
   );
-  await step(cfg, 'BnbbForwarder', () =>
+  await bnbStep(cfg, 'BnbbForwarder', () =>
     P.deploy('BnbbForwarder', 'PortaldotRepayForwarder', () => Promise.resolve([P.addr('PortaldotGateway'), precompile, B.addr('BnbVault')]), {
       dependsOnLocal: true,
     }),
@@ -242,7 +253,7 @@ export async function runPlan(P: Side, B: Side, cfg: PlanConfig): Promise<void> 
   await step(cfg, 'PpotForwarder', () =>
     B.deploy('PpotForwarder', 'BscRepayForwarder', () => Promise.resolve([B.addr('BscGateway'), B.addr('PPOT'), P.addr('PotVault')])),
   );
-  await step(cfg, 'BnbForwarder', () =>
+  await bnbStep(cfg, 'BnbForwarder', () =>
     B.deploy('BnbForwarder', 'BscRepayForwarder', () => Promise.resolve([B.addr('BscGateway'), zeroAddress, P.addr('BnbbVault')])),
   );
 
@@ -252,7 +263,7 @@ export async function runPlan(P: Side, B: Side, cfg: PlanConfig): Promise<void> 
     B.call('PpotVault.setRemote', B.addr('PpotVault'), lpVaultAbi as Abi, 'setRemote',
       [P.addr('PotForwarder'), P.addr('OriginSettler'), zeroAddress, BigInt(PORTALDOT_CHAIN_ID)], { done: vaultDone(B, 'PpotVault') }),
   );
-  await step(cfg, 'BnbVault.setRemote', () =>
+  await bnbStep(cfg, 'BnbVault.setRemote', () =>
     B.call('BnbVault.setRemote', B.addr('BnbVault'), lpVaultAbi as Abi, 'setRemote',
       [P.addr('BnbbForwarder'), P.addr('OriginSettler'), precompile, BigInt(PORTALDOT_CHAIN_ID)], { done: vaultDone(B, 'BnbVault') }),
   );
@@ -260,7 +271,7 @@ export async function runPlan(P: Side, B: Side, cfg: PlanConfig): Promise<void> 
     P.call('PotVault.setRemote', P.addr('PotVault'), lpVaultAbi as Abi, 'setRemote',
       [B.addr('PpotForwarder'), B.addr('OriginSettler'), B.addr('PPOT'), BigInt(BSC_CHAIN_ID)], { done: vaultDone(P, 'PotVault') }),
   );
-  await step(cfg, 'BnbbVault.setRemote', () =>
+  await bnbStep(cfg, 'BnbbVault.setRemote', () =>
     P.call('BnbbVault.setRemote', P.addr('BnbbVault'), lpVaultAbi as Abi, 'setRemote',
       [B.addr('BnbForwarder'), B.addr('OriginSettler'), zeroAddress, BigInt(BSC_CHAIN_ID)], { done: vaultDone(P, 'BnbbVault') }),
   );
@@ -294,7 +305,7 @@ export async function runPlan(P: Side, B: Side, cfg: PlanConfig): Promise<void> 
       P.call('seed.gasPool', P.addr('PortaldotGateway'), portaldotGatewayAbi as Abi, 'donateGas', [], { value: cfg.seeds.gasPool }),
     );
   }
-  if (cfg.mode === 'live' && cfg.seeds.approvalFund > 0n) {
+  if (cfg.mode === 'live' && cfg.bnbVaults !== false && cfg.seeds.approvalFund > 0n) {
     for (const key of ['BnbbVault', 'BnbbForwarder']) {
       await step(cfg, `approval deposit ${key}`, async () => {
         const id = `seed.approvalFund.${key}`;
@@ -310,7 +321,7 @@ export async function runPlan(P: Side, B: Side, cfg: PlanConfig): Promise<void> 
       P.call('seed.potVault', P.addr('PotVault'), lpVaultAbi as Abi, 'deposit', [cfg.seeds.potVault], { value: cfg.seeds.potVault }),
     );
   }
-  if (cfg.seeds.bnbVault > 0n) {
+  if (cfg.bnbVaults !== false && cfg.seeds.bnbVault > 0n) {
     await step(cfg, 'tBNB vault liquidity', () =>
       B.call('seed.bnbVault', B.addr('BnbVault'), lpVaultAbi as Abi, 'deposit', [cfg.seeds.bnbVault], { value: cfg.seeds.bnbVault }),
     );
