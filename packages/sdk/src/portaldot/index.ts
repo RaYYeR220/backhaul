@@ -4,3 +4,4 @@ export * from "./header";
 export * from "./mmr";
 export * from "./scale";
 export * from "./storage";
+export * from "./assets";
