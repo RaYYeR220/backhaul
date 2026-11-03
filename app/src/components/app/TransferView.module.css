@@ -1,0 +1,351 @@
+.idTitle {
+  font-family: var(--mono);
+  font-size: 0.62em;
+  letter-spacing: 0;
+  word-break: break-all;
+}
+.waited {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+/* ---------- head meta ---------- */
+.meta {
+  margin-top: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 30px;
+  font-size: 14px;
+}
+.meta div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.meta dt {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.meta dd {
+  color: var(--ink);
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+}
+
+/* ---------- rail ---------- */
+.railBox {
+  margin-top: 40px;
+  padding: 30px 32px 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  background: rgba(255, 255, 255, 0.012);
+}
+.src {
+  margin-top: 22px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-3);
+}
+.src :global(.mono) {
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+
+/* ---------- timeline ---------- */
+.timeline {
+  margin-top: 56px;
+  max-width: 820px;
+}
+.h2 {
+  font-family: var(--display);
+  font-stretch: 112.5%;
+  font-weight: 500;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+.tl {
+  list-style: none;
+  margin-top: 24px;
+  position: relative;
+}
+.tl ol {
+  list-style: none;
+}
+.node {
+  position: relative;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 0 16px;
+  padding-bottom: 30px;
+}
+/* the vertical rail: a hairline through every node, accent where proven */
+.node::before {
+  content: "";
+  position: absolute;
+  left: 14.5px;
+  top: 24px;
+  bottom: 0;
+  width: 1px;
+  background: var(--line-2);
+}
+.tl > .node:last-child::before {
+  display: none;
+}
+.proven::before {
+  background: rgba(61, 107, 255, 0.55);
+}
+.dot {
+  position: relative;
+  z-index: 1;
+  width: 30px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+}
+.dot::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--line-3);
+  background: var(--ground);
+  transition:
+    background 0.4s,
+    border-color 0.4s;
+}
+.dot svg {
+  position: relative;
+}
+.done .dot::before {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.done .dot {
+  color: var(--ground);
+}
+.proven .dot::before {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.proven .dot {
+  color: #fff;
+}
+.active .dot::before {
+  border-color: var(--ink-2);
+  animation: ping 1.8s var(--ease) infinite;
+}
+@keyframes ping {
+  0% {
+    box-shadow: 0 0 0 0 rgba(243, 243, 241, 0.3);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 7px rgba(243, 243, 241, 0);
+  }
+}
+.failed .dot::before {
+  border-style: dashed;
+  border-color: var(--ink-2);
+}
+.failed .dot {
+  color: var(--ink-2);
+}
+.info .dot::before {
+  width: 8px;
+  height: 8px;
+  left: 11px;
+  top: 7px;
+  background: var(--ink-3);
+  border-color: var(--ink-3);
+}
+
+.nodeBody {
+  min-width: 0;
+  padding-top: 1px;
+}
+.nodeHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+}
+.nodeHead h3 {
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  line-height: 1.4;
+}
+.nodeHead h3 :global(.mono) {
+  font-size: 14.5px;
+}
+.pending .nodeHead h3,
+.pending .nodeText {
+  color: var(--ink-3);
+}
+.failed .nodeHead h3 {
+  color: var(--ink-2);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--ink-3);
+}
+.failed .nodeText {
+  color: var(--ink);
+}
+.when {
+  font-size: 12px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.when :global(.mono) {
+  color: var(--ink-2);
+  font-size: 11.5px;
+}
+.plus {
+  color: var(--ink-3);
+}
+.nodeText {
+  margin-top: 4px;
+  max-width: 640px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.nodeText :global(.mono) {
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.txs {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.signers {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.signers > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
+  animation: seal-in 0.35s var(--ease);
+}
+.signers > span.signNote {
+  border: 0;
+  padding: 0;
+  animation: none;
+}
+.signers :global(.mono) {
+  font-size: 11.5px;
+}
+.signedOn {
+  border-color: var(--line-2) !important;
+  color: var(--ink-2);
+}
+@keyframes seal-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+.signNote {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+/* fast fill: a branch that leaves the main line and rejoins it */
+.branch {
+  position: relative;
+  margin: 0 0 30px 14px;
+  padding: 16px 0 0 40px;
+  border-left: 1px solid var(--line-2);
+}
+/* elbows from the main line (x 0) to the fast lane's line (x 55.5) and back */
+.branch::before,
+.branch::after {
+  content: "";
+  position: absolute;
+  left: -1px;
+  width: 56px;
+  border-right: 1px solid var(--line-3);
+}
+.branch::before {
+  top: -14px;
+  height: 42px;
+  border-top: 1px solid var(--line-3);
+  border-top-right-radius: 16px;
+}
+.branch::after {
+  bottom: -30px;
+  height: 41px;
+  border-bottom: 1px solid var(--line-3);
+  border-bottom-right-radius: 16px;
+}
+.branch .node:last-child {
+  padding-bottom: 14px;
+}
+.branchLabel {
+  position: absolute;
+  left: 72px;
+  top: -10px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.after {
+  margin-top: 18px;
+  font-size: 14px;
+  color: var(--ink-3);
+}
+.after a {
+  color: var(--ink-2);
+  transition: color 0.2s;
+}
+.after a:hover {
+  color: var(--ink);
+}
+
+@media (max-width: 760px) {
+  .railBox {
+    margin-top: 28px;
+    padding: 20px 14px 16px;
+    border-radius: var(--r-card);
+  }
+  .meta {
+    gap: 12px 22px;
+  }
+  .timeline {
+    margin-top: 40px;
+  }
+  .branch {
+    padding-left: 22px;
+  }
+  .branch::before,
+  .branch::after {
+    width: 38px;
+  }
+  .branchLabel {
+    left: 50px;
+  }
+  .when {
+    white-space: normal;
+  }
+}
