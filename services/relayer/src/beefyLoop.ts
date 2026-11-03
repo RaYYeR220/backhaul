@@ -15,8 +15,8 @@ export interface BeefyStatus {
   finalized: number;
   lagBlocks: number;
   archived: number;
-  halted?: string;
-  lastError?: string;
+  halted: string | null;
+  lastError: string | null;
 }
 
 export class BeefyLoop {
@@ -24,8 +24,8 @@ export class BeefyLoop {
   private timer?: NodeJS.Timeout;
   private lastSubmit = 0;
   private running = false;
-  halted?: string;
-  lastError?: string;
+  halted: string | null = null;
+  lastError: string | null = null;
 
   constructor(
     readonly ch: Chains,
@@ -58,7 +58,7 @@ export class BeefyLoop {
         const b = await this.ch.beefy.submitLatest();
         if (b !== undefined) this.lastSubmit = Date.now();
       }
-      this.lastError = undefined;
+      this.lastError = null;
     } catch (e) {
       if (e instanceof BeefyHaltError) {
         this.halted = e.message;
@@ -87,8 +87,8 @@ export class BeefyLoop {
       finalized,
       lagBlocks: finalized - latestBlock,
       archived: this.ch.archive.entries().length,
-      halted: this.halted,
-      lastError: this.lastError,
+      halted: this.halted ?? null,
+      lastError: this.lastError ?? null,
     };
   }
 }

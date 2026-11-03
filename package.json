@@ -1,10 +1,19 @@
 {
   "name": "backhaul",
   "private": true,
-  "workspaces": ["packages/*", "services/*"],
+  "workspaces": [
+    "packages/*",
+    "services/*"
+  ],
   "scripts": {
     "test:contracts": "cd contracts && forge test",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "deploy": "tsx packages/sdk/scripts/deploy.ts",
+    "deploy:dry": "tsx packages/sdk/scripts/deploy.ts --dry-run",
+    "relayer": "npm start -w services/relayer --",
+    "typecheck": "npm run typecheck --workspaces --if-present"
   },
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22"
+  }
 }

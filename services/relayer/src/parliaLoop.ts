@@ -17,16 +17,16 @@ export interface ParliaStatus {
   epochTimestamp: string;
   trustRemainingSec: string;
   bscHead: string;
-  liveOverlap?: number;
-  lastWindow?: { block: string; tx: string; headers: number };
-  lagBlocks?: string;
-  lastError?: string;
+  liveOverlap: number | null;
+  lastWindow: { block: string; tx: string; headers: number } | null;
+  lagBlocks: string | null;
+  lastError: string | null;
 }
 
 export class ParliaLoop {
   private timer?: NodeJS.Timeout;
   private running = false;
-  lastError?: string;
+  lastError: string | null = null;
 
   constructor(
     readonly ch: Chains,
@@ -58,7 +58,7 @@ export class ParliaLoop {
         }
         await this.ch.parlia.advanceTo(due.epoch);
       }
-      this.lastError = undefined;
+      this.lastError = null;
     } catch (e) {
       this.lastError = (e as Error).message.split('\n')[0];
       this.log(`parlia tick: ${this.lastError}`);
@@ -70,7 +70,7 @@ export class ParliaLoop {
   async status(): Promise<ParliaStatus> {
     const set = await this.ch.parlia.lc.validatorSet();
     const head = await this.ch.bsc.rpc.blockNumber();
-    let liveOverlap: number | undefined;
+    let liveOverlap: number | null = null;
     try {
       const epoch = head - 64n - ((head - 64n) % 1000n);
       const ann = bsc.parseEpochExtra((await this.ch.bsc.rpc.block(epoch)).extraData);
@@ -87,9 +87,9 @@ export class ParliaLoop {
       trustRemainingSec: (set.epochTimestamp + TRUSTING_PERIOD - BigInt(Math.floor(Date.now() / 1000))).toString(),
       bscHead: head.toString(),
       liveOverlap,
-      lastWindow: last ? { block: last.block.toString(), tx: last.tx, headers: last.headers } : undefined,
-      lagBlocks: last ? (head - BigInt(last.block)).toString() : undefined,
-      lastError: this.lastError,
+      lastWindow: last ? { block: last.block.toString(), tx: last.tx, headers: last.headers } : null,
+      lagBlocks: last ? (head - BigInt(last.block)).toString() : null,
+      lastError: this.lastError ?? null,
     };
   }
 }

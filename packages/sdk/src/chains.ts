@@ -48,7 +48,7 @@ export function toNativeUnit(wei: bigint): bigint {
   return wei - (wei % NATIVE_UNIT);
 }
 
-export function txLink(chain: ChainName, hash: Hex, blockNumber?: bigint | number): string {
+export function txLink(chain: ChainName, hash: Hex, blockNumber?: bigint | number | string): string {
   if (chain === 'bsc') return `https://testnet.bscscan.com/tx/${hash}`;
   // No EVM explorer on the Portaldot testnet: link the block in polkadot.js apps.
   const rpc = encodeURIComponent(PORTALDOT_SUBSTRATE_WS);

@@ -5,7 +5,10 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "gen:abi": "tsx scripts/gen-abi.ts",
+    "create:bnbb": "tsx scripts/create-bnbb.ts",
+    "verify:bsc": "tsx scripts/verify-bsc.ts"
   },
   "dependencies": {
     "@ethereumjs/rlp": "^5.0.2",
