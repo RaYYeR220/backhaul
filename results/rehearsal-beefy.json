@@ -1,7 +1,7 @@
 {
-  "at": "2026-11-03T17:19:18.034Z",
+  "at": "2026-11-03T17:30:45.275Z",
   "network": "anvil fork of BSC testnet, live Portaldot V3 testnet data",
-  "forkBlock": "140612299",
+  "forkBlock": "140613829",
   "checkpoint": {
     "setId": "520",
     "signers": [
@@ -13,30 +13,31 @@
     "deployGas": "2883130"
   },
   "commitment": {
-    "block": 308907,
+    "block": 309019,
     "setId": "520",
-    "gasUsed": "77364"
+    "gasUsed": "77328"
   },
   "header": {
-    "number": 308906,
-    "gasUsed": "76308",
-    "stateRoot": "0xa30b93e3af59695565e640a2a84aed78c06f072bb061364dba0c3fbec41fd204"
+    "number": 309018,
+    "gasUsed": "76296",
+    "stateRoot": "0x6faf9a8f58f5680382b6369eb665c051acfa33011c13c160d0e44d14e00b5b29"
   },
   "bind": {
     "contract": "0x1d0c17a0ee1dcf15bd05a45ae789058a0586aa68",
+    "header": 309018,
     "trieId": "0x2ced995fc955c9abb8d4a3009e7795ce5712518250f73272b6969031ffa93eb8",
-    "onChainTrieId": "0x0000000000000000000000000000000000000000000000000000000000000000",
-    "gasUsed": "456870"
+    "onChainTrieId": "0x2ced995fc955c9abb8d4a3009e7795ce5712518250f73272b6969031ffa93eb8",
+    "gasUsed": "456882"
   },
   "storage": {
     "key": "0x000000000000000000000000c3439de80429265793325a6b662232043ced04b6",
-    "value": "0x000000000000000000000000000000000000000000000001e68e243e81320000",
+    "value": "0x000000000000000000000000000000000000000000000001cb0cba2a585018a7",
     "verifyCommitment": true,
     "verifyCommitmentOtherValue": false,
-    "verifyCommitmentGas": "510610",
+    "verifyCommitmentGas": "510670",
     "proofBytes": 3296,
-    "absentKey": "0xc08157aba98d87b46bfeeef58f6570269ccc916bfd5ce950158e8d7d903b0ca2",
-    "headerTimestamp": "1793726328",
+    "absentKey": "0xf7c7e5221722849294c9d607d559e727250007cc27652e41a9f6ba01cda63067",
+    "headerTimestamp": "1793727024",
     "verifyAbsence": true,
     "verifyAbsenceBeforeDeadline": false,
     "verifyAbsenceOfPresentSlot": false
@@ -76,5 +77,35 @@
       "reason": "false",
       "defended": true
     }
-  ]
+  ],
+  "rotation": {
+    "rotations": 1,
+    "setId": "521",
+    "steps": [
+      {
+        "kind": "commitment",
+        "block": 309251,
+        "setId": "520",
+        "gasUsed": "77376"
+      },
+      {
+        "kind": "header",
+        "block": 309250,
+        "setId": "520",
+        "gasUsed": "71515"
+      },
+      {
+        "kind": "rotate",
+        "block": 309250,
+        "setId": "521",
+        "gasUsed": "380187"
+      },
+      {
+        "kind": "commitment",
+        "block": 309255,
+        "setId": "521",
+        "gasUsed": "77376"
+      }
+    ]
+  }
 }
