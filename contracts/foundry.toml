@@ -17,3 +17,12 @@ runs = 256
 [rpc_endpoints]
 portaldot = "https://test-evm-rpc-v3.portaldot.dev"
 bsc = "https://bsc-testnet-rpc.publicnode.com"
+
+# Portaldot charges a deposit per byte of deployed code (~0.08 tPOT/B), so the contracts that go
+# there are built for size: FOUNDRY_PROFILE=portaldot forge build
+[profile.portaldot]
+optimizer_runs = 1
+cbor_metadata = false
+bytecode_hash = "none"
+out = "out-portaldot"
+cache_path = "cache-portaldot"

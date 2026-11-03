@@ -2,6 +2,8 @@
 node_modules/
 contracts/out/
 contracts/cache/
+contracts/out-portaldot/
+contracts/cache-portaldot/
 contracts/broadcast/*/dry-run/
 ink/**/target/
 .next/

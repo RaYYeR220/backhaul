@@ -35,6 +35,7 @@ import {
 } from 'viem';
 import { originSettlerAbi, portaldotGatewayAbi } from '../src/abi.js';
 import { privateKeyToAccount } from 'viem/accounts';
+import { CONTRACTS_DIR } from '../src/artifacts.js';
 import { BscClient, BSC_TESTNET_RPCS } from '../src/bsc/client.js';
 import { BSC_CHAIN_ID, BSC_RPC, PORTALDOT_CHAIN_ID, PORTALDOT_EVM_RPC, PORTALDOT_SUBSTRATE_WS, type ChainName } from '../src/chains.js';
 import { calibratePortaldot, fmtUnits, modelCost, type PortaldotRates } from '../src/deploy/cost.js';
@@ -132,7 +133,11 @@ async function main() {
 
   if (mode === 'live') await preflight(dep.address, ops?.address, portaldot.api);
 
-  const P = new Side('portaldot', loadDeployment('portaldot', outDir), outDir, pdSender, { trace: mode !== 'live', log });
+  // Portaldot charges per byte of code: deploy its contracts from the size profile when built.
+  const pdArtifacts = resolve(CONTRACTS_DIR, 'out-portaldot');
+  const pdOut = existsSync(pdArtifacts) ? pdArtifacts : undefined;
+  if (!pdOut) log('note: no contracts/out-portaldot; run FOUNDRY_PROFILE=portaldot forge build for smaller Portaldot code');
+  const P = new Side('portaldot', loadDeployment('portaldot', outDir), outDir, pdSender, { trace: mode !== 'live', log, artifactsDir: pdOut });
   const B = new Side('bsc', loadDeployment('bsc', outDir), outDir, bscSender, { trace: mode !== 'live', log });
 
   const cfg: PlanConfig = {

@@ -36,7 +36,7 @@ export class Side {
     readonly dir: string,
     /** Undefined when this run does not touch this chain (it only reads the file). */
     readonly sender: TxSender | undefined,
-    readonly opts: { trace?: boolean; log?: (m: string) => void } = {},
+    readonly opts: { trace?: boolean; log?: (m: string) => void; /** forge out dir to deploy from */ artifactsDir?: string } = {},
   ) {}
 
   get active(): boolean {
@@ -103,7 +103,7 @@ export class Side {
       return getAddress(existing.address);
     }
     const s = this.need();
-    const a = loadArtifact(artifact);
+    const a = loadArtifact(artifact, this.opts.artifactsDir);
     const resolved = typeof args === 'function' ? await args() : args;
     const data = encodeDeployData({ abi: a.abi as Abi, bytecode: a.bytecode, args: resolved as unknown[] });
     this.log(`deploying ${key} (${artifact}, ${runtimeSize(a)} B runtime)`);
