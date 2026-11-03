@@ -68,7 +68,8 @@
 /* where the rail's data comes from */
 .src {
   margin: 22px auto 0;
-  min-height: 16px;
+  min-height: 32px;
+  align-content: flex-start;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -122,10 +123,17 @@
     margin-top: 40px;
   }
   .src {
-    flex-wrap: wrap;
+    display: block;
     text-align: center;
     padding: 0 8px;
-    min-height: 64px;
-    align-content: flex-start;
+    min-height: 80px;
+  }
+  .ld {
+    display: inline-block;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  .src button {
+    margin-left: 8px;
   }
 }

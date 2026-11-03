@@ -21,6 +21,7 @@
 }
 .seg button {
   height: 30px;
+  white-space: nowrap;
   padding: 0 14px;
   border-radius: var(--r-full);
   font-size: 13px;
@@ -48,6 +49,8 @@
   display: none;
 }
 .forge {
+  flex: none;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -203,6 +206,8 @@
   grid-row: 2;
   position: relative;
   margin: 0 14px;
+  /* the chip's carrier is as wide as the track and slides across it */
+  overflow-x: clip;
 }
 .hl {
   position: absolute;
@@ -606,6 +611,9 @@
 }
 
 @media (max-width: 760px) {
+  .top {
+    gap: 8px;
+  }
   .seg button {
     padding: 0 10px;
     font-size: 12px;

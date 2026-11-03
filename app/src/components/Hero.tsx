@@ -114,10 +114,10 @@ function SourceLine({
       </div>
     );
   }
-  const recorded = `replay of real headers · BSC testnet #${fmt(span.bsc[0])}–#${fmt(span.bsc[1])} · Portaldot V3 #${fmt(span.pdt[0])}–#${fmt(span.pdt[1])} · recorded ${utcStamp(span.recorded)}`;
+  const recorded = `replay of real headers · BNB Chain testnet #${fmt(span.bsc[0])}–#${fmt(span.bsc[1])} · Portaldot V3 #${fmt(span.pdt[0])}–#${fmt(span.pdt[1])} · recorded ${utcStamp(span.recorded)}`;
   let note = "";
   let action: { label: string; run: () => void } | null = null;
-  if (snap.liveQueued) note = "live nodes connected, they take over after this transfer";
+  if (snap.liveQueued) note = "live from the next transfer";
   else if (status.mode === "connecting") note = "connecting to the live nodes";
   else if (status.mode === "replay" && status.reason === "unreachable") {
     note = "live nodes unreachable";

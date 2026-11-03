@@ -43,7 +43,8 @@ export interface TransferRailProps {
   caption: ReactNode;
   reverted?: boolean;
   steps: ProofStep[];
-  forge?: { label: string; armed?: boolean; onForge: () => void };
+  /** `short` is shown on narrow screens; the full label stays the accessible name. */
+  forge?: { label: string; short?: string; armed?: boolean; onForge: () => void };
   /** Polite announcement for screen readers, e.g. a forged seal's revert reason. */
   announcement?: string;
   footer?: ReactNode;
@@ -73,9 +74,15 @@ export function TransferRail(p: TransferRailProps) {
           </button>
         </div>
         {p.forge && (
-          <button type="button" className={`${s.forge} ${p.forge.armed ? s.armed : ""}`} onClick={p.forge.onForge}>
+          <button
+            type="button"
+            className={`${s.forge} ${p.forge.armed ? s.armed : ""}`}
+            onClick={p.forge.onForge}
+            aria-label={p.forge.label}
+          >
             <StruckCircle size={13} />
-            <span>{p.forge.label}</span>
+            <span className={s.long}>{p.forge.label}</span>
+            <span className={s.short}>{p.forge.short ?? "Forge"}</span>
           </button>
         )}
       </div>
