@@ -342,7 +342,7 @@ async function substrateCosts(api: any): Promise<Line[]> {
     { step: 'bnbb.setTeam (ops key)', method: 'paymentInfo', fee: await fee(api.tx.assets.setTeam(assetId, gw, gw, gw)), value: 0n },
     { step: 'bnbb.transferOwnership (ops key)', method: 'paymentInfo', fee: await fee(api.tx.assets.transferOwnership(assetId, gw)), value: 0n },
   ];
-  for (const k of ['BnbbVault', 'BnbbForwarder']) {
+  for (const k of flag('minimal') || flag('no-bnb-vaults') ? [] : ['BnbbVault', 'BnbbForwarder']) {
     lines.push({
       step: `seed.approvalFund.${k} (ops key)`,
       method: 'paymentInfo',
