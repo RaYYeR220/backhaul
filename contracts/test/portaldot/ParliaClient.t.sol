@@ -55,13 +55,21 @@ contract ParliaClientTest is BscFixtures {
         assertEq(lc.submitWindow(_slice(real.rlps, 48, 48)), real.epoch + 48);
     }
 
-    function test_realIncomingRejectedBeforeRotation() public {
+    function test_realSwappedValidatorToleratedNotCounted() public {
         HeaderFixture memory real = _headers();
+        // The client still trusts the checkpoint set, which does not hold the validator that
+        // joined at E. Its first turn (E+88 .. E+95) passes, but it does not count: E+48 .. E+95
+        // holds only five trusted sealers.
         ParliaClient lc = _realClient(real);
-        vm.expectRevert(
-            abi.encodeWithSelector(ParliaClient.UnauthorizedSigner.selector, real.firstIncomingSeal, real.incoming)
-        );
+        assertEq(real.miners[real.firstIncomingSeal - real.epoch], real.incoming);
+        vm.expectRevert(abi.encodeWithSelector(ParliaClient.TooFewSigners.selector, 5, 6));
         lc.submitWindow(_slice(real.rlps, 48, 48));
+        // The next turn belongs to a trusted validator: the real window with the swapped member
+        // inside finalizes, and the client keeps its trusted set.
+        assertEq(lc.submitWindow(_slice(real.rlps, 48, 49)), real.epoch + 48);
+        assertEq(lc.finalized(real.epoch + 48).hash, real.hashes[48]);
+        (,, uint64 epoch,,) = lc.validatorSet();
+        assertEq(epoch, real.checkpoint.epoch);
     }
 
     function test_realSkipWindowAcrossUnprocessedEpoch() public {
@@ -85,25 +93,61 @@ contract ParliaClientTest is BscFixtures {
         assertEq(lc.submitWindow(_slice(real.rlps, 1, 40)), real.epoch + 1);
     }
 
-    function test_rejectsNonValidatorSeal() public {
+    function test_nonValidatorSealsDoNotCount() public {
         HeaderFixture memory real = _headers();
-        string memory syn = _syn();
-        // Real headers against a set that is missing one of their sealers.
+        // Real headers against a set that is missing one of their sealers: E+1 .. E+40 finalizes
+        // with the full set (test_rejectsTooFewSigners), but not when one of its six is untrusted.
         CheckpointFixture memory cp = real.checkpoint;
         address dropped = real.miners[8];
         for (uint256 i = 0; i < cp.validators.length; i++) {
             if (cp.validators[i] == dropped) cp.validators[i] = address(0xdead);
         }
         ParliaClient lc = _deploy(real.chainId, real.epochLength, cp);
-        vm.expectRevert(abi.encodeWithSelector(ParliaClient.UnauthorizedSigner.selector, real.epoch + 8, dropped));
-        lc.submitWindow(_slice(real.rlps, 1, 48));
+        vm.expectRevert(abi.encodeWithSelector(ParliaClient.TooFewSigners.selector, 5, 6));
+        lc.submitWindow(_slice(real.rlps, 1, 40));
 
-        // A synthetic header sealed by a key outside the set.
+        // A synthetic window ending with a header sealed by a key outside the set: three trusted.
         lc = _synthClient("A1000");
-        vm.expectRevert(
-            abi.encodeWithSelector(ParliaClient.UnauthorizedSigner.selector, 1120, vm.parseJsonAddress(syn, ".outsider"))
-        );
+        vm.expectRevert(abi.encodeWithSelector(ParliaClient.TooFewSigners.selector, 3, 6));
         lc.submitWindow(_segment("outsider"));
+    }
+
+    function test_untrustedSealersDoNotMakeQuorum() public {
+        ParliaClient lc = _synthClient("A1000");
+        bytes[] memory w = _segment("untrustedPadding");
+        // Five trusted sealers and three untrusted ones: eight distinct, still short of six trusted.
+        vm.expectRevert(abi.encodeWithSelector(ParliaClient.TooFewSigners.selector, 5, 6));
+        lc.submitWindow(_slice(w, 0, 64));
+        // A sixth trusted sealer finalizes it.
+        assertEq(lc.submitWindow(_slice(w, 0, 65)), 1500);
+    }
+
+    function test_forgedBranchCannotUseTrustedSeals() public {
+        ParliaClient lc = _synthClient("A1000");
+        bytes[] memory forged = _segment("forgedBranch");
+        bytes[] memory honest = _segment("honestBranch");
+
+        // The attacker's own seals never count.
+        vm.expectRevert(abi.encodeWithSelector(ParliaClient.TooFewSigners.selector, 0, 6));
+        lc.submitWindow(forged);
+
+        // A forged headers[0] followed by the trusted validators' real chain: their headers do not
+        // link to it.
+        bytes[] memory w = _slice(honest, 0, 48);
+        w[0] = forged[0];
+        vm.expectRevert(abi.encodeWithSelector(ParliaClient.BrokenLink.selector, 1601));
+        lc.submitWindow(w);
+
+        // Nor after a whole forged turn.
+        for (uint256 i = 0; i < 8; i++) {
+            w[i] = forged[i];
+        }
+        vm.expectRevert(abi.encodeWithSelector(ParliaClient.BrokenLink.selector, 1608));
+        lc.submitWindow(w);
+
+        // The real chain finalizes, with its own headers[0].
+        assertEq(lc.submitWindow(honest), 1600);
+        assertEq(lc.finalized(1600).hash, keccak256(honest[0]));
     }
 
     function test_rejectsBrokenParentLink() public {
@@ -241,9 +285,9 @@ contract ParliaClientTest is BscFixtures {
         vm.expectRevert(abi.encodeWithSelector(ParliaClient.UnauthorizedSigner.selector, 4040, outgoing));
         lc.submitWindow(_segment("rotationOutgoingLate"));
 
-        // After the rotation: any later window it seals.
+        // After the rotation: its seals no longer count.
         lc.submitWindow(_segment("rotation"));
-        vm.expectRevert(abi.encodeWithSelector(ParliaClient.UnauthorizedSigner.selector, 4200, outgoing));
+        vm.expectRevert(abi.encodeWithSelector(ParliaClient.TooFewSigners.selector, 0, 6));
         lc.submitWindow(_segment("afterRotationOutgoing"));
 
         // The incoming validator counts towards the quorum of the new set.
@@ -291,12 +335,10 @@ contract ParliaClientTest is BscFixtures {
     }
 
     function test_windowFailsWhenSetChangedTooMuch() public {
-        string memory syn = _syn();
         ParliaClient lc = _synthClient("A1000");
-        // Epoch 2000 replaced four of nine. A window sealed by the new set cannot be checked
-        // against the old one…
-        address newcomer = BscHeader.parse(_segment("tooMuchAfter")[0], vm.parseJsonUint(syn, ".chainId")).signer;
-        vm.expectRevert(abi.encodeWithSelector(ParliaClient.UnauthorizedSigner.selector, 2100, newcomer));
+        // Epoch 2000 replaced four of nine. A window sealed by the new set has too few validators
+        // the old set trusts…
+        vm.expectRevert(abi.encodeWithSelector(ParliaClient.TooFewSigners.selector, 3, 6));
         lc.submitWindow(_segment("tooMuchAfter"));
 
         // …so the relayer submits the epoch that changed it, then the same window passes.

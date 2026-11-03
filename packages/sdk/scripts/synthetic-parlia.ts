@@ -305,6 +305,14 @@ async function main() {
     gas: await segment({ start: 1100n, length: 48, realistic: true, sealer: (i) => A[Math.floor(i / 2) % 9] }),
     // Under A: 1356 lands in the same ring slot as 1100 (1356 = 1100 + 256).
     ring: await segment({ start: 1356n, length: 48, sealer: turns([0, 1, 2, 3, 4, 5]) }),
+    // Under A: trusted turns interleaved with turns of validators nobody trusts (20, 21, 22).
+    // The first 64 headers hold five trusted sealers and three untrusted ones; header 64 brings
+    // the sixth trusted sealer.
+    untrustedPadding: await segment({ start: 1500n, length: 72, sealer: turns([0, 20, 1, 21, 2, 22, 3, 4, 5]) }),
+    // Under A: the real chain at 1600, sealed by six trusted validators…
+    honestBranch: await segment({ start: 1600n, length: 48, sealer: turns([0, 1, 2, 3, 4, 5]) }),
+    // …and a forged branch at the same heights, sealed by an attacker key.
+    forgedBranch: await segment({ start: 1600n, length: 16, sealer: () => X[0] }),
     // Under A: block 1200 commits to the verifier tries.
     verifier: await segment({
       start: VERIFIER_BLOCK,

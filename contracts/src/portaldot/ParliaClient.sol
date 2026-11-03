@@ -14,17 +14,29 @@ import {BscHeader, ParsedHeader} from "../lib/bsc/BscHeader.sol";
 ///
 ///      `submitWindow(headers)` finalizes `headers[0]` when
 ///        - the headers are consecutive and linked by parentHash;
-///        - every seal recovers to the header's coinbase and to a member of the set in force at
-///          that height, as far as the client knows it;
+///        - every seal recovers (low-s) to the header's coinbase;
 ///        - at least ⌈2N/3⌉ distinct members of the trusted set for headers[0] (size N) sealed;
-///        - headers[0].timestamp ≤ that set's epoch timestamp + trustingPeriod.
+///        - headers[0].timestamp ≤ that set's epoch timestamp + trustingPeriod;
+///        - in a window that crosses a switch the client knows about (an epoch block it rotates
+///          to, or the boundary between its previous and current set), every seal belongs to the
+///          set in force at its height.
+///      In a plain window, above the trusted set's first height and with no epoch block to rotate
+///      to, a seal from a validator outside the trusted set is accepted but never counted. BSC
+///      testnet swaps single validators in and out almost every epoch, so a set trusted days ago
+///      still shares most members with the live one, and skipping keeps working without an
+///      epoch window each time. This does not weaken the rule: only seals of trusted validators
+///      count, and each of them signs a header that commits to headers[0] through the parent
+///      links, so ⌈2N/3⌉ trusted validators have built on headers[0] whatever else sits in
+///      between. An attacker's own keys can seal a forged headers[0] and its children, but the
+///      trusted validators seal the real chain, whose headers do not link to the forgery.
 ///      Epochs between the trusted one and the window may be skipped. When headers[0] is an epoch
 ///      block E later than the trusted epoch, the set E announces seals from
 ///      E + (⌊N/2⌋+1)·turnLength (see below) and becomes the trusted set once the window passes.
 ///      Seals from an announced set are checked against their heights but never count towards the
 ///      quorum, so a forged epoch block cannot certify itself with the keys it announces. If the
-///      set changed too much in skipped epochs, a window simply fails and the relayer submits the
-///      intermediate epoch first. A relayer may also submit every epoch; the contract allows both.
+///      set changed too much in skipped epochs, a window fails for lack of trusted seals and the
+///      relayer submits the intermediate epoch first. A relayer may also submit every epoch; the
+///      contract allows both.
 ///
 ///      The client keeps the previous trusted set as well, so a block below the current set's
 ///      first height stays provable until a second rotation: anyone can advance the trusted epoch
@@ -156,10 +168,14 @@ contract ParliaClient {
         for (uint256 i = 0;;) {
             if (h.signer != h.coinbase) revert CoinbaseMismatch(h.number);
             uint256 idx = _indexOf(plan.pre, h.signer);
-            if (h.number < plan.switchAt) {
-                if (idx == type(uint256).max) revert UnauthorizedSigner(h.number, h.signer);
-            } else if (_indexOf(plan.post, h.signer) == type(uint256).max) {
-                revert UnauthorizedSigner(h.number, h.signer);
+            // A plain window passes over untrusted seals (they never count). Across a switch, every
+            // seal must come from the set in force at its height.
+            if (plan.switchAt != type(uint64).max) {
+                if (h.number < plan.switchAt) {
+                    if (idx == type(uint256).max) revert UnauthorizedSigner(h.number, h.signer);
+                } else if (_indexOf(plan.post, h.signer) == type(uint256).max) {
+                    revert UnauthorizedSigner(h.number, h.signer);
+                }
             }
             if (idx != type(uint256).max && seen & (1 << idx) == 0) {
                 seen |= 1 << idx;

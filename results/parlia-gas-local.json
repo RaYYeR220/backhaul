@@ -1,7 +1,7 @@
 {
   "bscVerifierCodeBytes": 4520,
   "note": "Local forge measurements (solc 0.8.28, via-IR, optimizer 200). executionGas is the callee's gas (vm.lastCallGas) on a fresh client, so the finalized header goes to an empty ring slot; intrinsicGas = 21000 + 16/4 gas per non-zero/zero calldata byte. proofs: library calls through an external harness. Real windows: BSC testnet epoch 140342000 (rotation) and blocks from E+2.",
-  "parliaClientCodeBytes": 5834,
+  "parliaClientCodeBytes": 5765,
   "proofs": {
     "receiptLogLegacy": 43324,
     "receiptLogTyped": 30687,
@@ -14,37 +14,37 @@
   "submitWindow": {
     "realEpochRotation41": {
       "calldataBytes": 40228,
-      "executionGas": 1871115,
+      "executionGas": 1873440,
       "headers": 41,
       "intrinsicGas": 487024
     },
     "realEpochRotation48": {
       "calldataBytes": 46948,
-      "executionGas": 2114883,
+      "executionGas": 2117649,
       "headers": 48,
       "intrinsicGas": 563524
     },
     "realSkip48": {
       "calldataBytes": 46308,
-      "executionGas": 1829169,
+      "executionGas": 1827194,
       "headers": 48,
       "intrinsicGas": 552216
     },
     "synthetic16": {
       "calldataBytes": 15428,
-      "executionGas": 683483,
+      "executionGas": 682820,
       "headers": 16,
       "intrinsicGas": 184712
     },
     "synthetic32": {
       "calldataBytes": 30788,
-      "executionGas": 1232676,
+      "executionGas": 1231357,
       "headers": 32,
       "intrinsicGas": 348044
     },
     "synthetic48": {
       "calldataBytes": 46148,
-      "executionGas": 1787639,
+      "executionGas": 1785664,
       "headers": 48,
       "intrinsicGas": 511388
     }

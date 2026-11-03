@@ -29,9 +29,31 @@ export interface WindowOptions {
   maxHeaders?: number;
   /** Headers fetched per request. */
   chunk?: number;
+  /**
+   * In a window that crosses no switch the client knows about, let seals from validators outside
+   * the trusted set through without counting them, as ParliaClient does (default true). Set false
+   * to refuse them instead, for a client that rejects such seals.
+   */
+  tolerateUntrusted?: boolean;
 }
 
 export class WindowError extends Error {}
+
+/** A header in the window is sealed by a validator the client does not accept at that height. */
+export class UntrustedSealError extends WindowError {
+  constructor(
+    readonly blockNumber: bigint,
+    readonly signer: Address,
+  ) {
+    super(`block ${blockNumber} is sealed by ${signer}, outside the set the client holds for it`);
+  }
+}
+
+/** How many members of `live` the client trusts. */
+export function trustedOverlap(trusted: readonly Address[], live: readonly Address[]): number {
+  const t = new Set(trusted.map((a) => getAddress(a)));
+  return live.filter((a) => t.has(getAddress(a))).length;
+}
 
 /** Header source backed by a BSC node; every RLP is checked against the block hash. */
 export function rpcHeaderSource(client: BscClient): HeaderSource {
@@ -77,7 +99,9 @@ function plan(startNumber: bigint, startExtra: Hex, set: TrustedSet, opts: Windo
 
 /**
  * Collects headers from `startNumber` until ⌈2N/3⌉ distinct members of the trusted set have
- * sealed, checking each seal against the set the contract will hold for its height.
+ * sealed. Only trusted signers count. In a plain window (no switch in it) other sealers are
+ * passed over, as the contract does; in a window across a switch every seal must belong to the
+ * set the contract holds for its height.
  * Throws {@link WindowError} when the contract would reject the window — typically because the
  * validator set changed in an epoch the contract has not seen yet, which must be submitted first.
  */
@@ -92,6 +116,7 @@ export async function buildWindow(
   const epochLength = opts.epochLength ?? 1000n;
   const maxHeaders = opts.maxHeaders ?? 256;
   const chunk = opts.chunk ?? 16;
+  const tolerate = opts.tolerateUntrusted ?? true;
 
   const window: Hex[] = [];
   const signers = new Set<string>();
@@ -107,9 +132,7 @@ export async function buildWindow(
       const signer = await sealerOf(rlp, chainId);
       if (signer !== h.coinbase) throw new WindowError(`block ${h.number}: sealer ${signer} is not the coinbase`);
       const allowed = h.number < p.switchAt ? p.pre : p.post;
-      if (!allowed.has(signer)) {
-        throw new WindowError(`block ${h.number} is sealed by ${signer}, outside the set the client holds for it`);
-      }
+      if (!allowed.has(signer) && !(tolerate && p.post.size === 0)) throw new UntrustedSealError(h.number, signer);
       window.push(rlp);
       if (p.pre.has(signer)) signers.add(signer);
       if (signers.size >= p.need) return window;
