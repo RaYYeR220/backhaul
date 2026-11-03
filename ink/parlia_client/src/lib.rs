@@ -406,7 +406,9 @@ mod parlia_client {
     }
 
     /// Blocks from an epoch block to the first block its set seals: minerHistoryCheckLen() + 1,
-    /// computed over the set in force before the switch.
+    /// computed over the set in force before the switch. The client passes its trusted set, which
+    /// is that set unless epochs that changed the size or turn length were skipped (the relayer
+    /// submits those first; see ParliaClient.sol).
     fn switch_offset(size: usize, turn_length: u8) -> u64 {
         (size / 2).saturating_add(1).saturating_mul(turn_length as usize) as u64
     }

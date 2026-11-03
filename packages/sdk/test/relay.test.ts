@@ -156,6 +156,29 @@ describe('ParliaRelay epoch policy', () => {
     expect(await parlia(nine, nine, now - 3600n, 4).epochDue(now)).toMatchObject({ reason: 'turn-length' });
   });
 
+  it('moves the trusted epoch when the set size changes', async () => {
+    expect(await parlia(nine, [...nine, V(20)], now - 3600n).epochDue(now)).toMatchObject({ reason: 'set-size', overlap: 9 });
+  });
+
+  it('never skips past an epoch that changed the set size or turn length', async () => {
+    // trusted: epoch 1000, 9 validators, turn length 8. Size 10 from epoch 4000, turn length 4 from 7000.
+    const ten = [...nine, V(20)];
+    const announced = (e: bigint) => (e >= 7000n ? epochExtra(ten, 4) : e >= 4000n ? epochExtra(ten) : epochExtra(nine));
+    const set: TrustedSetView = { validators: nine, turnLength: 8, epoch: 1000n, activeFrom: 1040n, epochTimestamp: now, installedAt: now };
+    const lc = { trustingPeriod: async () => 0n, validatorSet: async () => set, previousValidatorSet: async () => ({ ...set, validators: [] }), isFinalized: async () => false, submitWindow: async () => '0x' as Hex };
+    const asked: bigint[] = [];
+    const src: BscSource = { headerRlps: async () => [], headNumber: async () => 0n, extraOf: async (e) => (asked.push(e), announced(e)), timestampOf: async () => 0n };
+    const relay = new ParliaRelay(lc, src);
+    // 3000's predecessor (2000) still has 9 and 8: the skip from 1000 is safe
+    expect(await relay.nextEpochToward(3000n)).toBe(3000n);
+    // 6000 and 5000 follow sets of 10; 4000 follows the last set of 9, so it goes first
+    expect(await relay.nextEpochToward(6000n)).toBe(4000n);
+    expect(asked.slice(-3)).toEqual([5000n, 4000n, 3000n]);
+    expect(await relay.nextEpochToward(2000n)).toBe(2000n); // the predecessor is the trusted epoch
+    // after 4000, the next stop is the turn-length change at 7000
+    expect(await relay.nextEpochToward(9000n, { ...set, validators: ten, epoch: 4000n })).toBe(7000n);
+  });
+
   it('counts the trusting period from the earlier of the epoch block and the installation', async () => {
     // Installed on Portaldot three days ago, from an epoch block BSC stamped an hour ago (clock skew).
     expect(await parlia(nine, nine, now - 3600n, 8, now - 3n * 86_400n).epochDue(now)).toMatchObject({ reason: 'refresh' });

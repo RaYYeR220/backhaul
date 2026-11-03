@@ -142,6 +142,11 @@ export class ParliaRelay {
     if (await this.lc.isFinalized(n)) return undefined;
     for (let attempt = 0; ; attempt++) {
       const { current, previous } = await this.sets();
+      // A later epoch block rotates the client: its switch height must be the one BSC uses.
+      if (n % this.epochLength === 0n && n > current.epoch && (await this.nextEpochToward(n, current)) !== n) {
+        await this.advanceToLocked(n - this.epochLength);
+        continue;
+      }
       try {
         const window = await buildWindow(this.bsc, n, current, this.windowOpts(previous));
         return await this.submit(n % this.epochLength === 0n && n > current.epoch ? 'epoch' : 'window', window);
@@ -159,10 +164,30 @@ export class ParliaRelay {
   /**
    * Moves the trusted epoch to `epoch`. A skip only verifies while ⌈2N/3⌉ of the trusted set
    * still seals; when the direct skip fails, the newest intermediate epoch that does verify is
-   * submitted first, then the target is tried again.
+   * submitted first, then the target is tried again. A skip never crosses an epoch that changed
+   * the set's size or turn length (see {@link nextEpochToward}).
    */
   advanceTo(epoch: bigint): Promise<void> {
     return this.exclusive(() => this.advanceToLocked(epoch));
+  }
+
+  /**
+   * The epoch block to rotate to next on the way to `target`. ParliaClient computes the switch
+   * height of an epoch block E from the set it trusts, because it cannot prove the set in force at
+   * E - 1 (announced by E - epochLength) when it skipped that epoch; BSC computes it from the set in
+   * force at E - 1. The two agree while the size and the turn length of the set stay what the
+   * client trusts, so this walks back to the newest epoch whose predecessor still has them: the
+   * epoch that changed them has to be submitted before any later one.
+   */
+  async nextEpochToward(target: bigint, current?: TrustedSetView): Promise<bigint> {
+    const cur = current ?? (await this.sets()).current;
+    let e = target;
+    while (e - this.epochLength > cur.epoch) {
+      const before = parseEpochExtra(await this.bsc.extraOf(e - this.epochLength));
+      if (before.validators.length === cur.validators.length && before.turnLength === cur.turnLength) break;
+      e -= this.epochLength;
+    }
+    return e;
   }
 
   private async advanceToLocked(epoch: bigint): Promise<void> {
@@ -170,18 +195,21 @@ export class ParliaRelay {
     for (;;) {
       const { current, previous } = await this.sets();
       if (current.epoch >= epoch) return;
+      const next = await this.nextEpochToward(epoch, current);
+      if (next !== epoch) this.log(`epoch ${next} changed the set's size or turn length: submitting it before ${epoch}`);
       try {
-        const window = await buildWindow(this.bsc, epoch, current, this.windowOpts(previous));
+        const window = await buildWindow(this.bsc, next, current, this.windowOpts(previous));
         await this.submit('epoch', window);
-        return;
+        continue;
       } catch (e) {
         if (!(e instanceof WindowError)) throw e;
         let stepped = false;
         let probes = 0;
-        for (let x = epoch - this.epochLength; x > current.epoch && probes < this.maxEpochProbes; x -= this.epochLength, probes++) {
+        for (let x = next - this.epochLength; x > current.epoch && probes < this.maxEpochProbes; x -= this.epochLength, probes++) {
           try {
+            // every epoch between `x` and `next` keeps the size and turn length (nextEpochToward)
             const w = await buildWindow(this.bsc, x, current, this.windowOpts(previous));
-            this.log(`skip to ${epoch} does not verify (${e.message}); stepping through epoch ${x}`);
+            this.log(`skip to ${next} does not verify (${e.message}); stepping through epoch ${x}`);
             await this.submit('epoch', w);
             stepped = true;
             break;
@@ -203,13 +231,13 @@ export class ParliaRelay {
 
   /**
    * Decides whether the trusted epoch should move: fewer than `minOverlap` live validators are
-   * trusted, the turn length changed, or the trusted set is older than `refreshAfter`, counted
-   * from the earlier of its epoch block and its installation (the trusting period must never run
-   * out). Returns the epoch to submit, or undefined.
+   * trusted, the set's turn length or size changed, or the trusted set is older than
+   * `refreshAfter`, counted from the earlier of its epoch block and its installation (the trusting
+   * period must never run out). Returns the epoch to submit, or undefined.
    */
   async epochDue(
     nowSec = BigInt(Math.floor(Date.now() / 1000)),
-  ): Promise<{ epoch: bigint; reason: 'overlap' | 'turn-length' | 'refresh'; overlap: number } | undefined> {
+  ): Promise<{ epoch: bigint; reason: 'overlap' | 'turn-length' | 'set-size' | 'refresh'; overlap: number } | undefined> {
     const { current } = await this.sets();
     const latest = await this.latestSettledEpoch();
     if (latest <= current.epoch) return undefined;
@@ -217,6 +245,7 @@ export class ParliaRelay {
     const overlap = trustedOverlap(current.validators, ann.validators);
     if (overlap < this.minOverlap) return { epoch: latest, reason: 'overlap', overlap };
     if (ann.turnLength !== current.turnLength) return { epoch: latest, reason: 'turn-length', overlap };
+    if (ann.validators.length !== current.validators.length) return { epoch: latest, reason: 'set-size', overlap };
     if (nowSec >= trustDeadline(current, this.refreshAfter)) return { epoch: latest, reason: 'refresh', overlap };
     return undefined;
   }

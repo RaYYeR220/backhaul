@@ -74,6 +74,16 @@ import {BscHeader, ParsedHeader} from "../lib/bsc/BscHeader.sol";
 ///      Source: https://github.com/bnb-chain/bsc/blob/947ba1cb1ef05d4a5f71b738113a3d8b4c16f6b7/consensus/parlia/snapshot.go#L374
 ///      Confirmed on chain 97 at epoch 140342000: parlia_getSnapshot holds the old set after
 ///      140342038 and the new one after 140342039.
+///
+///      Skipped epochs. The set in force before E is the one the epoch block E - epochLength
+///      announced. When the client rotates to E from an older trusted epoch it has not seen that
+///      block, and cannot prove it from the window, so it computes the switch from its own trusted
+///      set's size and turn length. That is BSC's height as long as neither changed in the skipped
+///      epochs; the relayer submits the epoch that changed them before any later one
+///      (ParliaRelay.nextEpochToward in the SDK), and anyone who skips past such a change is left
+///      with a wrong `activeFrom`. That costs liveness only, never safety: quorum still needs
+///      ⌈2N/3⌉ seals of the trusted set, the per-height check only makes a window stricter, and
+///      windows outside rotations pass over seals out of force.
 contract ParliaClient {
     /// @notice A finalized BSC header, reduced to what proof verifiers need.
     struct FinalizedHeader {
@@ -309,7 +319,8 @@ contract ParliaClient {
     }
 
     /// @dev Blocks from an epoch block to the first block its set seals: minerHistoryCheckLen() + 1,
-    ///      computed over the set in force before the switch.
+    ///      computed over the set in force before the switch. The client passes its trusted set,
+    ///      which is that set unless epochs that changed the size or turn length were skipped.
     function _switchOffset(uint256 setSize, uint8 turnLength) private pure returns (uint64) {
         return uint64((setSize / 2 + 1) * turnLength);
     }
