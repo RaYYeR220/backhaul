@@ -107,7 +107,7 @@ export function AttackLab() {
     const r = runs[a.id];
     return r?.st === "done" && !r.r.defended;
   }).length;
-  const total = list.data?.total ?? 12;
+  const total = list.data?.total ?? 0;
 
   const groups: { chain: ChainName; title: string; sub: string }[] = [
     { chain: "bsc", title: "Fired at BNB Chain", sub: "The BEEFY light client of Portaldot, its storage verifier and the BNB Chain gateway." },
@@ -125,21 +125,27 @@ export function AttackLab() {
 
       <RelayerBanner error={list.error} at={list.at} onRetry={list.refresh} />
 
+      {list.data && (
       <section className={s.board} aria-label="Scoreboard">
-        <div className={`${s.score} ${rejected === total && total > 0 ? s.all : ""}`}>
-          <span className={s.big}>
-            <Roll value={String(rejected)} />
-            <span className={s.of}>/ {total}</span>
+        <div className={s.scoreCol}>
+          <div className={`${s.score} ${rejected === total && total > 0 ? s.all : ""}`}>
+            <span className={s.big}>
+              <Roll value={String(rejected)} />
+              <span className={s.of}>/ {total}</span>
+            </span>
+            <span className={s.word}>rejected</span>
+          </div>
+          <span className={s.pips} aria-hidden="true">
+            {items.map((a) => {
+              const r = runs[a.id];
+              const st = !r ? "" : r.st === "firing" ? s.pipFiring : r.st === "done" ? (r.r.defended ? s.pipRejected : s.pipBreached) : "";
+              return <i key={a.id} className={`${st} ${a.ready ? "" : s.pipWait}`} />;
+            })}
           </span>
-          <span className={s.word}>rejected</span>
         </div>
         <div className={s.boardSide}>
           <p className={s.boardNote}>
-            {list.loading
-              ? "Asking the relayer for the attacks and the proof material behind them."
-              : !list.data
-                ? "The attacks run through the relayer, which builds each one from proofs it has relayed."
-                : fired === 0
+            {fired === 0
                   ? `${ready.length} of ${total} have their proof material. Fire one, or all of them.`
                   : `${fired} fired${breached ? `, ${breached} not rejected as expected` : ""}. ${ready.length} of ${total} are ready.`}
           </p>
@@ -156,6 +162,7 @@ export function AttackLab() {
           </div>
         </div>
       </section>
+      )}
       <p className="sr-only" aria-live="polite">
         {said}
       </p>

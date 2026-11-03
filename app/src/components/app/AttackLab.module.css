@@ -18,6 +18,51 @@
   border-radius: var(--r-panel);
   background: var(--raised);
 }
+.scoreCol {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.pips {
+  display: flex;
+  gap: 6px;
+}
+.pips i {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid var(--line-3);
+  transition:
+    border-color 0.3s,
+    background 0.3s;
+}
+.pips i.pipWait {
+  border-style: dotted;
+  opacity: 0.5;
+}
+.pips i.pipFiring {
+  border-color: var(--ink-2);
+  animation: ring 1.2s var(--ease) infinite;
+}
+.pips i.pipRejected {
+  border: 1px dashed var(--revert);
+  background: var(--revert-wash);
+}
+.pips i.pipRejected::after {
+  content: "";
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  top: 50%;
+  height: 1px;
+  background: var(--revert);
+  transform: rotate(-45deg);
+}
+.pips i.pipBreached {
+  border-color: var(--ink);
+  background: var(--ink);
+}
 .score {
   display: flex;
   align-items: baseline;
