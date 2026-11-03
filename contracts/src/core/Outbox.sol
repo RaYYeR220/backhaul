@@ -9,7 +9,8 @@ function outboxKey(address app, bytes32 appKey) pure returns (bytes32) {
 /// @title Outbox
 /// @notice Write-once message commitments that the other chain proves.
 /// - Portaldot -> BSC: BSC proves the storage slot `commitments[key]`, i.e. keccak256(abi.encode(key, 0)).
-/// - BSC -> Portaldot: Portaldot proves the `Committed` log from a receipt.
+/// - BSC -> Portaldot: Portaldot proves the `Committed` log from a receipt of the emitting block, or
+///   the same slot from storage at any later block (the slot is write-once).
 /// Keys are namespaced by the calling contract, so no app can write under another app's key.
 /// @dev `commitments` must stay storage slot 0: no inheritance, no state declared before it.
 contract Outbox {

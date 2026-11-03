@@ -3,15 +3,19 @@ pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 import {BscHeader} from "../../src/lib/bsc/BscHeader.sol";
+import {BscVerifier} from "../../src/portaldot/BscVerifier.sol";
 import {ParliaClient} from "../../src/portaldot/ParliaClient.sol";
 
-/// Rotations and ring evictions that anyone can trigger with real headers must not take a block
-/// away from the jobs waiting on it.
+/// Rotations and ring evictions that anyone can trigger with real headers must not take a
+/// commitment away from the jobs waiting on it: the block that emitted it may become impossible to
+/// finalize, but the Outbox's storage at any later finalized block still proves it.
 ///
 /// Synthetic BSC chain built in the test: 9 validators, turnLength 8, epoch 1000, sealer of block n
 /// = set[(n / 8) % 9] (BSC's in-turn order). On the live chain one validator was swapped at epoch
 /// 2000 (v3 → X, sealing from 2040). Windows at different heights are independent segments: the
-/// client never links one window to another.
+/// client never links one window to another. The Outbox state (commitments[key1] = value1 at the
+/// Outbox address) is the synthetic verifier block's state trie from bsc-synthetic.json, placed
+/// into a later header of this chain.
 contract ParliaStrandingTest is Test {
     uint256 internal constant CHAIN_ID = 97;
     uint64 internal constant EPOCH = 1000;
@@ -36,6 +40,34 @@ contract ParliaStrandingTest is Test {
         S2[3] = vm.addr(PK_X);
     }
 
+    /// Two rotations by anyone, then a ring collision: the emitting block is gone from the ring and
+    /// below every set the client holds, so its receipt can never be proven again. The commitment
+    /// still is, from storage at a later block.
+    function test_twoRotationsAndEvictionLeaveCommitmentProvable() public {
+        ParliaClient lc = _client();
+        BscVerifier v = new BscVerifier(lc, _outbox());
+        uint64 b = 1500; // the block holding the Committed log of key1
+
+        // The relayer finalized b, but the job that proves the commitment has not run yet.
+        lc.submitWindow(_segment(b, 48, false));
+        // Anyone: two rotations with real epoch windows, then b + 3·256, which takes b's ring slot.
+        lc.submitWindow(_segment(2000, 56, true));
+        lc.submitWindow(_segment(3000, 48, true));
+        lc.submitWindow(_segment(b + 768, 48, false));
+
+        vm.expectRevert(abi.encodeWithSelector(ParliaClient.NotFinalized.selector, b));
+        lc.finalized(b);
+        bytes[] memory again = _segment(b, 48, false);
+        vm.expectRevert(abi.encodeWithSelector(ParliaClient.BeforeTrustedSet.selector, b, 2040));
+        lc.submitWindow(again);
+        bytes memory receipt = bytes.concat(bytes1(v.RECEIPT_PROOF()), abi.encode(b, _receiptKey(), _receiptNodes(), uint256(1)));
+        vm.expectRevert(abi.encodeWithSelector(ParliaClient.NotFinalized.selector, b));
+        v.verifyCommitment(_key1(), _value1(), receipt);
+
+        // The Outbox is write-once, so any later finalized block proves the commitment.
+        _assertProvableFromStorageAt(lc, v, 3100);
+    }
+
     /// A block below the current set that verified before a rotation still verifies after it,
     /// even though its window holds the seal of a validator the stale set does not know.
     function test_rotationDoesNotStrandBlockUnderPreviousSet() public {
@@ -57,9 +89,51 @@ contract ParliaStrandingTest is Test {
         assertEq(BscHeader.parse(w[4], CHAIN_ID).signer, vm.addr(PK_X));
         assertEq(lc.submitWindow(w), b);
         assertEq(lc.finalized(b).hash, keccak256(w[0]));
+
+        // And whatever happens to b later, a later block proves the commitment from storage.
+        _assertProvableFromStorageAt(lc, new BscVerifier(lc, _outbox()), 3100);
+    }
+
+    /// Finalizes block `n` (a plain window under the current set) with the Outbox state as its
+    /// stateRoot, and proves commitments[key1] = value1 from it.
+    function _assertProvableFromStorageAt(ParliaClient lc, BscVerifier v, uint64 n) internal {
+        string memory syn = _syn();
+        (rootAt, rootOverride) = (n, vm.parseJsonBytes32(syn, ".verifier.stateRoot"));
+        assertEq(lc.submitWindow(_segment(n, 48, false)), n);
+        assertEq(lc.finalized(n).stateRoot, rootOverride);
+        bytes memory proof = bytes.concat(
+            bytes1(v.STORAGE_PROOF()),
+            abi.encode(n, vm.parseJsonBytesArray(syn, ".verifier.accountProof"), vm.parseJsonBytesArray(syn, ".verifier.presentProof"))
+        );
+        assertTrue(v.verifyCommitment(_key1(), _value1(), proof), "commitment proven from a later block");
+        assertFalse(v.verifyCommitment(_key1(), keccak256("another value"), proof));
     }
 
     // ================================================================== helpers
+
+    function _syn() internal view returns (string memory) {
+        return vm.readFile(string.concat(vm.projectRoot(), "/test/fixtures/bsc-synthetic.json"));
+    }
+
+    function _outbox() internal view returns (address) {
+        return vm.parseJsonAddress(_syn(), ".verifier.outbox");
+    }
+
+    function _key1() internal view returns (bytes32) {
+        return vm.parseJsonBytes32(_syn(), ".verifier.key1");
+    }
+
+    function _value1() internal view returns (bytes32) {
+        return vm.parseJsonBytes32(_syn(), ".verifier.value1");
+    }
+
+    function _receiptKey() internal view returns (bytes memory) {
+        return vm.parseJsonBytes(_syn(), ".verifier.receipts[0].key");
+    }
+
+    function _receiptNodes() internal view returns (bytes[] memory) {
+        return vm.parseJsonBytesArray(_syn(), ".verifier.receipts[0].proof");
+    }
 
     function _client() internal returns (ParliaClient) {
         ParliaClient.Checkpoint memory cp =

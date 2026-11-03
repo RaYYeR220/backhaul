@@ -149,7 +149,90 @@ contract BscVerifierTest is BscFixtures {
         // Pointing at the unrelated log in the same receipt.
         bytes[] memory nodes = vm.parseJsonBytesArray(syn, ".verifier.receipts[0].proof");
         bytes memory receiptKey = vm.parseJsonBytes(syn, ".verifier.receipts[0].key");
-        assertFalse(v.verifyCommitment(key1, value1, abi.encode(uint64(1200), receiptKey, nodes, uint256(0))));
+        assertFalse(v.verifyCommitment(key1, value1, _receipt(abi.encode(uint64(1200), receiptKey, nodes, uint256(0)))));
+    }
+
+    function test_commitmentFromSyntheticStorage() public {
+        string memory syn = _fixture("bsc-synthetic.json");
+        BscVerifier v = _synthVerifier(syn);
+        bytes32 key1 = vm.parseJsonBytes32(syn, ".verifier.key1");
+        bytes32 value1 = vm.parseJsonBytes32(syn, ".verifier.value1");
+        bytes memory s1 = vm.parseJsonBytes(syn, ".verifier.encoded.storage1");
+        assertEq(uint8(s1[0]), v.STORAGE_PROOF());
+
+        assertTrue(v.verifyCommitment(key1, value1, s1), "commitments[key1] from storage");
+        assertTrue(
+            v.verifyCommitment(
+                vm.parseJsonBytes32(syn, ".verifier.key2"),
+                vm.parseJsonBytes32(syn, ".verifier.value2"),
+                vm.parseJsonBytes(syn, ".verifier.encoded.storage2")
+            ),
+            "commitments[key2] from storage"
+        );
+        assertFalse(v.verifyCommitment(key1, keccak256("another value"), s1), "wrong value");
+        assertFalse(v.verifyCommitment(key1, bytes32(0), s1), "zero value");
+        // Another key walks to another slot, which this proof does not show as present.
+        try v.verifyCommitment(keccak256("another key"), value1, s1) returns (bool ok) {
+            assertFalse(ok, "another key");
+        } catch {}
+        // A slot nobody wrote proves nothing, whatever value is asked.
+        bytes memory empty = vm.parseJsonBytes(syn, ".verifier.encoded.storageAbsent");
+        bytes32 absentKey = vm.parseJsonBytes32(syn, ".verifier.absentKey");
+        assertFalse(v.verifyCommitment(absentKey, value1, empty));
+        assertFalse(v.verifyCommitment(absentKey, bytes32(0), empty));
+    }
+
+    function test_storageCommitmentOnlyFromRemoteOutbox() public {
+        string memory syn = _fixture("bsc-synthetic.json");
+        BscVerifier v = _synthVerifier(syn);
+        // The same storage proof, checked against another BSC account: the impostor exists in the
+        // state with empty storage, and the proof does not reach it.
+        BscVerifier other = new BscVerifier(v.lightClient(), vm.parseJsonAddress(syn, ".verifier.impostor"));
+        try other.verifyCommitment(
+            vm.parseJsonBytes32(syn, ".verifier.key1"),
+            vm.parseJsonBytes32(syn, ".verifier.value1"),
+            vm.parseJsonBytes(syn, ".verifier.encoded.storage1")
+        ) returns (bool ok) {
+            assertFalse(ok);
+        } catch {}
+    }
+
+    function test_commitmentProofTypeByte() public {
+        string memory syn = _fixture("bsc-synthetic.json");
+        BscVerifier v = _synthVerifier(syn);
+        bytes32 key1 = vm.parseJsonBytes32(syn, ".verifier.key1");
+        bytes32 value1 = vm.parseJsonBytes32(syn, ".verifier.value1");
+        bytes memory r1 = vm.parseJsonBytes(syn, ".verifier.encoded.commitment1");
+        assertEq(uint8(r1[0]), v.RECEIPT_PROOF());
+
+        // The bare ABI encoding, without its type byte, starts with a zero byte.
+        bytes memory bare = new bytes(r1.length - 1);
+        for (uint256 i = 0; i < bare.length; i++) {
+            bare[i] = r1[i + 1];
+        }
+        vm.expectRevert(abi.encodeWithSelector(BscVerifier.UnknownProofType.selector, 0));
+        v.verifyCommitment(key1, value1, bare);
+        vm.expectRevert(abi.encodeWithSelector(BscVerifier.UnknownProofType.selector, 0));
+        v.verifyCommitment(key1, value1, "");
+        bytes memory other = bytes.concat(bytes1(0x03), bare);
+        vm.expectRevert(abi.encodeWithSelector(BscVerifier.UnknownProofType.selector, 3));
+        v.verifyCommitment(key1, value1, other);
+
+        // A receipt proof read as a storage proof, or the other way round, does not verify.
+        bytes memory swapped = bytes.concat(bytes1(v.STORAGE_PROOF()), bare);
+        vm.expectRevert();
+        v.verifyCommitment(key1, value1, swapped);
+    }
+
+    function test_storageCommitmentUnfinalizedReverts() public {
+        string memory syn = _fixture("bsc-synthetic.json");
+        BscVerifier v = new BscVerifier(_synthClient(syn), vm.parseJsonAddress(syn, ".verifier.outbox"));
+        vm.expectRevert(abi.encodeWithSelector(ParliaClient.NotFinalized.selector, 1200));
+        v.verifyCommitment(
+            vm.parseJsonBytes32(syn, ".verifier.key1"),
+            vm.parseJsonBytes32(syn, ".verifier.value1"),
+            vm.parseJsonBytes(syn, ".verifier.encoded.storage1")
+        );
     }
 
     function test_absenceOfSyntheticSlot() public {
@@ -184,7 +267,7 @@ contract BscVerifierTest is BscFixtures {
         v.verifyCommitment(
             vm.parseJsonBytes32(syn, ".verifier.key1"),
             vm.parseJsonBytes32(syn, ".verifier.value1"),
-            abi.encode(uint64(1200), receiptKey, nodes, uint256(1))
+            _receipt(abi.encode(uint64(1200), receiptKey, nodes, uint256(1)))
         );
 
         // An absence proof whose storage nodes do not hang from the account's storage root.
@@ -247,12 +330,19 @@ contract BscVerifierTest is BscFixtures {
     }
 
     function _realReceiptProof(string memory r, uint64 blockNumber) internal pure returns (bytes memory) {
-        return abi.encode(
-            blockNumber,
-            vm.parseJsonBytes(r, ".legacy.key"),
-            vm.parseJsonBytesArray(r, ".legacy.proof"),
-            vm.parseJsonUint(r, ".legacy.logIndex")
+        return _receipt(
+            abi.encode(
+                blockNumber,
+                vm.parseJsonBytes(r, ".legacy.key"),
+                vm.parseJsonBytesArray(r, ".legacy.proof"),
+                vm.parseJsonUint(r, ".legacy.logIndex")
+            )
         );
+    }
+
+    /// @dev A receipt commitment proof: the type byte, then the ABI encoding.
+    function _receipt(bytes memory encoded) internal pure returns (bytes memory) {
+        return bytes.concat(bytes1(0x01), encoded);
     }
 
     /// @dev Real WBNB storage at a finalized BSC testnet block, with a key nobody committed.

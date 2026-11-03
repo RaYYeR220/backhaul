@@ -122,6 +122,14 @@ contract ParliaGasTest is BscFixtures {
         );
         vm.serializeUint(obj, "verifyCommitmentSynthetic", vm.lastCallGas().gasTotalUsed);
         require(
+            v.verifyCommitment(
+                vm.parseJsonBytes32(syn, ".verifier.key1"),
+                vm.parseJsonBytes32(syn, ".verifier.value1"),
+                vm.parseJsonBytes(syn, ".verifier.encoded.storage1")
+            )
+        );
+        vm.serializeUint(obj, "verifyCommitmentStorageSynthetic", vm.lastCallGas().gasTotalUsed);
+        require(
             v.verifyAbsence(
                 vm.parseJsonBytes32(syn, ".verifier.absentKey"), 0, vm.parseJsonBytes(syn, ".verifier.encoded.absent")
             )

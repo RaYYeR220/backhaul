@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { keccak256, parseEther, zeroAddress, type Hex } from 'viem';
 import { portaldot } from '@backhaul/sdk';
-import { decodeOriginData, JobRunner, nonceKey, outboxKeyOf, repayCommitment, transferHash, type OrderSolver } from '../src/jobs.js';
+import { bscProofPath, decodeOriginData, heldProofStep, JobRunner, nonceKey, outboxKeyOf, repayCommitment, transferHash, type OrderSolver } from '../src/jobs.js';
 import type { OrderJob, TransferJob } from '../src/store.js';
-import { A, ADDRS, FakeEnv, originData, tempStore } from './helpers.js';
+import { A, ADDRS, FakeEnv, originData, storageProofOf, tempStore } from './helpers.js';
 
 const TX = (n: number) => `0x${n.toString(16).padStart(64, 'a')}` as Hex;
 const user = A(0xabc);
@@ -175,7 +175,15 @@ describe('orders', () => {
     const r = make();
     const { d, id } = order(env, { fillDeadline: env.clock - 10 });
     env.absence = { blockNumber: 3_000_000n, timestamp: BigInt(env.clock), empty: true };
-    const job = (await r.run(r.ingestOpen('portaldot', { orderId: id, originData: d, tx: TX(40), block: 1n }))) as OrderJob;
+    env.bscHeadNumber = 3_000_000n;
+    // grabbed at the head and held until the window above it exists
+    let job = (await r.run(r.ingestOpen('portaldot', { orderId: id, originData: d, tx: TX(40), block: 1n }))) as OrderJob;
+    expect(job.state).toBe('open');
+    expect(job.bscHeld).toMatchObject({ kind: 'absence', block: '3000000' });
+    expect(env.finalizedBsc).toEqual([]);
+    env.absence = { ...env.absence, blockNumber: 3_000_064n }; // a later grab would differ
+    env.bscHeadNumber = 3_000_064n;
+    job = (await r.run(job)) as OrderJob;
     expect(job.state).toBe('refunded');
     expect(env.finalizedBsc).toEqual([3_000_000n]);
     expect([env.writes[0].chain, env.writes[0].fn, env.writes[0].args[0]]).toEqual(['portaldot', 'refund', d]);
@@ -239,5 +247,116 @@ describe('orders', () => {
     const { d, id } = order(env, { inputToken: ADDRS.bsc.PPOT!, outputToken: zeroAddress, destinationChainId: 420420777n, originChainId: 97n });
     r.ingestOpen('bsc', { orderId: id, originData: d, tx: TX(72), block: 20n });
     expect(r.pendingBscBlocks()).toEqual([20n, 30n]);
+  });
+});
+
+describe('BSC commitments whose block can no longer be finalized', () => {
+  const lock = (r: JobRunner, nonce: bigint, block: bigint) =>
+    r.ingestLocked('bsc', { nonce, t: { nonce, kind: 3, recipient: user, amount: parseEther('0.001') }, tx: TX(80 + Number(nonce)), block });
+  const patient = (env: FakeEnv) => new JobRunner(tempStore(), env, undefined, { backoffBaseMs: 1, maxAttempts: 10 });
+
+  it('picks the receipt path only while the client can finalize the block and it has not kept failing', () => {
+    const base = { block: 5000n, provableFrom: 4040n, receiptTries: 0, maxReceiptTries: 2 };
+    expect(bscProofPath(base)).toBe('receipt');
+    expect(bscProofPath({ ...base, receiptTries: 1 })).toBe('receipt');
+    expect(bscProofPath({ ...base, receiptTries: 2 })).toBe('storage');
+    expect(bscProofPath({ ...base, provableFrom: 5001n })).toBe('storage'); // rotated past it
+    expect(bscProofPath({ ...base, provableFrom: 5000n })).toBe('receipt');
+  });
+
+  it('holds a grabbed proof until the window above its block exists', () => {
+    expect(heldProofStep(undefined, 9000n, 64n)).toBe('grab');
+    expect(heldProofStep(9000n, 9063n, 64n)).toBe('wait');
+    expect(heldProofStep(9000n, 9064n, 64n)).toBe('finalize');
+  });
+
+  it('proves from storage at the head once the client has rotated past the lock block', async () => {
+    const env = new FakeEnv();
+    const r = patient(env);
+    env.provableFrom = 6040n;
+    env.bscHeadNumber = 6100n;
+    let job = (await r.run(lock(r, 1n, 5000n))) as TransferJob;
+    // grabbed at 6100 and held: nothing finalized or sent yet
+    expect(job.state).toBe('locked');
+    expect(job.bscHeld).toMatchObject({ kind: 'commitment', block: '6100', key: job.key });
+    expect(env.finalizedBsc).toEqual([]);
+    expect(env.writes).toHaveLength(0);
+    expect(r.pendingBscBlocks()).toEqual([6100n]);
+
+    env.bscHeadNumber = 6164n;
+    job = (await r.run(job)) as TransferJob;
+    expect(job.state).toBe('finalized');
+    expect(env.storageGrabs).toEqual([6100n]); // the held proof was used, not a new one
+    expect(env.finalizedBsc).toEqual([6100n]);
+    expect(env.writes.map((w) => [w.chain, w.fn])).toEqual([['portaldot', 'finalize']]);
+    expect(env.writes[0].args[1]).toBe(storageProofOf(job.key, 6100n));
+    expect(job.proofHeader).toBe('6100');
+    expect(job.steps.map((s) => s.name)).toEqual(['locked', 'storage proof', 'parlia', 'finalized']);
+  });
+
+  it('falls back to storage after the receipt path failed twice with the window headers there', async () => {
+    const env = new FakeEnv();
+    const r = patient(env);
+    env.unfinalizable.add(5000n);
+    env.bscHeadNumber = 5020n; // confirmed, but the window above 5000 can't be built yet: not counted
+    let job = (await r.run(lock(r, 2n, 5000n))) as TransferJob;
+    expect([job.attempts, job.bscReceipt?.tries]).toEqual([1, 0]);
+    env.bscHeadNumber = 5100n;
+    job = (await r.run(job)) as TransferJob;
+    job = (await r.run(job)) as TransferJob;
+    expect([job.attempts, job.bscReceipt?.tries, job.state]).toEqual([3, 2, 'locked']);
+    // third try with the headers there: storage, grabbed at 5100
+    job = (await r.run(job)) as TransferJob;
+    expect(job.error).toBeUndefined();
+    expect(job.bscHeld?.block).toBe('5100');
+    env.bscHeadNumber = 5164n;
+    job = (await r.run(job)) as TransferJob;
+    expect(job.state).toBe('finalized');
+    expect(env.writes[0].args[1]).toBe(storageProofOf(job.key, 5100n));
+  });
+
+  it('drops a held proof whose block fails and grabs a fresh one', async () => {
+    const env = new FakeEnv();
+    const r = patient(env);
+    env.provableFrom = 9_999_999n;
+    env.bscHeadNumber = 6100n;
+    let job = (await r.run(lock(r, 3n, 5000n))) as TransferJob;
+    expect(job.bscHeld?.block).toBe('6100');
+    env.unfinalizable.add(6100n);
+    env.bscHeadNumber = 6200n;
+    job = (await r.run(job)) as TransferJob;
+    expect(job.error).toMatch(/6100 does not verify/);
+    expect(job.bscHeld).toBeUndefined();
+    job = (await r.run(job)) as TransferJob;
+    expect(job.bscHeld?.block).toBe('6200');
+    expect(env.storageGrabs).toEqual([6100n, 6200n]);
+  });
+
+  it('settles a BSC fill from storage too', async () => {
+    const env = new FakeEnv();
+    const r = patient(env);
+    const { d, id } = order(env);
+    r.ingestOpen('portaldot', { orderId: id, originData: d, tx: TX(90), block: 1n });
+    r.ingestFilled('bsc', { orderId: id, filler: A(5), repayTo: A(5), tx: TX(91), block: 900n });
+    env.provableFrom = 2000n;
+    env.bscHeadNumber = 2100n;
+    let job = (await r.run(r.store.get<OrderJob>(id)!)) as OrderJob;
+    expect(job.state).toBe('filled');
+    env.bscHeadNumber = 2164n;
+    job = (await r.run(job)) as OrderJob;
+    expect(job.state).toBe('settled');
+    const key = outboxKeyOf(ADDRS.bsc.DestinationSettler!, id);
+    expect(env.writes.find((w) => w.fn === 'settle')!.args[2]).toBe(storageProofOf(key, 2100n));
+  });
+
+  it('refuses to hold a storage proof of a slot that is still empty', async () => {
+    const env = new FakeEnv();
+    const r = patient(env);
+    env.provableFrom = 9_999_999n;
+    env.bscHeadNumber = 6100n;
+    env.slotValue = `0x${'00'.repeat(32)}`;
+    const job = (await r.run(lock(r, 4n, 5000n))) as TransferJob;
+    expect(job.error).toMatch(/empty in the BSC Outbox/);
+    expect(job.bscHeld).toBeUndefined();
   });
 });

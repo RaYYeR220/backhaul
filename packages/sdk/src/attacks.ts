@@ -6,9 +6,7 @@
 import { RLP } from '@ethereumjs/rlp';
 import { bytesToHex, concatBytes, hexToBytes } from '@ethereumjs/util';
 import {
-  decodeAbiParameters,
   decodeFunctionResult,
-  encodeAbiParameters,
   encodeFunctionData,
   keccak256,
   stringToHex,
@@ -28,6 +26,7 @@ import {
   portaldotVerifierAbi,
 } from './abi.js';
 import { F, decodeHeader, sealHash } from './bsc/header.js';
+import { decodeCommitmentProof, encodeCommitmentProof } from './bsc/verifier.js';
 import type { ChainName } from './chains.js';
 import { revertReason } from './evm.js';
 import { decodeJustification, encodeCommitment } from './portaldot/beefy.js';
@@ -154,7 +153,6 @@ export async function resealHeader(rlp: Hex, chainId: number | bigint, key: Hex 
 }
 
 const SLOT_PROOF = [{ type: 'uint32' }, { type: 'bytes[]' }, { type: 'bytes[]' }] as const;
-const RECEIPT_PROOF = [{ type: 'uint64' }, { type: 'bytes' }, { type: 'bytes[]' }, { type: 'uint256' }] as const;
 
 async function read<T>(ctx: AttackContext, chain: ChainName, address: Address, abi: Abi, fn: string): Promise<T> {
   const c = ctx.clients[chain];
@@ -310,8 +308,9 @@ export const ATTACKS: Attack[] = [
     expects: ['LogIndexOutOfRange', 'false'],
     needs: { targets: ['bscVerifier'], material: ['bscReceipt'] },
     async build(ctx) {
-      const [n, key, nodes, logIndex] = decodeAbiParameters(RECEIPT_PROOF, need(ctx.material.bscReceipt, 'bscReceipt').proof);
-      const forged = encodeAbiParameters(RECEIPT_PROOF, [n, key, nodes, logIndex + 64n]);
+      const p = decodeCommitmentProof(need(ctx.material.bscReceipt, 'bscReceipt').proof);
+      if (p.type !== 'receipt') throw new Error('bscReceipt is not a receipt proof');
+      const forged = encodeCommitmentProof({ blockNumber: p.blockNumber, key: p.key, proof: [...p.proof], logIndex: p.logIndex + 64n });
       const k = keccak256(stringToHex('never committed'));
       return {
         chain: 'portaldot',

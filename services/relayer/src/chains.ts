@@ -155,7 +155,12 @@ export function jobEnv(ch: Chains, log: (m: string) => void): JobEnv {
       return { tx: await ch.parlia.finalize(block) };
     },
     bscCommitmentProof: (txHash, key) => bsc.buildCommitmentProof(ch.bsc.rpc, txHash, outboxB, key),
+    bscStorageCommitmentProof: (key) => bsc.grabCommitmentProof(ch.bsc.rpc, outboxB, key),
     bscAbsenceProof: (key) => bsc.grabAbsenceProof(ch.bsc.rpc, outboxB, key),
+    async bscProvableFrom() {
+      const prev = await ch.parlia.lc.previousValidatorSet();
+      return prev.validators.length > 0 ? prev.activeFrom : (await ch.parlia.lc.validatorSet()).activeFrom;
+    },
     read: <T>(c: ChainName, to: Address, abi: Abi, fn: string, args: readonly unknown[] = []) =>
       sideOf(ch, c).pub.readContract({ address: to, abi, functionName: fn, args }) as Promise<T>,
     write: (c, to, abi, fn, args, value) => writeWith(sideOf(ch, c).relayer, to, abi, fn, args, value),

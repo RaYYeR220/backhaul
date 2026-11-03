@@ -64,6 +64,12 @@ export class FakeEnv implements JobEnv {
   finalizedBsc: bigint[] = [];
   headersAsked: number[] = [];
   absence = { blockNumber: 2_000_000n, timestamp: 0n, empty: true };
+  /** Value of the BSC Outbox slot a storage proof shows (zero = not committed). */
+  slotValue: Hex = `0x${'11'.repeat(32)}`;
+  provableFrom = 0n;
+  /** BSC blocks whose window fails. */
+  unfinalizable = new Set<bigint>();
+  storageGrabs: bigint[] = [];
   portaldotTime = 0n;
   failWrites = 0;
   private n = 0;
@@ -91,14 +97,22 @@ export class FakeEnv implements JobEnv {
     return this.bscHeadNumber;
   }
   async bscFinalize(block: bigint) {
+    if (this.unfinalizable.has(block)) throw new Error(`window at ${block} does not verify`);
     this.finalizedBsc.push(block);
     return { tx: '0x00000000000000000000000000000000000000000000000000000000000000c1' as Hex };
   }
   async bscCommitmentProof(txHash: Hex, key: Hex) {
     return { blockNumber: 0n, proof: encodeAbiParameters([{ type: 'bytes32' }, { type: 'bytes32' }], [txHash, key]) };
   }
+  async bscStorageCommitmentProof(key: Hex) {
+    this.storageGrabs.push(this.bscHeadNumber);
+    return { blockNumber: this.bscHeadNumber, timestamp: BigInt(this.clock), value: this.slotValue, proof: storageProofOf(key, this.bscHeadNumber) };
+  }
   async bscAbsenceProof(key: Hex) {
     return { ...this.absence, proof: encodeAbiParameters([{ type: 'bytes32' }], [key]) };
+  }
+  async bscProvableFrom() {
+    return this.provableFrom;
   }
   async read<T>(chain: ChainName, to: Address, _abi: Abi, fn: string, args: readonly unknown[] = []): Promise<T> {
     switch (fn) {
@@ -127,6 +141,11 @@ export class FakeEnv implements JobEnv {
     return BigInt(this.clock);
   }
   log() {}
+}
+
+/** What FakeEnv hands out as a storage commitment proof grabbed at `block`. */
+export function storageProofOf(key: Hex, block: bigint): Hex {
+  return encodeAbiParameters([{ type: 'bytes32' }, { type: 'uint64' }, { type: 'string' }], [key, block, 'storage']);
 }
 
 export function originData(o: {

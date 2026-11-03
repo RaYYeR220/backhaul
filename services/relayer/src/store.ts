@@ -16,6 +16,15 @@ export interface Step {
   detail?: string;
 }
 
+/** A storage proof of the BSC Outbox grabbed at the head, held until its block is finalized. */
+export interface HeldBscProof {
+  key: Hex;
+  kind: 'commitment' | 'absence';
+  block: string;
+  timestamp: string;
+  proof: Hex;
+}
+
 interface JobBase {
   id: string;
   createdAt: string;
@@ -25,6 +34,9 @@ interface JobBase {
   /** Do not retry before this time (ms since epoch). */
   retryAt?: number;
   error?: string;
+  /** Receipt-path attempts for a BSC commitment, once its window headers were there. */
+  bscReceipt?: { key: Hex; tries: number };
+  bscHeld?: HeldBscProof;
 }
 
 export type TransferState = 'locked' | 'proven' | 'finalized' | 'failed';

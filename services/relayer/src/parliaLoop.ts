@@ -1,7 +1,8 @@
 // Keeps the Parlia light client of BSC (on Portaldot) trusted: windows above job blocks are
 // submitted on demand by the jobs; this loop only moves the trusted epoch, when fewer than
 // `minOverlap` live validators are trusted or the trusted epoch gets old. Job blocks still
-// waiting are finalized first, so a rotation never strands them.
+// waiting are finalized first, so their receipts stay provable; a job whose block is out of reach
+// anyway proves from the Outbox's storage at a later block (see jobs.ts).
 
 import { bsc } from '@backhaul/sdk';
 import type { Chains } from './chains.js';

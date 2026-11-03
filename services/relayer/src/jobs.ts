@@ -7,6 +7,12 @@
 // Each step builds its proof with the SDK against the light client of the source chain, then
 // calls the contract. A relayer can delay a job but never forge one: every call is checked on
 // chain. Steps are idempotent; a failed step is retried with backoff.
+//
+// A BSC commitment is proven from a receipt of the block that emitted it while the Parlia client
+// can still finalize that block. Once it can't (the client rotated past it, the window keeps
+// failing, a ring collision evicted it again), the job falls back to a storage proof of the
+// Outbox slot grabbed at the BSC head and held until that block is finalized: the Outbox is
+// write-once, so any later block proves the commitment.
 
 import {
   decodeAbiParameters,
@@ -29,7 +35,7 @@ import {
   type BackhaulAddresses,
   type ChainName,
 } from '@backhaul/sdk';
-import { step, type Job, type JsonlStore, type OrderJob, type TransferJob } from './store.js';
+import { step, type HeldBscProof, type Job, type JsonlStore, type OrderJob, type TransferJob } from './store.js';
 
 // ------------------------------------------------------------------ encodings
 
@@ -125,8 +131,13 @@ export interface JobEnv {
   bscHead(): Promise<bigint>;
   /** Finalizes `block` in the Parlia client on Portaldot (no-op if it already is). */
   bscFinalize(block: bigint): Promise<{ tx?: Hex }>;
+  /** Receipt proof of the Outbox's `Committed(key, …)` log in transaction `txHash`. */
   bscCommitmentProof(txHash: Hex, key: Hex): Promise<{ blockNumber: bigint; proof: Hex }>;
+  /** Storage proof of the Outbox's `commitments[key]` at the BSC head (`value` zero if empty). */
+  bscStorageCommitmentProof(key: Hex): Promise<{ blockNumber: bigint; timestamp: bigint; proof: Hex; value: Hex }>;
   bscAbsenceProof(key: Hex): Promise<{ blockNumber: bigint; timestamp: bigint; proof: Hex; empty: boolean }>;
+  /** Lowest BSC height the Parlia client can still finalize (its previous set's first height, or its current set's). */
+  bscProvableFrom(): Promise<bigint>;
   read<T>(chain: ChainName, to: Address, abi: Abi, fn: string, args?: readonly unknown[]): Promise<T>;
   write(chain: ChainName, to: Address, abi: Abi, fn: string, args: readonly unknown[], value?: bigint): Promise<WriteResult>;
   /** Timestamp of the latest block on `chain`. */
@@ -141,6 +152,10 @@ export interface OrderSolver {
 
 export interface JobRunnerOptions {
   bscConfirmations?: bigint;
+  /** BSC headers a block needs above it before its Parlia window can be built. */
+  bscWindowDepth?: bigint;
+  /** Receipt-path attempts (with the window headers there) before a job proves from storage. */
+  receiptTries?: number;
   /** Backoff after the n-th failed attempt: base · 2^n ms, capped. */
   backoffBaseMs?: number;
   backoffMaxMs?: number;
@@ -155,6 +170,22 @@ const gatewayAbi = (c: ChainName) => (c === 'portaldot' ? portaldotGatewayAbi : 
 const forwarderAbi = (c: ChainName) => (c === 'portaldot' ? portaldotRepayForwarderAbi : bscRepayForwarderAbi) as unknown as Abi;
 const isTerminal = (j: Job) => j.state === 'finalized' || j.state === 'settled' || j.state === 'refunded' || j.state === 'failed';
 
+/**
+ * How to prove a BSC commitment emitted in `block`: a receipt proof while the Parlia client can
+ * still finalize that block and the receipt path has not failed `maxReceiptTries` times, a storage
+ * proof at a later block otherwise.
+ */
+export function bscProofPath(i: { block: bigint; provableFrom: bigint; receiptTries: number; maxReceiptTries: number }): 'receipt' | 'storage' {
+  if (i.block < i.provableFrom) return 'storage';
+  return i.receiptTries >= i.maxReceiptTries ? 'storage' : 'receipt';
+}
+
+/** What to do with a storage proof grabbed at the BSC head and held until its block is final. */
+export function heldProofStep(heldBlock: bigint | undefined, head: bigint, windowDepth: bigint): 'grab' | 'wait' | 'finalize' {
+  if (heldBlock === undefined) return 'grab';
+  return head < heldBlock + windowDepth ? 'wait' : 'finalize';
+}
+
 export class JobRunner {
   private readonly opts: Required<JobRunnerOptions>;
 
@@ -166,6 +197,8 @@ export class JobRunner {
   ) {
     this.opts = {
       bscConfirmations: opts.bscConfirmations ?? 15n,
+      bscWindowDepth: opts.bscWindowDepth ?? 64n,
+      receiptTries: opts.receiptTries ?? 2,
       backoffBaseMs: opts.backoffBaseMs ?? 5_000,
       backoffMaxMs: opts.backoffMaxMs ?? 10 * 60_000,
       maxAttempts: opts.maxAttempts ?? 40,
@@ -307,15 +340,77 @@ export class JobRunner {
     }
   }
 
-  /** Source blocks of BSC → Portaldot jobs still waiting for a Parlia window. */
+  /** BSC blocks that jobs still waiting for a Parlia window need: their source block, or the block of the storage proof they hold. */
   pendingBscBlocks(): bigint[] {
     const out = new Set<bigint>();
+    const add = (j: Job, b: string) => out.add(BigInt(j.bscHeld?.kind === 'commitment' ? j.bscHeld.block : b));
     for (const j of this.store.list((x) => !isTerminal(x))) {
-      if (j.type === 'transfer' && j.src === 'bsc' && j.state === 'locked') out.add(BigInt(j.srcBlock));
-      if (j.type === 'order' && j.origin === 'bsc' && j.state === 'open' && !j.vaultTried) out.add(BigInt(j.openBlock));
-      if (j.type === 'order' && j.dest === 'bsc' && j.state === 'filled' && j.fill) out.add(BigInt(j.fill.block));
+      if (j.type === 'transfer' && j.src === 'bsc' && j.state === 'locked') add(j, j.srcBlock);
+      if (j.type === 'order' && j.origin === 'bsc' && j.state === 'open' && !j.vaultTried) add(j, j.openBlock);
+      if (j.type === 'order' && j.dest === 'bsc' && j.state === 'filled' && j.fill) add(j, j.fill.block);
     }
     return [...out].sort((a, b) => (a < b ? -1 : 1));
+  }
+
+  // ---------------------------------------------------------------- BSC proofs
+
+  /**
+   * Proof of the BSC commitment `key`, emitted by `txHash` in `block`, for a Portaldot contract;
+   * undefined when the job has to come back later (its retryAt is set).
+   */
+  private async bscCommitment(job: Job, block: bigint, txHash: Hex, key: Hex): Promise<Hex | undefined> {
+    const head = await this.env.bscHead();
+    if (head < block + this.opts.bscConfirmations) {
+      job.retryAt = Date.now() + 3_000;
+      return undefined;
+    }
+    if (job.bscReceipt?.key !== key) job.bscReceipt = { key, tries: 0 };
+    const r = job.bscReceipt;
+    const path = bscProofPath({ block, provableFrom: await this.env.bscProvableFrom(), receiptTries: r.tries, maxReceiptTries: this.opts.receiptTries });
+    if (path === 'receipt') {
+      // A job that comes back here after the window headers were there failed on this path.
+      if (head >= block + this.opts.bscWindowDepth) r.tries++;
+      const { tx } = await this.env.bscFinalize(block);
+      if (tx) job.steps.push(step('parlia', { chain: 'portaldot', tx, detail: `BSC block ${block} finalized on Portaldot` }));
+      return (await this.env.bscCommitmentProof(txHash, key)).proof;
+    }
+    let held = this.held(job, key, 'commitment');
+    if (!held) {
+      const p = await this.env.bscStorageCommitmentProof(key);
+      if (BigInt(p.value) === 0n) throw new Error(`commitments[${key}] is empty in the BSC Outbox at ${p.blockNumber}`);
+      held = this.hold(job, key, 'commitment', p, `block ${block} can no longer be proven by receipt`);
+    }
+    return (await this.finalizeHeld(job, held)) ? held.proof : undefined;
+  }
+
+  private held(job: Job, key: Hex, kind: HeldBscProof['kind']): HeldBscProof | undefined {
+    const h = job.bscHeld;
+    return h && h.key === key && h.kind === kind ? h : undefined;
+  }
+
+  private hold(job: Job, key: Hex, kind: HeldBscProof['kind'], p: { blockNumber: bigint; timestamp: bigint; proof: Hex }, why: string): HeldBscProof {
+    const held: HeldBscProof = { key, kind, block: p.blockNumber.toString(), timestamp: p.timestamp.toString(), proof: p.proof };
+    job.bscHeld = held;
+    job.steps.push(step('storage proof', { chain: 'bsc', block: held.block, detail: `${kind} proven from the Outbox's storage (${why})` }));
+    this.env.log(`job ${job.id}: holding a BSC storage proof at ${held.block} (${why})`);
+    return held;
+  }
+
+  /** Finalizes the block of a held proof once its window can be built; false while waiting. A failure drops the proof. */
+  private async finalizeHeld(job: Job, held: HeldBscProof): Promise<boolean> {
+    const block = BigInt(held.block);
+    if (heldProofStep(block, await this.env.bscHead(), this.opts.bscWindowDepth) === 'wait') {
+      job.retryAt = Date.now() + 5_000;
+      return false;
+    }
+    try {
+      const { tx } = await this.env.bscFinalize(block);
+      if (tx) job.steps.push(step('parlia', { chain: 'portaldot', tx, detail: `BSC block ${block} finalized on Portaldot` }));
+      return true;
+    } catch (e) {
+      job.bscHeld = undefined; // grab a fresh one next time
+      throw e;
+    }
   }
 
   // ---------------------------------------------------------------- transfers
@@ -337,15 +432,10 @@ export class JobRunner {
       proof = await this.env.portaldotCommitmentProof(job.key, header);
       job.proofHeader = String(header);
     } else {
-      const head = await this.env.bscHead();
-      if (head < BigInt(job.srcBlock) + this.opts.bscConfirmations) {
-        job.retryAt = Date.now() + 3_000;
-        return job;
-      }
-      const { tx } = await this.env.bscFinalize(BigInt(job.srcBlock));
-      if (tx) job.steps.push(step('parlia', { chain: 'portaldot', tx, detail: `BSC block ${job.srcBlock} finalized on Portaldot` }));
-      proof = (await this.env.bscCommitmentProof(job.srcTx, job.key)).proof;
-      job.proofHeader = job.srcBlock;
+      const p = await this.bscCommitment(job, BigInt(job.srcBlock), job.srcTx, job.key);
+      if (!p) return job;
+      proof = p;
+      job.proofHeader = this.held(job, job.key, 'commitment')?.block ?? job.srcBlock;
     }
     job.proof = proof;
     job.state = 'proven';
@@ -392,17 +482,15 @@ export class JobRunner {
     return list.filter((x): x is Address => !!x);
   }
 
-  /** Proof that `originSettler` on the order's origin committed the order (what vaults check). */
-  private async openProof(job: OrderJob): Promise<Hex> {
+  /** Proof that `originSettler` on the order's origin committed the order (what vaults check); undefined to come back later. */
+  private async openProof(job: OrderJob): Promise<Hex | undefined> {
     const key = outboxKeyOf(this.originSettler(job.origin), job.orderId);
     if (job.origin === 'portaldot') {
       const { header, txs } = await this.env.portaldotHeader(Number(job.openBlock));
       for (const tx of txs) job.steps.push(step('beefy', { chain: 'bsc', tx, detail: `Portaldot header ${header} proven on BSC` }));
       return this.env.portaldotCommitmentProof(key, header);
     }
-    const { tx } = await this.env.bscFinalize(BigInt(job.openBlock));
-    if (tx) job.steps.push(step('parlia', { chain: 'portaldot', tx, detail: `BSC block ${job.openBlock} finalized on Portaldot` }));
-    return (await this.env.bscCommitmentProof(job.openTx, key)).proof;
+    return this.bscCommitment(job, BigInt(job.openBlock), job.openTx, key);
   }
 
   private async advanceOrder(job: OrderJob): Promise<OrderJob> {
@@ -436,6 +524,7 @@ export class JobRunner {
       const vault = this.opts.vaultFills ? this.vaultFor(job) : undefined;
       if (vault && !job.vaultTried && (await this.vaultWants(job, vault))) {
         const proof = await this.openProof(job);
+        if (!proof) return job;
         job.vaultTried = true;
         const r = await this.env.write(job.dest, vault, lpVaultAbi as unknown as Abi, 'fill', [job.orderId, job.originData, proof]);
         job.steps.push(step('vault fill', { chain: job.dest, tx: r.hash, block: r.block.toString() }));
@@ -449,14 +538,9 @@ export class JobRunner {
       const key = outboxKeyOf(this.destinationSettler(job.dest), job.orderId);
       let proof: Hex;
       if (job.dest === 'bsc') {
-        const head = await this.env.bscHead();
-        if (head < BigInt(job.fill.block) + this.opts.bscConfirmations) {
-          job.retryAt = Date.now() + 3_000;
-          return job;
-        }
-        const { tx } = await this.env.bscFinalize(BigInt(job.fill.block));
-        if (tx) job.steps.push(step('parlia', { chain: 'portaldot', tx, detail: `BSC block ${job.fill.block} finalized on Portaldot` }));
-        proof = (await this.env.bscCommitmentProof(job.fill.tx, key)).proof;
+        const p = await this.bscCommitment(job, BigInt(job.fill.block), job.fill.tx, key);
+        if (!p) return job;
+        proof = p;
       } else {
         const { header, txs } = await this.env.portaldotHeader(Number(job.fill.block));
         for (const tx of txs) job.steps.push(step('beefy', { chain: 'bsc', tx, detail: `Portaldot header ${header} proven on BSC` }));
@@ -499,18 +583,22 @@ export class JobRunner {
     const key = outboxKeyOf(this.destinationSettler(job.dest), job.orderId);
     let proof: Hex;
     if (job.dest === 'bsc') {
-      const p = await this.env.bscAbsenceProof(key);
-      if (!p.empty) {
-        job.retryAt = Date.now() + 5_000; // filled after all: wait for its event
-        return job;
+      // grabbed at the head, held until its block is finalized
+      let held = this.held(job, key, 'absence');
+      if (!held) {
+        const p = await this.env.bscAbsenceProof(key);
+        if (!p.empty) {
+          job.retryAt = Date.now() + 5_000; // filled after all: wait for its event
+          return job;
+        }
+        if (p.timestamp < BigInt(job.fillDeadline) + 1n) {
+          job.retryAt = Date.now() + 5_000;
+          return job;
+        }
+        held = this.hold(job, key, 'absence', p, 'no fill by the deadline');
       }
-      if (p.timestamp < BigInt(job.fillDeadline) + 1n) {
-        job.retryAt = Date.now() + 5_000;
-        return job;
-      }
-      const { tx } = await this.env.bscFinalize(p.blockNumber);
-      if (tx) job.steps.push(step('parlia', { chain: 'portaldot', tx, detail: `BSC block ${p.blockNumber} finalized on Portaldot` }));
-      proof = p.proof;
+      if (!(await this.finalizeHeld(job, held))) return job;
+      proof = held.proof;
     } else {
       // a header from now on, so its timestamp is past the deadline
       const { header, txs } = await this.env.portaldotHeader((await this.env.portaldotFinalized()) - 10);

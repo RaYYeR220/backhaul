@@ -7,7 +7,9 @@
 //    refresh before the trusted epoch gets old (every few days), so the trusting period never
 //    runs out.
 // Before an epoch rotation, jobs still waiting on older blocks should be finalized first: after
-// two rotations the client no longer knows the set that sealed them.
+// two rotations the client no longer knows the set that sealed them. A job whose block is out of
+// reach anyway proves its commitment from the BSC Outbox's storage at a later block instead
+// (BscVerifier takes both proof types).
 
 import type { Hex } from 'viem';
 import type { BscClient } from '../bsc/client.js';

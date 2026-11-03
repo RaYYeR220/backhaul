@@ -17,7 +17,7 @@ import { bigIntToUnpaddedBytes, bytesToHex, concatBytes, hexToBytes } from '@eth
 import { encodeAbiParameters, keccak256, stringToHex, toHex, type Address, type Hex } from 'viem';
 import { privateKeyToAddress, sign } from 'viem/accounts';
 import { sealHash, switchOffset } from '../src/bsc/header.js';
-import { encodeAbsenceProof, encodeCommitmentProof } from '../src/bsc/verifier.js';
+import { encodeAbsenceProof, encodeCommitmentProof, encodeStorageCommitmentProof } from '../src/bsc/verifier.js';
 
 export const CHAIN_ID = 9797n;
 export const EPOCH_LENGTH = 1000n;
@@ -202,6 +202,7 @@ async function verifierBlock() {
   );
   const accountProof = await proof(stateTrie, hexToBytes(OUTBOX));
   const presentProof = await proof(storageTrie, hexToBytes(outboxSlot(key1)));
+  const presentProof2 = await proof(storageTrie, hexToBytes(outboxSlot(key2)));
   const absentProof = await proof(storageTrie, hexToBytes(outboxSlot(absentKey)));
   const blockNumber = VERIFIER_BLOCK;
   return {
@@ -222,12 +223,18 @@ async function verifierBlock() {
       receipts: receiptProofs,
       accountProof,
       presentProof,
+      presentProof2,
       absentProof,
       // The same proofs, encoded by the SDK the way BscVerifier takes them.
       encoded: {
         commitment1: encodeCommitmentProof({ blockNumber, ...receiptProofs[0], logIndex: 1 }),
         commitment2: encodeCommitmentProof({ blockNumber, ...receiptProofs[1], logIndex: 0 }),
         impostor: encodeCommitmentProof({ blockNumber, ...receiptProofs[2], logIndex: 0 }),
+        // commitments[key1] and commitments[key2] from the Outbox's storage at the same block
+        storage1: encodeStorageCommitmentProof({ blockNumber, accountProof, storageProof: presentProof }),
+        storage2: encodeStorageCommitmentProof({ blockNumber, accountProof, storageProof: presentProof2 }),
+        // the empty slot of absentKey, as a commitment proof
+        storageAbsent: encodeStorageCommitmentProof({ blockNumber, accountProof, storageProof: absentProof }),
         absent: encodeAbsenceProof({ blockNumber, accountProof, storageProof: absentProof }),
         present: encodeAbsenceProof({ blockNumber, accountProof, storageProof: presentProof }),
       },

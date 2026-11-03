@@ -154,6 +154,7 @@ async function check(pub: PublicClient, verifier: Address, abi: typeof portaldot
   console.log(`  negative control, same proof with another value → ${forged.ok ? 'ACCEPTED (this must not happen)' : `rejected (${forged.why})`}`);
   if (!real.ok && /NotFinalized/.test(real.why)) {
     console.log('  The Parlia client keeps the last 256 finalized BSC headers; this block is not among them (not yet, or overwritten).');
+    console.log('  A storage proof of the same Outbox slot at any later finalized block proves it too (BscVerifier proof type 0x02).');
   }
   return real.ok && !forged.ok;
 }
