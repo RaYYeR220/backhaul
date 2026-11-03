@@ -1,0 +1,373 @@
+.below {
+  position: relative;
+  z-index: 2;
+  max-width: var(--wrap);
+  margin: 150px auto 0;
+  padding: 0 var(--gutter) 120px;
+}
+
+.section + .section {
+  margin-top: 132px;
+}
+
+.kicker {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.h2 {
+  margin-top: 14px;
+  font-family: var(--display);
+  font-weight: 500;
+  font-stretch: 112.5%;
+  font-size: clamp(30px, 3.4vw, 46px);
+  letter-spacing: -0.04em;
+  line-height: 1.08;
+  max-width: 780px;
+  text-wrap: balance;
+}
+
+.lead {
+  margin-top: 24px;
+  max-width: 600px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+.note {
+  margin-top: 28px;
+  font-size: 14px;
+  color: var(--ink-3);
+}
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 64px;
+  align-items: start;
+}
+.split > :last-child {
+  margin-top: 42px;
+}
+
+.cta {
+  margin-top: 30px;
+}
+
+/* ---------- losses ---------- */
+.losses {
+  list-style: none;
+  margin-top: 40px;
+  border-top: 1px solid var(--line);
+}
+.loss {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 0.7fr 0.8fr;
+  align-items: baseline;
+  gap: 16px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 15px;
+  color: var(--ink-2);
+}
+.loss b {
+  font-weight: 500;
+  color: var(--ink);
+}
+.amount {
+  text-align: right;
+  color: var(--ink);
+}
+.srcLink {
+  justify-self: end;
+  font-size: 13px;
+  color: var(--ink-3);
+  transition: color 0.2s;
+}
+.srcLink:hover {
+  color: var(--ink);
+}
+
+/* ---------- how it crosses ---------- */
+.ways {
+  margin-top: 44px;
+  display: grid;
+  gap: 18px;
+}
+.way {
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  padding: 26px 28px 28px;
+  background: rgba(255, 255, 255, 0.012);
+}
+.wayHead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.arr {
+  color: var(--ink-3);
+}
+.tempo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 64px;
+  height: 16px;
+}
+.tick {
+  width: 1px;
+  height: 10px;
+  background: var(--ink-3);
+}
+.tick:last-child {
+  height: 14px;
+  background: var(--ink);
+}
+.beat {
+  width: 16px;
+  height: 9px;
+  border: 1px solid var(--line-3);
+  border-radius: 2px;
+}
+.beat:last-child {
+  border-color: rgba(243, 243, 241, 0.6);
+}
+.verbs {
+  list-style: none;
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+}
+.verb {
+  position: relative;
+  padding-top: 18px;
+  border-top: 1px solid var(--line-2);
+}
+.verb::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink-2);
+}
+.verb:last-child::after {
+  background: var(--accent);
+}
+.n {
+  position: absolute;
+  top: 14px;
+  right: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.verb h3 {
+  font-family: var(--display);
+  font-weight: 500;
+  font-stretch: 112.5%;
+  font-size: 22px;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+.verb h3 span {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--sans);
+  font-stretch: 100%;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--ink-2);
+}
+.verb p {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-3);
+}
+
+/* ---------- liquidity sequence ---------- */
+.sequence {
+  list-style: none;
+  position: relative;
+  display: grid;
+  gap: 0;
+}
+.sequence li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  column-gap: 14px;
+  padding: 0 0 26px;
+}
+.sequence li::before {
+  content: "";
+  position: absolute;
+  left: 3.5px;
+  top: 14px;
+  bottom: -2px;
+  width: 1px;
+  background: var(--line-2);
+}
+.sequence li:last-child::before {
+  display: none;
+}
+.sequence i {
+  grid-row: 1 / 3;
+  margin-top: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid var(--line-3);
+  background: var(--ground);
+}
+.sequence b {
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--ink);
+}
+.sequence span {
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--ink-3);
+}
+.proven i {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.proven b {
+  color: var(--accent-hi);
+}
+
+/* ---------- definition rows ---------- */
+.places {
+  border-top: 1px solid var(--line);
+}
+.places > div {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 20px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.places dt {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.places dd {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+/* ---------- attack lab ---------- */
+.attacks {
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+.attacks li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 15px;
+  color: var(--ink);
+}
+.attacks li svg {
+  flex: none;
+  color: var(--ink-3);
+}
+.reverts {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+/* ---------- trust ---------- */
+.trust {
+  margin-top: 40px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 48px;
+}
+.trust .places > div {
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+.col {
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ink-3);
+}
+.more {
+  display: inline-flex;
+  gap: 8px;
+  margin-top: 28px;
+  font-size: 14px;
+  color: var(--ink-2);
+  transition: color 0.2s;
+}
+.more:hover {
+  color: var(--ink);
+}
+
+@media (max-width: 960px) {
+  .split {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+  .split > :last-child {
+    margin-top: 0;
+  }
+  .verbs {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+  .trust {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+}
+
+@media (max-width: 760px) {
+  .below {
+    margin-top: 110px;
+    padding-bottom: 88px;
+  }
+  .section + .section {
+    margin-top: 96px;
+  }
+  .loss {
+    grid-template-columns: 1fr auto;
+    row-gap: 4px;
+  }
+  .loss > :nth-child(2) {
+    grid-row: 2;
+    font-size: 14px;
+  }
+  .srcLink {
+    grid-row: 2;
+    grid-column: 2;
+  }
+  .way {
+    padding: 20px 18px 22px;
+    border-radius: var(--r-card);
+  }
+  .places > div {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
