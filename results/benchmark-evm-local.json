@@ -1,0 +1,38 @@
+{
+  "note": "forge, solc 0.8.28 via-IR optimizer 200 (the Portaldot size profile changes code size, not these counts). executionGas = vm.lastCallGas on a fresh client; intrinsicGas = 21000 + 16/4 per non-zero/zero calldata byte.",
+  "storageProof": {
+    "blockNumber": 140468572,
+    "calldataBytes": 7620,
+    "executionGas": 288914,
+    "intrinsicGas": 124656
+  },
+  "windows": {
+    "window16": {
+      "calldataBytes": 15492,
+      "executionGas": 610060,
+      "finalizes": false,
+      "firstBlock": 140342002,
+      "headers": 16,
+      "intrinsicGas": 201672,
+      "rlpBytes": 14304
+    },
+    "window32": {
+      "calldataBytes": 30916,
+      "executionGas": 1177358,
+      "finalizes": false,
+      "firstBlock": 140342002,
+      "headers": 32,
+      "intrinsicGas": 377740,
+      "rlpBytes": 28596
+    },
+    "window48": {
+      "calldataBytes": 46308,
+      "executionGas": 1827194,
+      "finalizes": true,
+      "firstBlock": 140342002,
+      "headers": 48,
+      "intrinsicGas": 552216,
+      "rlpBytes": 42873
+    }
+  }
+}
