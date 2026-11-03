@@ -1,0 +1,58 @@
+{
+  "codeUploadDepositUnits": 20151,
+  "constructor": {
+    "proofSize": 22956,
+    "refTime": 971249433,
+    "storageDepositUnits": 382
+  },
+  "note": "ink_sandbox 5.1.1: pallet-contracts 38 with its reference WeightInfo and default Schedule, running the release wasm in-process. refTime in picoseconds, proofSize in bytes. storageDepositUnits count 1 per byte plus 1 per item (the sandbox's deposit prices).",
+  "storageProof": {
+    "inputBytes": 6158,
+    "proofSize": 21260,
+    "proofSizeRequired": 37335,
+    "refTime": 1375259313,
+    "refTimeRequired": 1375259313,
+    "returnData": "0x0000015772617070656420424e42000000000000000000000000000000000000000016",
+    "reverted": false,
+    "storageDepositUnits": 0
+  },
+  "wasmBytes": 20088,
+  "windows": {
+    "window16": {
+      "finalizes": false,
+      "headers": 16,
+      "inputBytes": 14341,
+      "proofSize": 22859,
+      "proofSizeRequired": 36781,
+      "refTime": 4441432188,
+      "refTimeRequired": 4441432188,
+      "returnData": "0x0001040300000006000000",
+      "reverted": true,
+      "storageDepositUnits": 0
+    },
+    "window32": {
+      "finalizes": false,
+      "headers": 32,
+      "inputBytes": 28665,
+      "proofSize": 25019,
+      "proofSizeRequired": 36781,
+      "refTime": 8155558792,
+      "refTimeRequired": 8155558792,
+      "returnData": "0x0001040500000006000000",
+      "reverted": true,
+      "storageDepositUnits": 0
+    },
+    "window48": {
+      "finalizes": true,
+      "headers": 48,
+      "inputBytes": 42974,
+      "proofSize": 30837,
+      "proofSizeRequired": 46919,
+      "refTime": 12323111694,
+      "refTimeRequired": 12331627030,
+      "returnData": "0x0000f2725d0800000000",
+      "reverted": false,
+      "storageDepositUnits": 113
+    }
+  }
+}

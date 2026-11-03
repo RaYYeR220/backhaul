@@ -1,0 +1,5 @@
+# cargo-contract 5.0.x builds core with panic_immediate_abort, which newer compilers dropped.
+[toolchain]
+channel = "1.88"
+components = ["rust-src"]
+targets = ["wasm32-unknown-unknown"]
