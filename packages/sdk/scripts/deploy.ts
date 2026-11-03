@@ -16,6 +16,11 @@
  *          --seed-bnb-vault <tBNB>  --approval-fund <tPOT>  --min-fee-bps <n>
  *          --estimate-from <0x funded Portaldot address>  --keep (leave local nodes running)
  *          --minimal (= --no-bnb-vaults: no LP vaults on the BNB routes; BNB still bridges)
+ *          --with-feed  also deploy BscFeed (Chainlink BNB/USD proven from BSC storage)
+ *          --with-ink   also upload the ink! ParliaClient to pallet-contracts with the ops key
+ *                       (PORTALDOT_OPS_MNEMONIC), from the EVM client's checkpoint; the dry-run
+ *                       prices it with ContractsApi_instantiate. Build it first with
+ *                       packages/sdk/scripts/build-ink.ts.
  */
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -40,6 +45,7 @@ import { CONTRACTS_DIR } from '../src/artifacts.js';
 import { BscClient, BSC_TESTNET_RPCS } from '../src/bsc/client.js';
 import { BSC_CHAIN_ID, BSC_RPC, PORTALDOT_CHAIN_ID, PORTALDOT_EVM_RPC, PORTALDOT_SUBSTRATE_WS, type ChainName } from '../src/chains.js';
 import { calibratePortaldot, fmtUnits, modelCost, type PortaldotRates } from '../src/deploy/cost.js';
+import { checkpointFromMeta, quoteInkDeploy } from '../src/deploy/ink.js';
 import { impersonate, setBalance, startAnvil, stateDiff, type Anvil } from '../src/deploy/anvil.js';
 import { runPlan, type PlanConfig } from '../src/deploy/plan.js';
 import { Side, type TxLog } from '../src/deploy/side.js';
@@ -147,6 +153,8 @@ async function main() {
     bnbbSupply: SUPPLY,
     minFeeBps,
     bnbVaults: !flag('no-bnb-vaults') && !flag('minimal'),
+    withFeed: flag('with-feed'),
+    withInk: flag('with-ink'),
     trustingPeriod: TRUSTING_PERIOD,
     seeds,
     portaldot,
@@ -162,7 +170,8 @@ async function main() {
     await runPlan(P, B, cfg);
     const txs = [...P.txs, ...B.txs];
     writeFileSync(resolve(outDir, 'txs.json'), JSON.stringify(txs, jsonReplacer, 2) + '\n');
-    if (mode === 'dry') await costReport(P.txs, B.txs, portaldot.api, await sampleOps(P, B));
+    const ink = mode === 'dry' && flag('with-ink') ? await inkLine(portaldot.api, P) : undefined;
+    if (mode === 'dry') await costReport(P.txs, B.txs, portaldot.api, await sampleOps(P, B), ink);
     else summary(P, B);
   } finally {
     await disconnectPortaldot(portaldot);
@@ -235,7 +244,21 @@ async function sampleOps(P: Side, B: Side): Promise<SampleOp[]> {
   return out;
 }
 
-async function costReport(ptxs: TxLog[], btxs: TxLog[], api: any, ops: SampleOp[]) {
+/** The ink! ParliaClient upload, priced on the live chain from the checkpoint the plan used. */
+async function inkLine(api: any, P: Side): Promise<Line> {
+  const origin = (await api.call.reviveApi.accountId(estimateFrom)).toString();
+  const q = await quoteInkDeploy(api, origin, checkpointFromMeta(P.dep.meta.parliaCheckpoint), TRUSTING_PERIOD);
+  const wei = (planck: bigint) => planck * 10_000n; // 14 → 18 decimals, like every other line
+  log(`ink! ParliaClient: ${q.wasmBytes} B wasm, ${q.ok ? 'accepted by the dry-run' : `refused by the dry-run: ${q.reason}`}`);
+  return {
+    step: 'ParliaClient ink! (ops key, instantiateWithCode)',
+    method: `${q.depositMethod}${q.ok ? '' : `; chain refuses it now: ${q.reason}`} + paymentInfo`,
+    fee: wei(q.deposit + q.fee),
+    value: 0n,
+  };
+}
+
+async function costReport(ptxs: TxLog[], btxs: TxLog[], api: any, ops: SampleOp[], ink?: Line) {
   const pdLive = createPublicClient({ transport: http(pdRpc, { timeout: 120_000 }) }) as PublicClient;
   const bscLive = createPublicClient({ transport: http(bscRpc) }) as PublicClient;
   log('calibrating the Portaldot cost model with live estimates');
@@ -274,6 +297,7 @@ async function costReport(ptxs: TxLog[], btxs: TxLog[], api: any, ops: SampleOp[
   // Substrate-side steps (ops key): BNB.b and the approval-deposit top-ups.
   const sub = await substrateCosts(api);
   pLines.push(...sub);
+  if (ink) pLines.push(ink);
 
   const bscPrice = await bscLive.getGasPrice();
   const bLines: Line[] = btxs.map((t) => ({ step: t.step, method: `fork gas ${t.gasUsed}`, fee: t.gasUsed * bscPrice, value: t.value }));
@@ -317,7 +341,9 @@ async function costReport(ptxs: TxLog[], btxs: TxLog[], api: any, ops: SampleOp[
     running: { parliaWindowFresh: window, parliaWindowWarm: windowWarm, storageItem: rates.slotRate, userOps },
   };
   const minimal = flag('no-bnb-vaults') || flag('minimal');
-  const path = resolve(ROOT, 'results', minimal ? 'deploy-cost-estimate-minimal.json' : 'deploy-cost-estimate.json');
+  const extras = [flag('with-feed') && 'feed', flag('with-ink') && 'ink'].filter(Boolean).join('-');
+  const name = `deploy-cost-estimate${minimal ? '-minimal' : ''}${extras ? `-with-${extras}` : ''}.json`;
+  const path = resolve(ROOT, 'results', name);
   writeFileSync(path, JSON.stringify(out, jsonReplacer, 2) + '\n');
   log(`wrote ${path}`);
 }

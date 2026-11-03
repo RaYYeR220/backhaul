@@ -15,6 +15,7 @@ import {
 } from '../abi.js';
 import { loadArtifact } from '../artifacts.js';
 import { checkpointAt } from '../bsc/checkpoint.js';
+import { BNB_USD_DECIMALS, BNB_USD_PROXY } from '../bsc/feed.js';
 import type { BscClient } from '../bsc/client.js';
 import { u8aToHex } from '@polkadot/util';
 import { accountId32Of, assetPrecompile, BSC_CHAIN_ID, PORTALDOT_CHAIN_ID } from '../chains.js';
@@ -26,6 +27,7 @@ import { buildBindProof, trieIdOf } from '../portaldot/storage.js';
 import { BeefyRelay, livePortaldotSource } from '../relay/beefy.js';
 import { beefyClientPort } from '../relay/ports.js';
 import { setCode } from './anvil.js';
+import { checkpointFromMeta, deployInk } from './ink.js';
 import { NeedsOtherChain, type Side } from './side.js';
 
 export interface Seeds {
@@ -50,6 +52,13 @@ export interface PlanConfig {
    */
   bnbVaults?: boolean;
   trustingPeriod: bigint;
+  /** Deploy BscFeed, the proven Chainlink BNB/USD feed (data bridge). */
+  withFeed?: boolean;
+  /**
+   * Deploy the ink! twin of ParliaClient on pallet-contracts (ops key, same checkpoint). Live only:
+   * a local run has no pallet-contracts, and the dry-run prices it from ContractsApi_instantiate.
+   */
+  withInk?: boolean;
   seeds: Seeds;
   /** Live Portaldot substrate client (BEEFY checkpoint, BNB.b, bindTrieId). */
   portaldot: PortaldotClient;
@@ -325,6 +334,39 @@ export async function runPlan(P: Side, B: Side, cfg: PlanConfig): Promise<void> 
     await step(cfg, 'tBNB vault liquidity', () =>
       B.call('seed.bnbVault', B.addr('BnbVault'), lpVaultAbi as Abi, 'deposit', [cfg.seeds.bnbVault], { value: cfg.seeds.bnbVault }),
     );
+  }
+
+  // 13. Optional extras, after the core deployment.
+  // Data bridge: the proven Chainlink BNB/USD feed, read through BscVerifier.storageAt.
+  if (cfg.withFeed) {
+    await step(cfg, 'BscFeed', () =>
+      P.deploy('BscFeed', 'BscFeed', () => Promise.resolve([P.addr('BscVerifier'), BNB_USD_PROXY, BNB_USD_DECIMALS])),
+    );
+  }
+
+  if (cfg.withInk) {
+    await step(cfg, 'ParliaClient (ink!)', async () => {
+      if (P.dep.meta.parliaClientInk) return;
+      if (!P.active) throw new NeedsOtherChain('portaldot is not part of this run');
+      const cp = checkpointFromMeta(P.dep.meta.parliaCheckpoint);
+      if (cfg.mode === 'local') {
+        log('ink! ParliaClient: the local stand-in has no pallet-contracts; the dry-run prices it with ContractsApi_instantiate');
+        return;
+      }
+      if (!cfg.ops) throw new Error('the ink! client is uploaded with the ops key: set PORTALDOT_OPS_MNEMONIC');
+      const r = await deployInk(cfg.portaldot.api, cfg.ops, cp, cfg.trustingPeriod, log);
+      P.dep.meta.parliaClientInk = {
+        address: r.address,
+        codeHash: r.quote.codeHash,
+        wasmBytes: r.quote.wasmBytes,
+        tx: r.hash,
+        block: r.block,
+        deployer: cfg.ops.address,
+        args: [BSC_CHAIN_ID, 1000, cfg.trustingPeriod, cp],
+      };
+      P.save();
+      log(`ink! ParliaClient = ${r.address} (${r.hash})`);
+    });
   }
 }
 

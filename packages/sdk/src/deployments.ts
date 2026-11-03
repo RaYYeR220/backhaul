@@ -42,6 +42,7 @@ export const PORTALDOT_CONTRACTS = [
   'Outbox',
   'ParliaClient',
   'BscVerifier',
+  'BscFeed',
   'PortaldotGateway',
   'OriginSettler',
   'DestinationSettler',

@@ -1,0 +1,317 @@
+{
+  "at": "2026-11-03T19:21:44.627Z",
+  "rates": {
+    "reuseCodeRate": "18373871916854242",
+    "gasPrice": "23025",
+    "deployBase": "9079596618520972200",
+    "codeRate": "83647179819151542",
+    "slotRate": "3902133611209360125",
+    "callBase": "12307572071532975",
+    "byteRate": "101612252848528"
+  },
+  "portaldot": {
+    "lines": [
+      {
+        "step": "deploy Outbox",
+        "method": "live estimate",
+        "fee": "44977065425070900825",
+        "value": "0"
+      },
+      {
+        "step": "deploy ParliaClient",
+        "method": "live estimate",
+        "fee": "506330520582389060175",
+        "value": "0"
+      },
+      {
+        "step": "deploy BscVerifier",
+        "method": "live estimate",
+        "fee": "396077105124179898825",
+        "value": "0"
+      },
+      {
+        "step": "deploy PortaldotGateway",
+        "method": "live estimate",
+        "fee": "268612206481291667775",
+        "value": "0"
+      },
+      {
+        "step": "PortaldotGateway.setRemote",
+        "method": "model: 1 new items",
+        "fee": "3918099224383440108",
+        "value": "0"
+      },
+      {
+        "step": "deploy OriginSettler",
+        "method": "live estimate",
+        "fee": "408367487950735532550",
+        "value": "0"
+      },
+      {
+        "step": "deploy DestinationSettler",
+        "method": "live estimate",
+        "fee": "156365331278164404000",
+        "value": "0"
+      },
+      {
+        "step": "OriginSettler.setRemoteDestination",
+        "method": "model: 1 new items",
+        "fee": "3918099224383440108",
+        "value": "0"
+      },
+      {
+        "step": "deploy PotVault",
+        "method": "live estimate",
+        "fee": "452487659931107470950",
+        "value": "0"
+      },
+      {
+        "step": "deploy BnbbVault",
+        "method": "live estimate",
+        "fee": "452487659931107470950",
+        "value": "0"
+      },
+      {
+        "step": "deploy PotForwarder",
+        "method": "live estimate",
+        "fee": "137281940676012159225",
+        "value": "0"
+      },
+      {
+        "step": "deploy BnbbForwarder",
+        "method": "model: 0 new items, 1562 B code",
+        "fee": "139953230431361591028",
+        "value": "0"
+      },
+      {
+        "step": "PotVault.setRemote",
+        "method": "model: 3 new items",
+        "fee": "11732121223075619046",
+        "value": "0"
+      },
+      {
+        "step": "BnbbVault.setRemote",
+        "method": "model: 2 new items",
+        "fee": "7829987611866258921",
+        "value": "0"
+      },
+      {
+        "step": "seed.gasPool",
+        "method": "model: 0 new items",
+        "fee": "12714021082927087",
+        "value": "5000000000000000000"
+      },
+      {
+        "step": "seed.potVault",
+        "method": "model: 3 new items",
+        "fee": "11722366446802160358",
+        "value": "20000000000000000000"
+      },
+      {
+        "step": "deploy BscFeed",
+        "method": "live estimate",
+        "fee": "180567878210552220300",
+        "value": "0"
+      },
+      {
+        "step": "bnbb.create (ops key)",
+        "method": "paymentInfo + AssetDeposit",
+        "fee": "1016006300662410000",
+        "value": "0"
+      },
+      {
+        "step": "bnbb.setMetadata (ops key)",
+        "method": "paymentInfo + metadata deposit",
+        "fee": "1073004195779200000",
+        "value": "0"
+      },
+      {
+        "step": "bnbb.mint (ops key)",
+        "method": "paymentInfo",
+        "fee": "15504627708970000",
+        "value": "0"
+      },
+      {
+        "step": "bnbb.setTeam (ops key)",
+        "method": "paymentInfo",
+        "fee": "21003998631130000",
+        "value": "0"
+      },
+      {
+        "step": "bnbb.transferOwnership (ops key)",
+        "method": "paymentInfo",
+        "fee": "14404122010870000",
+        "value": "0"
+      },
+      {
+        "step": "seed.approvalFund.BnbbVault (ops key)",
+        "method": "paymentInfo",
+        "fee": "14904105079640000",
+        "value": "500000000000000000"
+      },
+      {
+        "step": "seed.approvalFund.BnbbForwarder (ops key)",
+        "method": "paymentInfo",
+        "fee": "14904105079640000",
+        "value": "500000000000000000"
+      },
+      {
+        "step": "ParliaClient ink! (ops key, instantiateWithCode)",
+        "method": "model: 20088 B × DepositPerByte + 30% lockup + 4 items; chain refuses it now: contracts.CodeRejected (\"Can't load the module into wasmi!\") + paymentInfo",
+        "fee": "1567500192415652830000",
+        "value": "0"
+      }
+    ],
+    "fee": "4752311397644170912231",
+    "value": "26000000000000000000"
+  },
+  "bsc": {
+    "gasPrice": "100000000",
+    "lines": [
+      {
+        "step": "deploy Outbox",
+        "method": "fork gas 151465",
+        "fee": "15146500000000",
+        "value": "0"
+      },
+      {
+        "step": "deploy PortaldotLightClient",
+        "method": "fork gas 2883130",
+        "fee": "288313000000000",
+        "value": "0"
+      },
+      {
+        "step": "deploy PortaldotVerifier",
+        "method": "fork gas 2069046",
+        "fee": "206904600000000",
+        "value": "0"
+      },
+      {
+        "step": "deploy PPOT",
+        "method": "fork gas 556548",
+        "fee": "55654800000000",
+        "value": "0"
+      },
+      {
+        "step": "deploy BscGateway",
+        "method": "fork gas 687266",
+        "fee": "68726600000000",
+        "value": "0"
+      },
+      {
+        "step": "BscGateway.setRemote",
+        "method": "fork gas 45120",
+        "fee": "4512000000000",
+        "value": "0"
+      },
+      {
+        "step": "deploy OriginSettler",
+        "method": "fork gas 1143851",
+        "fee": "114385100000000",
+        "value": "0"
+      },
+      {
+        "step": "deploy DestinationSettler",
+        "method": "fork gas 460172",
+        "fee": "46017200000000",
+        "value": "0"
+      },
+      {
+        "step": "OriginSettler.setRemoteDestination",
+        "method": "fork gas 45044",
+        "fee": "4504400000000",
+        "value": "0"
+      },
+      {
+        "step": "deploy PpotVault",
+        "method": "fork gas 1268348",
+        "fee": "126834800000000",
+        "value": "0"
+      },
+      {
+        "step": "deploy BnbVault",
+        "method": "fork gas 1268108",
+        "fee": "126810800000000",
+        "value": "0"
+      },
+      {
+        "step": "deploy PpotForwarder",
+        "method": "fork gas 411185",
+        "fee": "41118500000000",
+        "value": "0"
+      },
+      {
+        "step": "deploy BnbForwarder",
+        "method": "fork gas 407722",
+        "fee": "40772200000000",
+        "value": "0"
+      },
+      {
+        "step": "PpotVault.setRemote",
+        "method": "fork gas 71150",
+        "fee": "7115000000000",
+        "value": "0"
+      },
+      {
+        "step": "BnbVault.setRemote",
+        "method": "fork gas 91086",
+        "fee": "9108600000000",
+        "value": "0"
+      },
+      {
+        "step": "seed.bnbVault",
+        "method": "fork gas 91224",
+        "fee": "9122400000000",
+        "value": "10000000000000000"
+      },
+      {
+        "step": "beefy submitCommitment (for the bind)",
+        "method": "forge gas 103370",
+        "fee": "10337000000000",
+        "value": "0"
+      },
+      {
+        "step": "beefy importHeader (for the bind)",
+        "method": "forge gas 109482",
+        "fee": "10948200000000",
+        "value": "0"
+      },
+      {
+        "step": "PortaldotVerifier.bindTrieId",
+        "method": "forge gas 470638",
+        "fee": "47063800000000",
+        "value": "0"
+      }
+    ],
+    "fee": "1233395500000000",
+    "value": "10000000000000000"
+  },
+  "running": {
+    "parliaWindowFresh": "20295005647941261475",
+    "parliaWindowWarm": "4686471203103820975",
+    "storageItem": "3902133611209360125",
+    "userOps": [
+      {
+        "step": "lockPOT (first ever)",
+        "dataBytes": 36,
+        "newSlots": 2,
+        "value": "1000000000000000000",
+        "fee": "7820232835592800233"
+      },
+      {
+        "step": "lockPOT",
+        "dataBytes": 36,
+        "newSlots": 1,
+        "value": "1000000000000000000",
+        "fee": "3918099224383440108"
+      },
+      {
+        "step": "OriginSettler.open (tPOT in)",
+        "dataBytes": 420,
+        "newSlots": 2,
+        "value": "1000000000000000000",
+        "fee": "7859251940686634985"
+      }
+    ]
+  }
+}
