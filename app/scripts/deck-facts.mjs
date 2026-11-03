@@ -223,7 +223,8 @@ export function writeFacts({ repo = REPO, out = OUT, log = console.log } = {}) {
   }
   const facts = collect(repo);
   const text = JSON.stringify(facts, null, 2) + "\n";
-  const old = existsSync(out) ? readFileSync(out, "utf8") : "";
+  // a Windows checkout may have CRLF; the content is what counts
+  const old = existsSync(out) ? readFileSync(out, "utf8").replace(/\r\n/g, "\n") : "";
   if (old !== text) writeFileSync(out, text);
   log(`deck: ${old === text ? "facts unchanged" : "wrote"} ${out} from ${facts.sources.length} files`);
   return facts;
