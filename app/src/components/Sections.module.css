@@ -39,7 +39,7 @@
 .note {
   margin-top: 28px;
   font-size: 14px;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 .split {
@@ -83,7 +83,7 @@
 .srcLink {
   justify-self: end;
   font-size: 13px;
-  color: var(--ink-3);
+  color: var(--ink-2);
   transition: color 0.2s;
 }
 .srcLink:hover {
@@ -192,7 +192,7 @@
   margin-top: 12px;
   font-size: 14px;
   line-height: 1.55;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 /* ---------- liquidity sequence ---------- */
@@ -238,7 +238,7 @@
 .sequence span {
   margin-top: 2px;
   font-size: 14px;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 .proven i {
   border-color: var(--accent);
@@ -290,9 +290,8 @@
 }
 .reverts {
   margin-left: auto;
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--ink-3);
+  font-size: 12px;
+  color: var(--ink-2);
 }
 
 /* ---------- trust ---------- */
