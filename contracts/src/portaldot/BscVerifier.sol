@@ -8,7 +8,8 @@ import {ParliaClient} from "./ParliaClient.sol";
 /// @title BscVerifier
 /// @notice Checks what the Outbox on BNB Smart Chain committed, against headers finalized by the
 ///         Parlia light client. Commitments are proven from the Outbox's `Committed` event in a
-///         receipt; absence is proven from the Outbox's storage. No owner, no configuration.
+///         receipt; absence is proven from the Outbox's storage. It also reads any BSC account's
+///         storage for other contracts ({storageAt}, used by BscFeed). No owner, no configuration.
 /// @dev Returns false when a well-formed proof shows something other than what is asked (another
 ///      emitter, topic, key or value; a present slot; a header older than `notBefore`). Reverts when
 ///      the proof itself does not verify: block not finalized ({ParliaClient.NotFinalized}), trie
@@ -60,6 +61,22 @@ contract BscVerifier is IRemoteVerifier {
         if (header.timestamp < notBefore) return false;
         (, bool exists) = EthProofs.storageAt(header.stateRoot, remoteOutbox, accountProof, commitmentSlot(key), storageProof);
         return !exists;
+    }
+
+    /// @notice Value of `slot` in the storage of any BSC account at finalized block `blockNumber`:
+    ///         the data bridge for Portaldot contracts. Proofs are `eth_getProof`'s accountProof
+    ///         and storageProof[i].proof.
+    /// @return value The slot value (zero when absent).
+    /// @return exists False when the account or the slot is absent at that block.
+    /// @dev Reverts if the block is not finalized or the proof does not hang from its state root.
+    function storageAt(
+        uint64 blockNumber,
+        address account,
+        bytes[] calldata accountProof,
+        bytes32 slot,
+        bytes[] calldata storageProof
+    ) external view returns (bytes32 value, bool exists) {
+        return EthProofs.storageAt(lightClient.finalized(blockNumber).stateRoot, account, accountProof, slot, storageProof);
     }
 
     /// @notice Storage slot of `commitments[key]` in the Outbox, whose mapping is storage slot 0.

@@ -84,6 +84,45 @@ contract BscVerifierTest is BscFixtures {
         assertFalse(v.verifyAbsence(key, timestamp + 1, proof));
     }
 
+    function test_storageAtRealAccount() public {
+        (BscVerifier v,,,) = _realAbsence();
+        string memory s = _fixture("bsc-storage.json");
+        uint64 n = uint64(vm.parseJsonUint(s, ".blockNumber"));
+        address wbnb = vm.parseJsonAddress(s, ".account");
+        bytes[] memory accountProof = vm.parseJsonBytesArray(s, ".accountProof");
+
+        (bytes32 value, bool exists) = v.storageAt(
+            n, wbnb, accountProof, vm.parseJsonBytes32(s, ".existing.slot"), vm.parseJsonBytesArray(s, ".existing.proof")
+        );
+        assertTrue(exists);
+        assertEq(value, vm.parseJsonBytes32(s, ".existing.value"), "WBNB slot 0 holds its name");
+
+        (value, exists) =
+            v.storageAt(n, wbnb, accountProof, vm.parseJsonBytes32(s, ".absent.slot"), vm.parseJsonBytesArray(s, ".absent.proof"));
+        assertFalse(exists);
+        assertEq(value, bytes32(0));
+
+        (, exists) = v.storageAt(
+            n,
+            vm.parseJsonAddress(s, ".absentAccount.account"),
+            vm.parseJsonBytesArray(s, ".absentAccount.accountProof"),
+            vm.parseJsonBytes32(s, ".absentAccount.slot"),
+            vm.parseJsonBytesArray(s, ".absentAccount.proof")
+        );
+        assertFalse(exists, "an account missing from the state holds nothing");
+
+        // Any account, not only the Outbox: the verifier was built for WBNB here, but the reader
+        // takes the account from the caller.
+        BscVerifier other = new BscVerifier(v.lightClient(), address(0xB0B));
+        (value,) = other.storageAt(
+            n, wbnb, accountProof, vm.parseJsonBytes32(s, ".existing.slot"), vm.parseJsonBytesArray(s, ".existing.proof")
+        );
+        assertEq(value, vm.parseJsonBytes32(s, ".existing.value"));
+
+        vm.expectRevert(abi.encodeWithSelector(ParliaClient.NotFinalized.selector, n + 1));
+        v.storageAt(n + 1, wbnb, accountProof, bytes32(0), vm.parseJsonBytesArray(s, ".existing.proof"));
+    }
+
     // ============================================================================================
     // Synthetic block with a real Outbox layout: Committed logs and commitments[key] at slot 0
     // ============================================================================================
