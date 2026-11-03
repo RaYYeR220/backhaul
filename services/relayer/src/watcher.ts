@@ -90,7 +90,11 @@ export function chainScans(ch: Chains, deployBlocks: { portaldot: bigint; bsc: b
       pub: ch.pd.pub,
       addresses: pick([a.portaldot.PortaldotGateway, a.portaldot.OriginSettler, a.portaldot.DestinationSettler]),
       startBlock: deployBlocks.portaldot,
-      safeHead: async () => BigInt(await portaldot.finalizedNumber(ch.pd.client.api)),
+      // GRANDPA-finalized, and never past what the eth-rpc node itself has indexed
+      safeHead: async () => {
+        const [fin, evm] = await Promise.all([portaldot.finalizedNumber(ch.pd.client.api), ch.pd.pub.getBlockNumber()]);
+        return BigInt(fin) < evm ? BigInt(fin) : evm;
+      },
       chunk: ch.cfg.jobs.logChunk.portaldot,
     },
     {

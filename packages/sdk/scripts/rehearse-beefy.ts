@@ -40,6 +40,7 @@ const log = (m: string) => console.log(`${new Date().toISOString().slice(11, 19)
 const CONTRACT: Address = '0x1d0c17a0ee1dcf15bd05a45ae789058a0586aa68';
 const HOLDER = '0xc3439de80429265793325a6b662232043ced04b6';
 
+process.on('unhandledRejection', (e) => log(`unhandled: ${(e as Error)?.message ?? e}`));
 const anvil = await startAnvil({ port: Number(opt('port', '8721')), chainId: 97, forkUrl: process.env.BSC_RPC ?? BSC_RPC });
 const pd = await connectPortaldot();
 const out: Record<string, unknown> = { at: new Date().toISOString(), network: 'anvil fork of BSC testnet, live Portaldot V3 testnet data' };
@@ -137,16 +138,28 @@ try {
   if (argv.includes('--rotate')) {
     const stop = await archive.subscribe(pd.provider);
     log(`waiting for set ${setId + 1n} (archiving justifications meanwhile)`);
+    // The public node drops WebSocket connections now and then; the provider reconnects.
+    const retrying = async <T>(fn: () => Promise<T>): Promise<T> => {
+      for (let i = 0; ; i++) {
+        try {
+          return await fn();
+        } catch (e) {
+          if (i >= 10) throw e;
+          log(`retrying after: ${(e as Error).message.split('\n')[0]}`);
+          await new Promise((r) => setTimeout(r, 10_000));
+        }
+      }
+    };
     for (;;) {
-      const head = await finalizedNumber(pd.api);
-      if ((await validatorSetIdAt(pd.api, head)) > setId) break;
-      await relay.refreshArchive();
+      const next = await retrying(async () => (await validatorSetIdAt(pd.api, await finalizedNumber(pd.api))) > setId);
+      if (next) break;
+      await retrying(() => relay.refreshArchive());
       await new Promise((r) => setTimeout(r, 30_000));
     }
     await new Promise((r) => setTimeout(r, 30_000));
     const before = events.length;
-    const n = await relay.rotateIfNeeded();
-    await stop();
+    const n = await retrying(() => relay.rotateIfNeeded());
+    await stop().catch(() => undefined);
     const rot = events.slice(before);
     out.rotation = {
       rotations: n,

@@ -110,8 +110,8 @@ async function main() {
     const bscPort = Number(opt('bsc-port', '8645'));
     const pdPort = Number(opt('portaldot-port', '8646'));
     anvils = [
-      await startAnvil({ port: bscPort, chainId: BSC_CHAIN_ID, forkUrl: bscRpc }),
-      await startAnvil({ port: pdPort, chainId: PORTALDOT_CHAIN_ID }),
+      await startAnvil({ port: bscPort, chainId: BSC_CHAIN_ID, forkUrl: bscRpc, detached: flag('keep') }),
+      await startAnvil({ port: pdPort, chainId: PORTALDOT_CHAIN_ID, detached: flag('keep') }),
     ];
     [bscUrl, pdUrl] = anvils.map((a) => a.url);
     for (const url of [bscUrl, pdUrl]) {

@@ -6,6 +6,7 @@
  * Reads addresses from deployments/{portaldot,bsc}.json. Anyone can run it: every message it
  * carries is checked by the light clients on chain, so it can delay delivery but never forge it.
  */
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { formatEther } from 'viem';
 import { loadDeployment, loadEnvFromArgs, txLink } from '@backhaul/sdk';
@@ -25,9 +26,35 @@ const argv = process.argv.slice(2);
 const flag = (n: string) => argv.includes(`--${n}`);
 const log = (m: string) => console.log(`${new Date().toISOString()} ${m}`);
 
+/**
+ * One relayer per data directory: the block-hash cache is positional and the justification
+ * archive append-only, so two writers would corrupt them.
+ */
+function lockDataDir(dir: string): () => void {
+  mkdirSync(dir, { recursive: true });
+  const path = resolve(dir, 'relayer.lock');
+  if (existsSync(path)) {
+    const pid = Number(readFileSync(path, 'utf8'));
+    let alive = false;
+    try {
+      process.kill(pid, 0);
+      alive = true;
+    } catch {
+      // stale lock
+    }
+    if (alive && pid !== process.pid) throw new Error(`another relayer (pid ${pid}) uses ${dir}`);
+  }
+  writeFileSync(path, String(process.pid));
+  return () => rmSync(path, { force: true });
+}
+
 async function main() {
   loadEnvFromArgs(process.argv);
   const cfg = loadConfig();
+  const unlock = lockDataDir(cfg.dataDir);
+  process.on('exit', unlock);
+  // A dropped node connection must not take the process down; the loops retry.
+  process.on('unhandledRejection', (e) => log(`unhandled rejection: ${(e as Error)?.message ?? e}`));
   const store = JsonlStore.open(resolve(cfg.dataDir, 'jobs.jsonl'));
   const ch = await connectChains(cfg, store, log);
   const env = jobEnv(ch, log);

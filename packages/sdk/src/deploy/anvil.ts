@@ -10,6 +10,8 @@ export interface AnvilOptions {
   forkBlock?: bigint;
   /** Block gas limit (Parlia windows and bindTrieId are heavy). */
   gasLimit?: bigint;
+  /** Keep the node running after this process exits. */
+  detached?: boolean;
 }
 
 export interface Anvil {
@@ -30,10 +32,12 @@ export async function startAnvil(o: AnvilOptions): Promise<Anvil> {
   const args = ['--port', String(o.port), '--chain-id', String(o.chainId), '--silent', '--gas-limit', String(o.gasLimit ?? 300_000_000n)];
   if (o.forkUrl) args.push('--fork-url', o.forkUrl, '--no-rate-limit', '--retries', '10');
   if (o.forkBlock !== undefined) args.push('--fork-block-number', o.forkBlock.toString());
-  // Large proofs and initcodes; the chains we mirror have no EIP-170 problems for our contracts,
-  // but keep anvil from rejecting anything a real node would accept.
+  // never reject code a real node would accept
   args.push('--disable-code-size-limit');
-  const proc = spawn('anvil', args, { stdio: ['ignore', 'ignore', 'pipe'] });
+  const proc = o.detached
+    ? spawn('anvil', args, { stdio: 'ignore', detached: true, windowsHide: true })
+    : spawn('anvil', args, { stdio: ['ignore', 'ignore', 'pipe'] });
+  if (o.detached) proc.unref();
   let stderr = '';
   proc.stderr?.on('data', (d) => (stderr += d.toString()));
   const url = `http://127.0.0.1:${o.port}`;
