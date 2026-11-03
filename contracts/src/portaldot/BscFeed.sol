@@ -16,6 +16,18 @@ import {BscVerifier} from "./BscVerifier.sol";
 ///        mapping(uint32 => Transmission{int192 answer; uint64 timestamp}).
 ///      Round ids follow the proxy: phaseId << 64 | aggregator round, so they keep rising across an
 ///      aggregator change. A proof must show a newer round than the stored one, at a later block.
+///
+///      Limits, fixed at deployment because the contract has no admin:
+///      - The OCR1 layout above and `decimals` are immutable. A proxy phase change to another OCR1
+///        aggregator keeps working (the aggregator is read from the proxy each time). A phase
+///        change to an aggregator with another layout (OCR2, OCR3, data streams) makes {update}
+///        revert with {NoData}, or read slots that mean something else: following that feed
+///        needs a new BscFeed deployment.
+///      - It enforces no freshness. {latestRoundData} returns the round as BSC stored it, with
+///        `updatedAt` set to the time the aggregator recorded it there, not when it was proven
+///        here, and anyone may prove any round newer than the stored one, not necessarily the
+///        latest. Consumers check `updatedAt` against their own heartbeat;
+///        {provenAtBscBlock} says which finalized BSC block the round was read from.
 contract BscFeed {
     uint256 internal constant PROXY_PHASE_SLOT = 2;
     uint256 internal constant HOT_VARS_SLOT = 43;
@@ -85,6 +97,7 @@ contract BscFeed {
     }
 
     /// @notice The latest proven round, as the BSC proxy reports it (startedAt = updatedAt, as on OCR1).
+    ///         `updatedAt` is the round's own time on BSC; check it for staleness before use.
     function latestRoundData() public view returns (uint80, int256, uint256, uint256, uint80) {
         uint80 id = _roundId;
         if (id == 0) revert NoData();
