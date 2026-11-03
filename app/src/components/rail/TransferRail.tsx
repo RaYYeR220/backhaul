@@ -63,16 +63,22 @@ export function TransferRail(p: TransferRailProps) {
   return (
     <section className={s.obj} id={p.id} aria-label="Transfer rail: a transfer waits at a gate until the other chain's signers reach quorum">
       <div className={s.top}>
-        <div className={s.seg} role="group" aria-label="Direction">
-          <button type="button" aria-pressed={toPdt} className={toPdt ? s.on : undefined} onClick={() => p.onDirectionChange?.("toPortaldot")}>
-            <span className={s.long}>BNB Chain</span>
-            <span className={s.short}>BNB</span> <span className={s.arr}>→</span> Portaldot
-          </button>
-          <button type="button" aria-pressed={!toPdt} className={!toPdt ? s.on : undefined} onClick={() => p.onDirectionChange?.("toBnb")}>
-            Portaldot <span className={s.arr}>→</span> <span className={s.long}>BNB Chain</span>
-            <span className={s.short}>BNB</span>
-          </button>
-        </div>
+        {p.onDirectionChange ? (
+          <div className={s.seg} role="group" aria-label="Direction">
+            <button type="button" aria-pressed={toPdt} className={toPdt ? s.on : undefined} onClick={() => p.onDirectionChange?.("toPortaldot")}>
+              <span className={s.long}>BNB Chain</span>
+              <span className={s.short}>BNB</span> <span className={s.arr}>→</span> Portaldot
+            </button>
+            <button type="button" aria-pressed={!toPdt} className={!toPdt ? s.on : undefined} onClick={() => p.onDirectionChange?.("toBnb")}>
+              Portaldot <span className={s.arr}>→</span> <span className={s.long}>BNB Chain</span>
+              <span className={s.short}>BNB</span>
+            </button>
+          </div>
+        ) : (
+          <p className={s.dir}>
+            {toPdt ? "BNB Chain" : "Portaldot"} <span className={s.arr}>→</span> {toPdt ? "Portaldot" : "BNB Chain"}
+          </p>
+        )}
         {p.forge && (
           <button
             type="button"
@@ -162,6 +168,7 @@ export function TransferRail(p: TransferRailProps) {
         </div>
       </div>
 
+      {p.steps.length > 0 && (
       <ol className={s.steps}>
         {p.steps.map((step, i) => (
           <li key={i} className={step.done ? s.ok : undefined}>
@@ -175,6 +182,7 @@ export function TransferRail(p: TransferRailProps) {
           </li>
         ))}
       </ol>
+      )}
 
       {p.footer}
     </section>

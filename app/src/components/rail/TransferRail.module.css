@@ -41,6 +41,16 @@
 .seg button:focus-visible {
   border-radius: var(--r-full);
 }
+.dir {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+  font-size: 13px;
+  color: var(--ink);
+}
 .arr {
   color: var(--ink-3);
   margin: 0 2px;
