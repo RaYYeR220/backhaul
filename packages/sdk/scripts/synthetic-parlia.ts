@@ -264,6 +264,9 @@ async function main() {
     afterRotation: await segment({ start: 4100n, length: 48, sealer: turns([9, 0, 1, 2, 3, 4]) }),
     // Under B: the outgoing validator seals again.
     afterRotationOutgoing: await segment({ start: 4200n, length: 8, sealer: () => 8 }),
+    // Below 4040, after the rotation at 4000: checked by the previous set A. Six members of A seal
+    // five blocks each, with a validator outside A in between (4006..4010).
+    previousOutsider: await segment({ start: 4001n, length: 35, sealer: (i) => [0, OUTSIDER, 1, 2, 3, 4, 5][Math.floor(i / 5)] }),
     // Under A, no epoch block: three epochs after the checkpoint at 1000.
     skip: await segment({ start: 4500n, length: 48, sealer: turns([0, 1, 2, 3, 4, 5]) }),
     // Epoch 5000 re-announces A; submitted straight after the checkpoint at 1000.

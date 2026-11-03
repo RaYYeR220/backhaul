@@ -30,8 +30,8 @@ export interface WindowOptions {
   /** Headers fetched per request. */
   chunk?: number;
   /**
-   * In a window that crosses no switch the client knows about, let seals from validators outside
-   * the trusted set through without counting them, as ParliaClient does (default true). Set false
+   * In a window the client does not rotate on, let seals from validators outside the set in force
+   * at their height through without counting them, as ParliaClient does (default true). Set false
    * to refuse them instead, for a client that rejects such seals.
    */
   tolerateUntrusted?: boolean;
@@ -69,6 +69,8 @@ interface Plan {
   post: Set<string>;
   switchAt: bigint;
   need: number;
+  /** An epoch window the client rotates on: every seal must be in force at its height. */
+  rotates: boolean;
 }
 
 function plan(startNumber: bigint, startExtra: Hex, set: TrustedSet, opts: WindowOptions, epochLength: bigint): Plan {
@@ -80,10 +82,11 @@ function plan(startNumber: bigint, startExtra: Hex, set: TrustedSet, opts: Windo
       post: norm(announced.validators),
       switchAt: startNumber + BigInt(switchOffset(set.validators.length, set.turnLength)),
       need: quorum(set.validators.length),
+      rotates: true,
     };
   }
   if (startNumber >= set.activeFrom) {
-    return { pre: norm(set.validators), post: new Set(), switchAt: 2n ** 64n, need: quorum(set.validators.length) };
+    return { pre: norm(set.validators), post: new Set(), switchAt: 2n ** 64n, need: quorum(set.validators.length), rotates: false };
   }
   const prev = opts.previous;
   if (prev && startNumber >= prev.activeFrom) {
@@ -92,6 +95,7 @@ function plan(startNumber: bigint, startExtra: Hex, set: TrustedSet, opts: Windo
       post: norm(set.validators),
       switchAt: set.activeFrom,
       need: quorum(prev.validators.length),
+      rotates: false,
     };
   }
   throw new WindowError(`block ${startNumber} is below every trusted set`);
@@ -99,9 +103,9 @@ function plan(startNumber: bigint, startExtra: Hex, set: TrustedSet, opts: Windo
 
 /**
  * Collects headers from `startNumber` until ⌈2N/3⌉ distinct members of the trusted set have
- * sealed. Only trusted signers count. In a plain window (no switch in it) other sealers are
- * passed over, as the contract does; in a window across a switch every seal must belong to the
- * set the contract holds for its height.
+ * sealed. Only trusted signers in force at their height count; other sealers are passed over, as
+ * the contract does, except in an epoch window the contract rotates on, where every seal must
+ * belong to the set it holds for that height.
  * Throws {@link WindowError} when the contract would reject the window — typically because the
  * validator set changed in an epoch the contract has not seen yet, which must be submitted first.
  */
@@ -131,10 +135,10 @@ export async function buildWindow(
       p ??= plan(startNumber, h.extra, set, opts, epochLength);
       const signer = await sealerOf(rlp, chainId);
       if (signer !== h.coinbase) throw new WindowError(`block ${h.number}: sealer ${signer} is not the coinbase`);
-      const allowed = h.number < p.switchAt ? p.pre : p.post;
-      if (!allowed.has(signer) && !(tolerate && p.post.size === 0)) throw new UntrustedSealError(h.number, signer);
+      const inForce = (h.number < p.switchAt ? p.pre : p.post).has(signer);
+      if (!inForce && (p.rotates || !tolerate)) throw new UntrustedSealError(h.number, signer);
       window.push(rlp);
-      if (p.pre.has(signer)) signers.add(signer);
+      if (inForce && p.pre.has(signer)) signers.add(signer);
       if (signers.size >= p.need) return window;
     }
     next = startNumber + BigInt(window.length);

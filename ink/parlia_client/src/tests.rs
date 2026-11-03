@@ -290,12 +290,23 @@ fn previous_set_proves_older_blocks() {
 fn previous_set_still_rejects_outgoing_after_switch() {
     let mut lc = synth_client("A1000");
     lc.submit_window(segment("rotation")).unwrap();
-    assert_eq!(
-        lc.submit_window(segment("rotationOutgoingLate")),
-        Err(Error::UnauthorizedSigner(4040, addr(&syn()["outgoing"])))
-    );
+    // The outgoing validator's seal at 4040 is out of force: it does not count, and five of the
+    // previous set before the switch are one short.
+    assert_eq!(lc.submit_window(segment("rotationOutgoingLate")), Err(Error::TooFewSigners(5, 6)));
     // A window entirely below 4040 is checked by the previous set alone.
     assert_eq!(lc.submit_window(slice(&segment("gas"), 0, 16)), Ok(1100));
+}
+
+#[ink::test]
+fn previous_set_passes_over_outsider_seal() {
+    let w = segment("previousOutsider");
+    // A plain window under A before the rotation, and still accepted under A (now the previous
+    // set) after it: the outsider's turn passes without counting.
+    let mut lc = synth_client("A1000");
+    lc.submit_window(segment("rotation")).unwrap();
+    assert_eq!(lc.submit_window(slice(&w, 0, 30)), Err(Error::TooFewSigners(5, 6)));
+    assert_eq!(lc.submit_window(w.clone()), Ok(4001));
+    assert_eq!(lc.finalized(4001).map(|h| h.hash), Some(keccak(&w[0])));
 }
 
 #[ink::test]

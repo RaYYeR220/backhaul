@@ -113,4 +113,16 @@ describe('buildWindow on synthetic chains', () => {
     const w = await buildWindow(seg('rotation'), 4000n, set('A', 3000), opts);
     expect(w).toHaveLength(49);
   });
+
+  it('passes over seals out of force below the current set, as the contract does', async () => {
+    // After the rotation at 4000 (A → B from 4040), A checks windows below 4040.
+    const rotated = { ...set('B', 4000), activeFrom: 4040n };
+    const w = await buildWindow(seg('previousOutsider'), 4001n, rotated, { ...opts, previous: set('A', 1000) });
+    expect(w).toHaveLength(31); // the sixth member of A seals 4031
+    const strict = await buildWindow(seg('previousOutsider'), 4001n, rotated, { ...opts, previous: set('A', 1000), tolerateUntrusted: false }).catch((e) => e);
+    expect(strict).toBeInstanceOf(UntrustedSealError);
+    expect(strict.blockNumber).toBe(4006n);
+    // The outgoing validator at 4040 is out of force there: it does not count, so no quorum.
+    await expect(buildWindow(seg('rotationOutgoingLate'), 4000n, rotated, { ...opts, previous: set('A', 1000) })).rejects.toThrow(/no quorum/);
+  });
 });

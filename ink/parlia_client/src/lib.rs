@@ -12,16 +12,18 @@
 //! - every seal recovers (low-s) to the header's coinbase;
 //! - at least ⌈2N/3⌉ distinct members of the trusted set for `headers[0]` (size N) sealed;
 //! - `headers[0].timestamp ≤` that set's epoch timestamp + trusting period;
-//! - in a window that crosses a switch the client knows about (an epoch block it rotates to, or the
-//!   boundary between its previous and current set), every seal belongs to the set in force at its
-//!   height.
+//! - in an epoch window the client rotates on, every seal belongs to the set in force at its
+//!   height: the trusted set below the switch, the announced set from it.
 //!
-//! In a plain window, seals from validators outside the trusted set pass but never count. An epoch
-//! block later than the trusted epoch announces a set that seals from E + (⌊N/2⌋+1)·turnLength
-//! (bsc consensus/parlia/snapshot.go `Snapshot.apply`, minerHistoryCheckLen() + 1) and becomes the
-//! trusted set once the window passes; its own seals never count towards the quorum, so a forged
-//! epoch block cannot certify itself. The previous set is kept, so blocks below the current set's
-//! first height stay provable until the next rotation. See ParliaClient.sol for the full argument.
+//! In every other window, seals from validators outside the set in force at their height pass but
+//! never count; below the current set's first height (a window checked by the previous set) a seal
+//! counts only if its sealer is in the previous set and, from the current set's first height on, in
+//! the current set too. An epoch block later than the trusted epoch announces a set that seals from
+//! E + (⌊N/2⌋+1)·turnLength (bsc consensus/parlia/snapshot.go `Snapshot.apply`,
+//! minerHistoryCheckLen() + 1) and becomes the trusted set once the window passes; its own seals
+//! never count towards the quorum, so a forged epoch block cannot certify itself. The previous set
+//! is kept, so blocks below the current set's first height can still be finalized until the next
+//! rotation. See ParliaClient.sol for the full argument.
 //!
 //! Not checked: BLS fast-finality votes, turn order, difficulty, gas and timestamp rules.
 
@@ -151,7 +153,8 @@ mod parlia_client {
     }
 
     /// Which sets a window is checked against: `pre` below `switch_at`, `post` from it.
-    /// Only members of `pre` count towards the quorum.
+    /// Only members of `pre` in force at their height count towards the quorum. Only a rotating
+    /// window rejects a seal from outside the set in force.
     struct Plan {
         pre: Vec<Address>,
         post: Vec<Address>,
@@ -223,13 +226,16 @@ mod parlia_client {
                 if h.signer != h.coinbase {
                     return Err(Error::CoinbaseMismatch(h.number));
                 }
-                let idx = plan.pre.iter().position(|v| *v == h.signer);
-                // A plain window passes over untrusted seals (they never count). Across a switch,
-                // every seal must come from the set in force at its height.
+                let mut idx = plan.pre.iter().position(|v| *v == h.signer);
+                // A seal counts only if its sealer is in `pre` and in force at its height. A seal
+                // from outside the set in force passes without counting, except in a rotating window.
                 if plan.switch_at != u64::MAX {
-                    let allowed = if h.number < plan.switch_at { idx.is_some() } else { plan.post.contains(&h.signer) };
-                    if !allowed {
-                        return Err(Error::UnauthorizedSigner(h.number, h.signer));
+                    let in_force = if h.number < plan.switch_at { idx.is_some() } else { plan.post.contains(&h.signer) };
+                    if !in_force {
+                        if plan.rotates {
+                            return Err(Error::UnauthorizedSigner(h.number, h.signer));
+                        }
+                        idx = None;
                     }
                 }
                 if let Some(idx) = idx {

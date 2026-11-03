@@ -200,13 +200,38 @@ contract ParliaClientTest is BscFixtures {
         string memory syn = _syn();
         ParliaClient lc = _synthClient("A1000");
         lc.submitWindow(_segment("rotation"));
-        // Under the previous set (A) for 4000..4039, under the current one (B) from 4040.
-        vm.expectRevert(
-            abi.encodeWithSelector(ParliaClient.UnauthorizedSigner.selector, 4040, vm.parseJsonAddress(syn, ".outgoing"))
-        );
-        lc.submitWindow(_segment("rotationOutgoingLate"));
+        // Under the previous set (A) for 4000..4039, under the current one (B) from 4040. The
+        // outgoing validator's seal at 4040 is out of force there, so it does not count: five of A
+        // sealed before the switch, one short.
+        address outgoing = vm.parseJsonAddress(syn, ".outgoing");
+        bytes[] memory late = _segment("rotationOutgoingLate");
+        assertEq(BscHeader.parse(late[40], vm.parseJsonUint(syn, ".chainId")).signer, outgoing);
+        vm.expectRevert(abi.encodeWithSelector(ParliaClient.TooFewSigners.selector, 5, 6));
+        lc.submitWindow(late);
         // A window entirely below 4040 is checked by A alone.
         assertEq(lc.submitWindow(_slice(_segment("gas"), 0, 16)), 1100);
+    }
+
+    function test_previousSetPassesOverOutsiderSeal() public {
+        string memory syn = _syn();
+        ParliaClient lc = _synthClient("A1000");
+        bytes[] memory w = _segment("previousOutsider");
+        // Before the rotation, 4001 is a plain window under A: the outsider's turn passes.
+        uint256 snap = vm.snapshotState();
+        assertEq(lc.submitWindow(w), 4001);
+        vm.revertToState(snap);
+
+        // After it, A still checks 4001 (below 4040) and the outsider's turn still passes without
+        // counting, so the rotation does not take the block away.
+        lc.submitWindow(_segment("rotation"));
+        assertEq(BscHeader.parse(w[5], vm.parseJsonUint(syn, ".chainId")).signer, vm.parseJsonAddress(syn, ".outsider"));
+        assertEq(lc.submitWindow(w), 4001);
+        assertEq(lc.finalized(4001).hash, keccak256(w[0]));
+        // Without the sixth member of A it is one short.
+        lc = _synthClient("A1000");
+        lc.submitWindow(_segment("rotation"));
+        vm.expectRevert(abi.encodeWithSelector(ParliaClient.TooFewSigners.selector, 5, 6));
+        lc.submitWindow(_slice(w, 0, 30));
     }
 
     function test_rejectsBeforeTrustedSet() public {

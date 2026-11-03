@@ -17,18 +17,21 @@ import {BscHeader, ParsedHeader} from "../lib/bsc/BscHeader.sol";
 ///        - every seal recovers (low-s) to the header's coinbase;
 ///        - at least ⌈2N/3⌉ distinct members of the trusted set for headers[0] (size N) sealed;
 ///        - headers[0].timestamp ≤ that set's epoch timestamp + trustingPeriod;
-///        - in a window that crosses a switch the client knows about (an epoch block it rotates
-///          to, or the boundary between its previous and current set), every seal belongs to the
-///          set in force at its height.
-///      In a plain window, above the trusted set's first height and with no epoch block to rotate
-///      to, a seal from a validator outside the trusted set is accepted but never counted. BSC
-///      testnet swaps single validators in and out almost every epoch, so a set trusted days ago
-///      still shares most members with the live one, and skipping keeps working without an
-///      epoch window each time. This does not weaken the rule: only seals of trusted validators
-///      count, and each of them signs a header that commits to headers[0] through the parent
-///      links, so ⌈2N/3⌉ trusted validators have built on headers[0] whatever else sits in
-///      between. An attacker's own keys can seal a forged headers[0] and its children, but the
-///      trusted validators seal the real chain, whose headers do not link to the forgery.
+///        - in an epoch window the client rotates on, every seal belongs to the set in force at
+///          its height: the trusted set below the switch, the announced set from it.
+///      In every other window a seal from a validator outside the set in force at its height is
+///      accepted but never counted. In a plain window, above the trusted set's first height and
+///      with no epoch block to rotate to, that is any seal from outside the trusted set. In a
+///      window below the current set's first height, checked by the previous set, a seal counts
+///      only if its sealer belongs to the previous set and, from the current set's first height
+///      on, to the current set as well. BSC testnet swaps single validators in and out almost
+///      every epoch, so a set trusted days ago still shares most members with the live one, and
+///      skipping keeps working without an epoch window each time. This does not weaken the rule:
+///      only seals of trusted validators count, and each of them signs a header that commits to
+///      headers[0] through the parent links, so ⌈2N/3⌉ trusted validators have built on
+///      headers[0] whatever else sits in between. An attacker's own keys can seal a forged
+///      headers[0] and its children, but the trusted validators seal the real chain, whose
+///      headers do not link to the forgery.
 ///      Epochs between the trusted one and the window may be skipped. When headers[0] is an epoch
 ///      block E later than the trusted epoch, the set E announces seals from
 ///      E + (⌊N/2⌋+1)·turnLength (see below) and becomes the trusted set once the window passes.
@@ -39,8 +42,11 @@ import {BscHeader, ParsedHeader} from "../lib/bsc/BscHeader.sol";
 ///      contract allows both.
 ///
 ///      The client keeps the previous trusted set as well, so a block below the current set's
-///      first height stays provable until a second rotation: anyone can advance the trusted epoch
-///      with real headers, and this leaves the relayer at least one epoch to finalize any block.
+///      first height can still be finalized until a second rotation. Those windows follow the
+///      plain-window rule above, so a rotation (which anyone can trigger with real headers) never
+///      turns a block that verified a moment ago into one that cannot verify while the previous
+///      set is held. Nothing that has to be proven depends on a given block staying finalizable:
+///      BscVerifier proves a commitment from the Outbox's storage at any later finalized header.
 ///
 ///      Not checked: BLS fast-finality votes (no BLS12-381 precompile on Portaldot), turn order,
 ///      difficulty, gas and timestamp rules. Those only matter if 2/3 of a trusted set misbehave,
@@ -90,7 +96,8 @@ contract ParliaClient {
     }
 
     /// @dev Which sets a window is checked against: `pre` below `switchAt`, `post` from it.
-    ///      Only members of `pre` count towards the quorum.
+    ///      Only members of `pre` in force at their height count towards the quorum. Only a
+    ///      rotating window rejects a seal from outside the set in force.
     struct Plan {
         address[] pre;
         address[] post;
@@ -168,16 +175,17 @@ contract ParliaClient {
         for (uint256 i = 0;;) {
             if (h.signer != h.coinbase) revert CoinbaseMismatch(h.number);
             uint256 idx = _indexOf(plan.pre, h.signer);
-            // A plain window passes over untrusted seals (they never count). Across a switch, every
-            // seal must come from the set in force at its height.
+            // A seal counts only if its sealer is in `pre` and in force at its height. A seal from
+            // outside the set in force passes without counting, except in a rotating window.
+            bool counts = idx != type(uint256).max;
             if (plan.switchAt != type(uint64).max) {
-                if (h.number < plan.switchAt) {
-                    if (idx == type(uint256).max) revert UnauthorizedSigner(h.number, h.signer);
-                } else if (_indexOf(plan.post, h.signer) == type(uint256).max) {
-                    revert UnauthorizedSigner(h.number, h.signer);
+                bool inForce = h.number < plan.switchAt ? counts : _indexOf(plan.post, h.signer) != type(uint256).max;
+                if (!inForce) {
+                    if (plan.rotates) revert UnauthorizedSigner(h.number, h.signer);
+                    counts = false;
                 }
             }
-            if (idx != type(uint256).max && seen & (1 << idx) == 0) {
+            if (counts && seen & (1 << idx) == 0) {
                 seen |= 1 << idx;
                 ++distinct;
             }
