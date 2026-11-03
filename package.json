@@ -16,7 +16,15 @@
     "test:ink": "cd ink/parlia_client && cargo test --release",
     "bench:evm": "cd contracts && forge test --match-contract ParliaBenchmarkTest",
     "bench:wasm": "cd ink/bench && cargo run --release",
-    "benchmark": "tsx packages/sdk/scripts/benchmark.ts && tsx packages/sdk/scripts/render-benchmark.ts"
+    "benchmark": "tsx packages/sdk/scripts/benchmark.ts && tsx packages/sdk/scripts/render-benchmark.ts",
+    "test:counts": "tsx packages/sdk/scripts/test-counts.ts",
+    "rehearse:beefy": "tsx packages/sdk/scripts/rehearse-beefy.ts",
+    "rehearse:parlia": "tsx packages/sdk/scripts/rehearse-parlia.ts",
+    "rehearse": "npm run rehearse:beefy && npm run rehearse:parlia",
+    "verify:onchain": "tsx packages/sdk/scripts/verify-onchain.ts",
+    "record:live": "tsx packages/sdk/scripts/record-live.ts",
+    "findings": "tsx packages/sdk/scripts/check-findings.ts",
+    "docs": "tsx packages/sdk/scripts/render-docs.ts"
   },
   "engines": {
     "node": ">=22"
