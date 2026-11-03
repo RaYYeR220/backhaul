@@ -1,0 +1,298 @@
+.layout {
+  margin-top: 40px;
+  display: grid;
+  grid-template-columns: minmax(0, 560px) minmax(0, 1fr);
+  gap: 56px;
+  align-items: start;
+}
+
+.card {
+  padding: 22px 24px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  background: var(--raised);
+}
+
+.seg {
+  display: flex;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+  background: rgba(255, 255, 255, 0.015);
+}
+.seg button {
+  flex: 1;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--r-full);
+  font-size: 13.5px;
+  color: var(--ink-3);
+  white-space: nowrap;
+  transition:
+    background 0.3s var(--ease),
+    color 0.3s;
+}
+.seg button:hover {
+  color: var(--ink-2);
+}
+.seg button[aria-pressed="true"] {
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+}
+.seg button:focus-visible {
+  border-radius: var(--r-full);
+}
+.arr {
+  color: var(--ink-3);
+  margin: 0 3px;
+}
+
+.field {
+  margin-top: 22px;
+}
+.field label {
+  display: block;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.amountRow,
+.recRow {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 16px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-card);
+  background: var(--ground);
+  transition: border-color 0.2s;
+}
+.amountRow:focus-within,
+.recRow:focus-within {
+  border-color: var(--line-3);
+}
+.amountRow:has(input[aria-invalid="true"]),
+.recRow:has(input[aria-invalid="true"]) {
+  border-style: dashed;
+  border-color: var(--ink-3);
+}
+.amount,
+.input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: 0;
+  outline: 0;
+  color: var(--ink);
+}
+.amount {
+  height: 52px;
+  font-size: 28px;
+  letter-spacing: -0.01em;
+}
+.input {
+  height: 40px;
+  font-size: 14px;
+}
+.amount::placeholder,
+.input::placeholder {
+  color: var(--ink-3);
+}
+.assets {
+  flex: none;
+  display: flex;
+  gap: 4px;
+}
+.assets button {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: var(--r-slot);
+  border: 1px solid var(--line);
+  font-size: 14px;
+  color: var(--ink-3);
+  transition:
+    color 0.2s,
+    border-color 0.2s,
+    background 0.2s;
+}
+.assets button:hover {
+  color: var(--ink-2);
+}
+.assets button[aria-checked="true"] {
+  color: var(--ink);
+  border-color: var(--line-3);
+  background: var(--panel);
+}
+.mini {
+  flex: none;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--line-2);
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.mini:hover {
+  color: var(--ink);
+}
+.mini:focus-visible {
+  border-radius: var(--r-full);
+}
+
+.hint,
+.problem {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+.hint :global(.mono) {
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.problem {
+  color: var(--ink);
+}
+
+.path {
+  margin-top: 24px;
+}
+.wide {
+  width: 100%;
+}
+.path :global(.btn:disabled) {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+.pathNote {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-3);
+}
+.pathNote :global(.mono) {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.or::before,
+.or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.fail {
+  margin-top: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 10px 12px;
+  border: 1px dashed var(--line-3);
+  border-radius: var(--r-slot);
+  font-size: 13px;
+  color: var(--ink);
+}
+.fail svg {
+  flex: none;
+  margin-top: 4px;
+  color: var(--ink-2);
+}
+
+/* ---------- how this route crosses ---------- */
+.side {
+  padding-top: 6px;
+}
+.side h2 {
+  font-family: var(--display);
+  font-stretch: 112.5%;
+  font-weight: 500;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+.verbs {
+  list-style: none;
+  margin-top: 22px;
+  border-top: 1px solid var(--line);
+}
+.verbs li {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 2px 12px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+.n {
+  grid-row: 1 / 3;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--line-3);
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  color: var(--ink-2);
+}
+.release .n {
+  border-color: var(--accent);
+  color: var(--accent-hi);
+}
+.verbs h3 {
+  font-size: 15px;
+  font-weight: 500;
+}
+.verbs h3 span {
+  color: var(--ink-2);
+  font-weight: 400;
+}
+.verbs p {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.sideNote {
+  margin-top: 18px;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+@media (max-width: 960px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 40px;
+  }
+}
+@media (max-width: 760px) {
+  .card {
+    padding: 16px 14px 18px;
+    border-radius: var(--r-card);
+  }
+  .seg button {
+    font-size: 12.5px;
+    padding: 0 8px;
+  }
+  .amountRow {
+    flex-wrap: wrap;
+    padding: 6px 6px 10px 14px;
+  }
+  .amount {
+    flex-basis: 100%;
+    height: 46px;
+    font-size: 24px;
+  }
+  .recRow {
+    flex-wrap: wrap;
+    padding-left: 12px;
+  }
+  .input {
+    font-size: 12.5px;
+  }
+}
