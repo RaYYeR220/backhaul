@@ -32,6 +32,10 @@ export interface AttackInfo {
   chain: ChainName;
   /** Contract and function, e.g. "PortaldotLightClient.submitCommitment". */
   target: string;
+  /** What is tampered with, in one sentence. */
+  description?: string;
+  /** Address of the attacked contract. */
+  address?: string | null;
   /** Error names that count as the contract defending itself (or "false" for a view returning false). */
   expects: string[];
   ready: boolean;

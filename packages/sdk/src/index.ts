@@ -6,3 +6,4 @@ export * from './deployments.js';
 export * from './env.js';
 export * from './evm.js';
 export * from './relay/index.js';
+export * from './attacks.js';

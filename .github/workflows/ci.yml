@@ -18,4 +18,5 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
-      - run: npm test -w packages/sdk --if-present
+      - run: npm run typecheck
+      - run: npm test

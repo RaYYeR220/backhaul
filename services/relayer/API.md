@@ -165,7 +165,9 @@ receipt or storage proof) and tampers with exactly one thing.
       "id": "beefy-forged-signature",
       "title": "Forged BEEFY signature",
       "chain": "bsc",
+      "description": "A real commitment of the current validator set, moved to the next block number so it is new, with one byte of the first signature changed.",
       "target": "PortaldotLightClient.submitCommitment",
+      "address": "0x… the attacked contract",
       "expects": ["InvalidSignature"],
       "ready": true
     },
