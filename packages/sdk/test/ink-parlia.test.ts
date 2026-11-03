@@ -62,8 +62,12 @@ describe('ink! parlia_client messages', () => {
     expect(decodeInkSubmitWindow(Uint8Array.from([0, 1, 4, 5, 0, 0, 0, 6, 0, 0, 0]))).toEqual({ ok: false, error: 'TooFewSigners(5, 6)' });
     expect(decodeInkStorageAt(Uint8Array.from([0, 0, 0]))).toEqual({ ok: true, value: undefined });
     expect(decodeInkStorageAt(Uint8Array.from([0, 1, 8, 1, 0, 0, 0, 0, 0, 0, 0]))).toEqual({ ok: false, error: 'NotFinalized(1)' });
-    const set = decodeInkTrustedSet(Uint8Array.from([0, 4, ...new Array(20).fill(0xab), 8, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0]));
-    expect(set).toEqual({ validators: [getAddress(`0x${'ab'.repeat(20)}`)], turnLength: 8, epoch: 1n, activeFrom: 2n, epochTimestamp: 3n });
+    const set = decodeInkTrustedSet(
+      Uint8Array.from([0, 4, ...new Array(20).fill(0xab), 8, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0]),
+    );
+    expect(set).toEqual({ validators: [getAddress(`0x${'ab'.repeat(20)}`)], turnLength: 8, epoch: 1n, activeFrom: 2n, epochTimestamp: 3n, installedAt: 4n });
+    // Err(TrustedSetExpired(9, 7)), the last variant
+    expect(decodeInkSubmitWindow(Uint8Array.from([0, 1, 18, 9, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0]))).toEqual({ ok: false, error: 'TrustedSetExpired(9, 7)' });
     expect(() => decodeInkSubmitWindow(Uint8Array.from([1, 1]))).toThrow(/LangError/);
   });
 

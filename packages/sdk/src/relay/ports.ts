@@ -33,18 +33,24 @@ export function beefyClientPort(pub: PublicClient, sender: TxSender | undefined,
   };
 }
 
-type SetTuple = readonly [readonly Address[], number, bigint, bigint, bigint];
+type SetTuple = readonly [readonly Address[], number, bigint, bigint, bigint, bigint];
 
-const toView = ([validators, turnLength, epoch, activeFrom, epochTimestamp]: SetTuple): TrustedSetView => ({
+const toView = ([validators, turnLength, epoch, activeFrom, epochTimestamp, installedAt]: SetTuple): TrustedSetView => ({
   validators: validators.map((v) => getAddress(v)),
   turnLength: Number(turnLength),
   epoch: BigInt(epoch),
   activeFrom: BigInt(activeFrom),
   epochTimestamp: BigInt(epochTimestamp),
+  installedAt: BigInt(installedAt),
 });
 
 export function parliaClientPort(pub: PublicClient, sender: TxSender | undefined, lc: Address): ParliaClientPort {
+  let period: Promise<bigint> | undefined;
   return {
+    trustingPeriod() {
+      period ??= pub.readContract({ address: lc, abi: parliaClientAbi, functionName: 'trustingPeriod' }).then((p) => BigInt(p as bigint));
+      return period;
+    },
     async validatorSet() {
       return toView((await pub.readContract({ address: lc, abi: parliaClientAbi, functionName: 'validatorSet' })) as SetTuple);
     },

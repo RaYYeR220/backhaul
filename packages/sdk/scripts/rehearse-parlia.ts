@@ -89,7 +89,7 @@ try {
   }
   const epochsBack = Number((latestEpoch - cp.epoch) / 1000n);
   log(`checkpoint: epoch ${cp.epoch} (${epochsBack} epochs back), ${cp.validators.length} validators`);
-  const lc = await deployNamed('ParliaClient', [97n, 1000n, 604_800n, cp]);
+  const lc = await deployNamed('ParliaClient', [97n, 1000n, 1_209_600n, cp]);
 
   // The validator sets BSC used between the checkpoint and now.
   const changes: { epoch: string; overlap: number; added: string[] }[] = [];

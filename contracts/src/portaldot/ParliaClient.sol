@@ -12,11 +12,22 @@ import {BscHeader, ParsedHeader} from "../lib/bsc/BscHeader.sol";
 ///      a header is accepted if ≥ 2/3 of the last trusted validator set sealed a window above it,
 ///      within the trusting period.
 ///
+///      The trusting period is checked on both clocks. On BSC's: headers[0] must be stamped within
+///      it of the trusted set's epoch block. On Portaldot's: the window must land within it of the
+///      moment the client installed that set (deployment for the checkpoint, the rotating window's
+///      block for any later set). Header timestamps are signed by the very validators whose trust
+///      expires, so only Portaldot's clock bounds how long a stale set's keys stay useful: once a
+///      set has been held for a trusting period, its seals are worthless. The cost is liveness: if
+///      nobody rotates the client within a trusting period of the last rotation, it can never
+///      accept a window again and a new deployment is needed. The relayer refreshes the trusted
+///      epoch every few days.
+///
 ///      `submitWindow(headers)` finalizes `headers[0]` when
 ///        - the headers are consecutive and linked by parentHash;
 ///        - every seal recovers (low-s) to the header's coinbase;
 ///        - at least ⌈2N/3⌉ distinct members of the trusted set for headers[0] (size N) sealed;
-///        - headers[0].timestamp ≤ that set's epoch timestamp + trustingPeriod;
+///        - headers[0].timestamp ≤ that set's epoch timestamp + trustingPeriod, and
+///          block.timestamp ≤ the time the client installed that set + trustingPeriod;
 ///        - in an epoch window the client rotates on, every seal belongs to the set in force at
 ///          its height: the trusted set below the switch, the announced set from it.
 ///      In every other window a seal from a validator outside the set in force at its height is
@@ -86,13 +97,15 @@ contract ParliaClient {
         address[] validators;
     }
 
-    /// @dev A trusted validator set and the epoch block that announced it.
+    /// @dev A trusted validator set, the epoch block that announced it, and when (Portaldot time)
+    ///      the client installed it. Packs into two storage slots.
     struct TrustedSet {
         address[] validators;
         uint8 turnLength;
         uint64 epoch;
         uint64 activeFrom;
         uint64 epochTimestamp;
+        uint48 installedAt;
     }
 
     /// @dev Which sets a window is checked against: `pre` below `switchAt`, `post` from it.
@@ -102,7 +115,9 @@ contract ParliaClient {
         address[] pre;
         address[] post;
         uint64 switchAt;
+        /// @dev Epoch timestamp (BSC time) and installation time (Portaldot time) of `pre`.
         uint64 trustedSince;
+        uint64 installedAt;
         bool rotates;
         uint8 postTurnLength;
     }
@@ -114,7 +129,9 @@ contract ParliaClient {
     uint256 public immutable chainId;
     /// @notice Blocks per epoch (1000 on BSC since Maxwell).
     uint64 public immutable epochLength;
-    /// @notice Seconds after a trusted epoch block during which its set is trusted.
+    /// @notice Seconds a trusted set is trusted for: a window it checks must start with a header
+    ///         stamped within this long of the set's epoch block, and land on Portaldot within this
+    ///         long of the set's installation.
     uint64 public immutable trustingPeriod;
 
     /// @dev Current and previous trusted sets; a rotation overwrites the previous one in place.
@@ -135,6 +152,9 @@ contract ParliaClient {
     error TooFewSigners(uint256 signers, uint256 quorum);
     error BeforeTrustedSet(uint64 number, uint64 lowest);
     error TrustingPeriodExpired(uint64 timestamp, uint64 deadline);
+    /// @notice The trusted set checking the window was installed more than a trusting period ago
+    ///         (both values Portaldot time, seconds).
+    error TrustedSetExpired(uint64 timestamp, uint64 deadline);
     error AlreadyFinalized(uint64 number);
     error NotFinalized(uint64 number);
     error InvalidCheckpoint();
@@ -169,6 +189,8 @@ contract ParliaClient {
         Plan memory plan = _plan(h, cur);
         uint64 deadline = plan.trustedSince + trustingPeriod;
         if (h.timestamp > deadline) revert TrustingPeriodExpired(h.timestamp, deadline);
+        uint64 expiry = plan.installedAt + trustingPeriod;
+        if (block.timestamp > expiry) revert TrustedSetExpired(uint64(block.timestamp), expiry);
 
         uint256 seen; // bit i is set once pre[i] has sealed a header of the window
         uint256 distinct;
@@ -220,20 +242,37 @@ contract ParliaClient {
     /// @return epoch Epoch block that announced it.
     /// @return activeFrom First height it seals.
     /// @return epochTimestamp Timestamp of `epoch`; windows it checks must start by epochTimestamp + trustingPeriod.
+    /// @return installedAt Portaldot time the client installed it; windows it checks must land by
+    ///         installedAt + trustingPeriod.
     function validatorSet()
         external
         view
-        returns (address[] memory validators, uint8 turnLength, uint64 epoch, uint64 activeFrom, uint64 epochTimestamp)
+        returns (
+            address[] memory validators,
+            uint8 turnLength,
+            uint64 epoch,
+            uint64 activeFrom,
+            uint64 epochTimestamp,
+            uint64 installedAt
+        )
     {
         return _view(_current);
     }
 
     /// @notice The set trusted before the last rotation; it still checks windows starting in
-    ///         [activeFrom, current activeFrom). Empty until the first rotation.
+    ///         [activeFrom, current activeFrom), within its own trusting period. Empty until the
+    ///         first rotation.
     function previousValidatorSet()
         external
         view
-        returns (address[] memory validators, uint8 turnLength, uint64 epoch, uint64 activeFrom, uint64 epochTimestamp)
+        returns (
+            address[] memory validators,
+            uint8 turnLength,
+            uint64 epoch,
+            uint64 activeFrom,
+            uint64 epochTimestamp,
+            uint64 installedAt
+        )
     {
         return _view(1 - _current);
     }
@@ -247,6 +286,7 @@ contract ParliaClient {
             // A later epoch block: its own set takes over at its switch height.
             plan.pre = current.validators;
             plan.trustedSince = current.epochTimestamp;
+            plan.installedAt = current.installedAt;
             (plan.post, plan.postTurnLength) = BscHeader.parseEpochValidators(h.extra);
             _checkSet(plan.post.length, plan.postTurnLength, epochLength);
             plan.switchAt = h.number + _switchOffset(plan.pre.length, current.turnLength);
@@ -254,6 +294,7 @@ contract ParliaClient {
         } else if (h.number >= current.activeFrom) {
             plan.pre = current.validators;
             plan.trustedSince = current.epochTimestamp;
+            plan.installedAt = current.installedAt;
             plan.switchAt = type(uint64).max;
         } else {
             TrustedSet storage previous = _sets[1 - cur];
@@ -261,6 +302,7 @@ contract ParliaClient {
             if (h.number < previous.activeFrom) revert BeforeTrustedSet(h.number, previous.activeFrom);
             plan.pre = previous.validators;
             plan.trustedSince = previous.epochTimestamp;
+            plan.installedAt = previous.installedAt;
             plan.post = current.validators;
             plan.switchAt = current.activeFrom;
         }
@@ -310,15 +352,24 @@ contract ParliaClient {
         s.epoch = epoch;
         s.activeFrom = activeFrom;
         s.epochTimestamp = timestamp;
+        // forge-lint: disable-next-line(unsafe-typecast)
+        s.installedAt = uint48(block.timestamp); // seconds; 48 bits last millions of years
         emit ValidatorSetUpdated(epoch, activeFrom, validators.length);
     }
 
     function _view(uint8 index)
         private
         view
-        returns (address[] memory validators, uint8 turnLength, uint64 epoch, uint64 activeFrom, uint64 epochTimestamp)
+        returns (
+            address[] memory validators,
+            uint8 turnLength,
+            uint64 epoch,
+            uint64 activeFrom,
+            uint64 epochTimestamp,
+            uint64 installedAt
+        )
     {
         TrustedSet storage s = _sets[index];
-        return (s.validators, s.turnLength, s.epoch, s.activeFrom, s.epochTimestamp);
+        return (s.validators, s.turnLength, s.epoch, s.activeFrom, s.epochTimestamp, s.installedAt);
     }
 }

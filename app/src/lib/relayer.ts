@@ -76,7 +76,10 @@ export interface ParliaSide {
   activeFrom?: string;
   validators?: string[];
   epochTimestamp?: string;
+  installedAt?: string;
+  trustingPeriodSec?: string;
   trustRemainingSec?: string;
+  trustAlert?: string | null;
   bscHead?: string;
   liveOverlap?: number | null;
   lastWindow?: { block: string; tx: string; headers: number } | null;

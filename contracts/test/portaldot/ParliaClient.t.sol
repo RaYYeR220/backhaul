@@ -32,7 +32,8 @@ contract ParliaClientTest is BscFixtures {
         assertEq(h.stateRoot, real.stateRoots[0]);
         assertEq(h.receiptsRoot, real.receiptsRoots[0]);
 
-        (address[] memory vals, uint8 turnLength, uint64 epoch, uint64 activeFrom, uint64 epochTime) = lc.validatorSet();
+        (address[] memory vals, uint8 turnLength, uint64 epoch, uint64 activeFrom, uint64 epochTime, uint64 installedAt) =
+            lc.validatorSet();
         assertEq(vals.length, real.epochValidators.length);
         for (uint256 i = 0; i < vals.length; i++) {
             assertEq(vals[i], real.epochValidators[i]);
@@ -42,6 +43,7 @@ contract ParliaClientTest is BscFixtures {
         assertEq(activeFrom, real.switchHeight);
         assertEq(activeFrom, real.epoch + 40, "9 validators, turnLength 8: the new set seals from E+40");
         assertEq(epochTime, real.timestamps[0]);
+        assertEq(installedAt, block.timestamp, "installed now, on Portaldot's clock");
     }
 
     function test_realIncomingValidatorAfterRotation() public {
@@ -68,7 +70,7 @@ contract ParliaClientTest is BscFixtures {
         // inside finalizes, and the client keeps its trusted set.
         assertEq(lc.submitWindow(_slice(real.rlps, 48, 49)), real.epoch + 48);
         assertEq(lc.finalized(real.epoch + 48).hash, real.hashes[48]);
-        (,, uint64 epoch,,) = lc.validatorSet();
+        (,, uint64 epoch,,,) = lc.validatorSet();
         assertEq(epoch, real.checkpoint.epoch);
     }
 
@@ -79,7 +81,7 @@ contract ParliaClientTest is BscFixtures {
         ParliaClient lc = _realClient(real);
         assertEq(lc.submitWindow(_slice(real.rlps, 2, 48)), real.epoch + 2);
         assertEq(lc.finalized(real.epoch + 2).receiptsRoot, real.receiptsRoots[2]);
-        (,, uint64 epoch,,) = lc.validatorSet();
+        (,, uint64 epoch,,,) = lc.validatorSet();
         assertEq(epoch, real.checkpoint.epoch, "a window without an epoch block does not rotate");
     }
 
@@ -190,7 +192,7 @@ contract ParliaClientTest is BscFixtures {
         // E+2 is below the new set's first height (E+40): the previous set still checks it, and
         // the new set checks the part of the window from E+40 on.
         assertEq(lc.submitWindow(_slice(real.rlps, 2, 48)), real.epoch + 2);
-        (address[] memory prev,, uint64 epoch, uint64 activeFrom,) = lc.previousValidatorSet();
+        (address[] memory prev,, uint64 epoch, uint64 activeFrom,,) = lc.previousValidatorSet();
         assertEq(epoch, real.checkpoint.epoch);
         assertEq(activeFrom, real.checkpoint.activeFrom);
         assertEq(prev.length, real.checkpoint.validators.length);
@@ -244,7 +246,7 @@ contract ParliaClientTest is BscFixtures {
         lc = _synthClient("A1000");
         lc.submitWindow(_segment("rotation")); // 4000: A -> B
         lc.submitWindow(_segment("skipEpoch")); // 5000: B -> A
-        (,, uint64 prevEpoch, uint64 prevFrom,) = lc.previousValidatorSet();
+        (,, uint64 prevEpoch, uint64 prevFrom,,) = lc.previousValidatorSet();
         assertEq(prevEpoch, 4000);
         assertEq(prevFrom, 4040);
         vm.expectRevert(abi.encodeWithSelector(ParliaClient.BeforeTrustedSet.selector, 1100, 4040));
@@ -289,7 +291,7 @@ contract ParliaClientTest is BscFixtures {
         assertEq(BscHeader.parse(w[40], chainId).signer, vm.parseJsonAddress(syn, ".incoming"));
 
         assertEq(lc.submitWindow(w), 4000);
-        (address[] memory vals,, uint64 epoch, uint64 activeFrom,) = lc.validatorSet();
+        (address[] memory vals,, uint64 epoch, uint64 activeFrom,,) = lc.validatorSet();
         assertEq(epoch, 4000);
         assertEq(activeFrom, 4040);
         _assertSet(vals, ".sets.B");
@@ -324,12 +326,12 @@ contract ParliaClientTest is BscFixtures {
         ParliaClient lc = _synthClient("A1000");
         // No epoch block in the window: epochs 2000, 3000 and 4000 are skipped.
         assertEq(lc.submitWindow(_segment("skip")), 4500);
-        (,, uint64 epoch,,) = lc.validatorSet();
+        (,, uint64 epoch,,,) = lc.validatorSet();
         assertEq(epoch, 1000);
 
         // Epoch 5000 submitted straight after the checkpoint at 1000 becomes the trusted epoch.
         assertEq(lc.submitWindow(_segment("skipEpoch")), 5000);
-        (address[] memory vals,, uint64 epoch2, uint64 activeFrom, uint64 epochTime) = lc.validatorSet();
+        (address[] memory vals,, uint64 epoch2, uint64 activeFrom, uint64 epochTime,) = lc.validatorSet();
         assertEq(epoch2, 5000);
         assertEq(activeFrom, 5040);
         assertEq(epochTime, vm.parseJsonUint(syn, ".t0") + 5000);
@@ -352,7 +354,7 @@ contract ParliaClientTest is BscFixtures {
         // The checkpoint is at 1000; the set changes at 4000, which is submitted directly.
         ParliaClient lc = _synthClient("A1000");
         assertEq(lc.submitWindow(_segment("rotation")), 4000);
-        (address[] memory vals,, uint64 epoch, uint64 activeFrom,) = lc.validatorSet();
+        (address[] memory vals,, uint64 epoch, uint64 activeFrom,,) = lc.validatorSet();
         assertEq(epoch, 4000);
         assertEq(activeFrom, 4040);
         _assertSet(vals, ".sets.B");
@@ -368,7 +370,7 @@ contract ParliaClientTest is BscFixtures {
 
         // …so the relayer submits the epoch that changed it, then the same window passes.
         assertEq(lc.submitWindow(_segment("tooMuchEpoch")), 2000);
-        (address[] memory vals,,,,) = lc.validatorSet();
+        (address[] memory vals,,,,,) = lc.validatorSet();
         _assertSet(vals, ".sets.C");
         assertEq(lc.submitWindow(_segment("tooMuchAfter")), 2100);
     }

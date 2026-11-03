@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { getAddress, type Address, type Hex } from 'viem';
 import { JustificationArchive, type EncodedCommitment } from '../src/portaldot/beefy.js';
 import { BeefyHaltError, BeefyRelay, type BeefyClientPort, type BeefyEvent, type PortaldotSource } from '../src/relay/beefy.js';
-import { ParliaRelay, type BscSource, type ParliaClientPort, type TrustedSetView } from '../src/relay/parlia.js';
+import { ParliaRelay, trustDeadline, type BscSource, type ParliaClientPort, type TrustedSetView } from '../src/relay/parlia.js';
 
 const fixtures = join(__dirname, '..', '..', '..', 'contracts', 'test', 'fixtures');
 const F = JSON.parse(readFileSync(join(fixtures, 'portaldot-beefy.json'), 'utf8'));
@@ -116,9 +116,10 @@ function epochExtra(validators: Address[], turnLength = 8): Hex {
   return `0x${h}${turnLength.toString(16).padStart(2, '0')}${'00'.repeat(65)}`;
 }
 
-function parlia(trusted: Address[], live: Address[], epochTimestamp: bigint, liveTurn = 8) {
-  const set: TrustedSetView = { validators: trusted, turnLength: 8, epoch: 1000n, activeFrom: 1040n, epochTimestamp };
+function parlia(trusted: Address[], live: Address[], epochTimestamp: bigint, liveTurn = 8, installedAt = epochTimestamp + 60n) {
+  const set: TrustedSetView = { validators: trusted, turnLength: 8, epoch: 1000n, activeFrom: 1040n, epochTimestamp, installedAt };
   const lc: ParliaClientPort = {
+    trustingPeriod: async () => 14n * 86_400n,
     validatorSet: async () => set,
     previousValidatorSet: async () => ({ ...set, validators: [] }),
     isFinalized: async () => false,
@@ -151,6 +152,16 @@ describe('ParliaRelay epoch policy', () => {
 
   it('refreshes before the trusting period gets close, and on a turn-length change', async () => {
     expect(await parlia(nine, nine, now - 3n * 86_400n).epochDue(now)).toMatchObject({ reason: 'refresh' });
+    expect(await parlia(nine, nine, now - 3n * 86_400n + 120n).epochDue(now)).toBeUndefined();
     expect(await parlia(nine, nine, now - 3600n, 4).epochDue(now)).toMatchObject({ reason: 'turn-length' });
+  });
+
+  it('counts the trusting period from the earlier of the epoch block and the installation', async () => {
+    // Installed on Portaldot three days ago, from an epoch block BSC stamped an hour ago (clock skew).
+    expect(await parlia(nine, nine, now - 3600n, 8, now - 3n * 86_400n).epochDue(now)).toMatchObject({ reason: 'refresh' });
+    const relay = parlia(nine, nine, now - 2n * 86_400n, 8, now - 86_400n);
+    expect(await relay.trustRemaining(now)).toBe(12n * 86_400n);
+    expect(trustDeadline({ epochTimestamp: 100n, installedAt: 160n }, 1000n)).toBe(1100n);
+    expect(trustDeadline({ epochTimestamp: 100n, installedAt: 40n }, 1000n)).toBe(1040n);
   });
 });

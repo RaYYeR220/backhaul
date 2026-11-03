@@ -36,6 +36,7 @@ export const INK_ERRORS = [
   'IncompleteProof',
   'InvalidProof',
   'InvalidAccount',
+  'TrustedSetExpired',
 ] as const;
 
 /** ink! 5 selector of a constructor or message without an explicit selector. */
@@ -137,6 +138,7 @@ function errorOf(r: Reader): string {
       return `${name}(${r.u32()}, ${r.u32()})`;
     case 'BeforeTrustedSet':
     case 'TrustingPeriodExpired':
+    case 'TrustedSetExpired':
       return `${name}(${r.u64()}, ${r.u64()})`;
     default:
       return name;
@@ -169,6 +171,8 @@ export interface InkTrustedSet {
   epoch: bigint;
   activeFrom: bigint;
   epochTimestamp: bigint;
+  /** Portaldot time (seconds) the client installed the set. */
+  installedAt: bigint;
 }
 
 /** Result of `validator_set` / `previous_validator_set`. */
@@ -176,7 +180,7 @@ export function decodeInkTrustedSet(data: Uint8Array): InkTrustedSet {
   const r = lang(data);
   const n = r.compact();
   const validators = Array.from({ length: n }, () => getAddress(r.take(20)));
-  return { validators, turnLength: r.u8(), epoch: r.u64(), activeFrom: r.u64(), epochTimestamp: r.u64() };
+  return { validators, turnLength: r.u8(), epoch: r.u64(), activeFrom: r.u64(), epochTimestamp: r.u64(), installedAt: r.u64() };
 }
 
 // ---- artifact ----

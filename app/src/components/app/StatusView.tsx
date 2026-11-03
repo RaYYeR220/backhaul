@@ -13,7 +13,8 @@ import { StruckCircle } from "../rail/TransferRail";
 import { Ago, clock, duration, Empty, Hex, RelayerBanner, ViewHead } from "./ui";
 import s from "./StatusView.module.css";
 
-const TRUSTING_PERIOD = 7 * 86_400;
+/** The deployment default; the relayer reports the client's own (trustingPeriodSec). */
+const TRUSTING_PERIOD = 14 * 86_400;
 
 export function StatusView() {
   const st = usePoll(
@@ -203,12 +204,11 @@ function ParliaPanel({ p }: { p: ParliaSide }) {
   }, [lw, validators, window?.block]);
 
   const sealed = window && lw && window.block === lw.block ? window.sealed : null;
-  const remaining = p.epochTimestamp
-    ? Number(p.epochTimestamp) + TRUSTING_PERIOD - now / 1000
-    : p.trustRemainingSec
-      ? Number(p.trustRemainingSec)
-      : null;
-  const expires = p.epochTimestamp ? (Number(p.epochTimestamp) + TRUSTING_PERIOD) * 1000 : null;
+  // The client counts the period from the earlier of the epoch block (BSC) and the installation (Portaldot).
+  const period = p.trustingPeriodSec ? Number(p.trustingPeriodSec) : TRUSTING_PERIOD;
+  const since = p.epochTimestamp ? Math.min(Number(p.epochTimestamp), p.installedAt ? Number(p.installedAt) : Infinity) : null;
+  const remaining = since != null ? since + period - now / 1000 : p.trustRemainingSec ? Number(p.trustRemainingSec) : null;
+  const expires = since != null ? (since + period) * 1000 : null;
   const lag = p.lagBlocks != null ? Number(p.lagBlocks) : null;
 
   return (
@@ -295,7 +295,7 @@ function ParliaPanel({ p }: { p: ParliaSide }) {
                     )}
                   </span>
                   <i aria-hidden="true">
-                    <b style={{ width: `${Math.max(0, Math.min(1, remaining / TRUSTING_PERIOD)) * 100}%` }} />
+                    <b style={{ width: `${Math.max(0, Math.min(1, remaining / period)) * 100}%` }} />
                   </i>
                 </span>
               ) : (

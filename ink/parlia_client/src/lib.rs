@@ -11,7 +11,9 @@
 //! - the headers are consecutive and linked by parentHash;
 //! - every seal recovers (low-s) to the header's coinbase;
 //! - at least ⌈2N/3⌉ distinct members of the trusted set for `headers[0]` (size N) sealed;
-//! - `headers[0].timestamp ≤` that set's epoch timestamp + trusting period;
+//! - `headers[0].timestamp ≤` that set's epoch timestamp + trusting period, and Portaldot's clock
+//!   (`block_timestamp()`, milliseconds, taken in seconds) ≤ the time the client installed that set
+//!   + trusting period;
 //! - in an epoch window the client rotates on, every seal belongs to the set in force at its
 //!   height: the trusted set below the switch, the announced set from it.
 //!
@@ -24,6 +26,11 @@
 //! never count towards the quorum, so a forged epoch block cannot certify itself. The previous set
 //! is kept, so blocks below the current set's first height can still be finalized until the next
 //! rotation. See ParliaClient.sol for the full argument.
+//!
+//! The trusting period runs on both clocks because header timestamps are signed by the validators
+//! whose trust expires: only Portaldot's clock bounds how long a stale set's keys stay useful. If
+//! nobody rotates the client within a trusting period of its last rotation, it accepts no window
+//! again.
 //!
 //! Not checked: BLS fast-finality votes, turn order, difficulty, gas and timestamp rules.
 
@@ -113,7 +120,8 @@ mod parlia_client {
         pub validators: Vec<Address>,
     }
 
-    /// A trusted validator set and the epoch block that announced it.
+    /// A trusted validator set, the epoch block that announced it, and when (Portaldot time,
+    /// seconds) the client installed it.
     #[derive(Debug, Clone, Default, PartialEq, Eq)]
     #[ink::scale_derive(Encode, Decode, TypeInfo)]
     #[cfg_attr(feature = "std", derive(ink::storage::traits::StorageLayout))]
@@ -123,6 +131,7 @@ mod parlia_client {
         pub epoch: u64,
         pub active_from: u64,
         pub epoch_timestamp: u64,
+        pub installed_at: u64,
     }
 
     /// A header became final.
@@ -159,7 +168,9 @@ mod parlia_client {
         pre: Vec<Address>,
         post: Vec<Address>,
         switch_at: u64,
+        /// Epoch timestamp (BSC time) and installation time (Portaldot time) of `pre`.
         trusted_since: u64,
+        installed_at: u64,
         rotates: bool,
         post_turn_length: u8,
     }
@@ -196,6 +207,11 @@ mod parlia_client {
             Ok(lc)
         }
 
+        /// Portaldot's clock in seconds (pallet-contracts reports milliseconds).
+        fn now(&self) -> u64 {
+            self.env().block_timestamp() / 1000
+        }
+
         /// Finalizes `headers[0]` from the seals of the window above it.
         /// `headers`: consecutive BSC headers, RLP-encoded, lowest first. Returns the number of `headers[0]`.
         #[ink(message)]
@@ -210,6 +226,10 @@ mod parlia_client {
             let deadline = plan.trusted_since.saturating_add(self.trusting_period);
             if h.timestamp > deadline {
                 return Err(Error::TrustingPeriodExpired(h.timestamp, deadline));
+            }
+            let (now, expiry) = (self.now(), plan.installed_at.saturating_add(self.trusting_period));
+            if now > expiry {
+                return Err(Error::TrustedSetExpired(now, expiry));
             }
             let first = FinalizedHeader {
                 hash: h.hash,
@@ -329,6 +349,7 @@ mod parlia_client {
                     pre: current.validators.clone(),
                     post,
                     trusted_since: current.epoch_timestamp,
+                    installed_at: current.installed_at,
                     rotates: true,
                     post_turn_length,
                 })
@@ -338,6 +359,7 @@ mod parlia_client {
                     post: Vec::new(),
                     switch_at: u64::MAX,
                     trusted_since: current.epoch_timestamp,
+                    installed_at: current.installed_at,
                     rotates: false,
                     post_turn_length: 0,
                 })
@@ -354,6 +376,7 @@ mod parlia_client {
                     post: current.validators.clone(),
                     switch_at: current.active_from,
                     trusted_since: previous.epoch_timestamp,
+                    installed_at: previous.installed_at,
                     rotates: false,
                     post_turn_length: 0,
                 })
@@ -376,8 +399,9 @@ mod parlia_client {
                 effective_from: active_from,
                 size: u32::try_from(validators.len()).unwrap_or(u32::MAX),
             });
+            let installed_at = self.now();
             self.sets[index as usize] =
-                TrustedSet { validators, turn_length, epoch, active_from, epoch_timestamp: timestamp };
+                TrustedSet { validators, turn_length, epoch, active_from, epoch_timestamp: timestamp, installed_at };
         }
     }
 

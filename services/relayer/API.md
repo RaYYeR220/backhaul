@@ -34,7 +34,10 @@ Both light clients, the job counters and every address. Cached for 5 s.
     "activeFrom": "140468040",
     "validators": ["0x…", "… 9 addresses"],
     "epochTimestamp": "1793661415",
-    "trustRemainingSec": "561000",
+    "installedAt": "1793661520",
+    "trustingPeriodSec": "1209600",
+    "trustRemainingSec": "1165000",
+    "trustAlert": null,
     "bscHead": "140470123",
     "liveOverlap": 8,
     "lastWindow": { "block": "140470002", "tx": "0x…", "headers": 49 },
@@ -69,8 +72,12 @@ Both light clients, the job counters and every address. Cached for 5 s.
   `lastTx.kind` is `commitment`, `header` or `rotate`. If the client cannot be read the object is
   `{ "client": "0x…", "error": "…" }`.
 - `bscToPortaldot` describes the Parlia light client of BSC that lives on Portaldot.
-  `trustRemainingSec` is how long windows above the trusted set still verify (7-day trusting
-  period); `liveOverlap` is how many validators of BSC's current set the client trusts (an epoch
+  `trustRemainingSec` is how long windows above the trusted set still verify: the client trusts a
+  set for `trustingPeriodSec` (14 days) from the earlier of its epoch block (`epochTimestamp`, BSC
+  time) and the moment the client installed it (`installedAt`, Portaldot time), and accepts no
+  window at all once that runs out. The relayer refreshes the trusted epoch every 3 days
+  (`PARLIA_REFRESH_AFTER_SEC`); `trustAlert` is a message while less than 5 days remain
+  (`PARLIA_TRUST_ALERT_SEC`), `null` otherwise. `liveOverlap` is how many validators of BSC's current set the client trusts (an epoch
   is submitted when it drops below 7 of 9). `lastWindow` / `lagBlocks` are `null` before the
   first window.
 - `jobs` counts by state; see the job states below. `solver` and `demo` are `null` when off.

@@ -205,7 +205,7 @@ async function measureLive() {
 
     // A fresh live window: above both clients' trusted set, not finalized by either.
     const pub = createPublicClient({ transport: http(process.env.PORTALDOT_EVM_RPC ?? PORTALDOT_EVM_RPC, { timeout: 120_000 }) }) as PublicClient;
-    const [vals, turnLength, epoch, activeFrom] = (await pub.readContract({ address: evmClient, abi: parliaClientAbi, functionName: 'validatorSet' })) as readonly [Address[], number, bigint, bigint, bigint];
+    const [vals, turnLength, epoch, activeFrom] = (await pub.readContract({ address: evmClient, abi: parliaClientAbi, functionName: 'validatorSet' })) as readonly [Address[], number, bigint, bigint, bigint, bigint];
     const set: TrustedSet = { validators: [...vals], turnLength, epoch, activeFrom };
     const inkSet = decodeInkTrustedSet((await inkDryRunCall(api, origin, ink, encodeInkValidatorSet())).data);
     if (inkSet.epoch !== set.epoch) notes.push(`The clients trust different epochs (EVM ${set.epoch}, ink! ${inkSet.epoch}); the window is built for the EVM client's set.`);

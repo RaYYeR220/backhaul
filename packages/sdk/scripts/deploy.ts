@@ -79,7 +79,8 @@ const seeds = {
   approvalFund: parseEther(opt('approval-fund', '0.5')!) / 10_000n,
 };
 const minFeeBps = Number(opt('min-fee-bps', '30'));
-const TRUSTING_PERIOD = 7n * 86_400n;
+/** Parlia trusting period, on both clocks: the relayer refreshes every 3 days, 14 leaves room for a long outage. */
+const TRUSTING_PERIOD = 14n * 86_400n;
 const SUPPLY = 1_000_000n * 10n ** 18n;
 const DUMMY_EOA = '0x000000000000000000000000000000000000dEaD' as Address;
 

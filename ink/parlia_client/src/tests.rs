@@ -414,6 +414,42 @@ fn reject_after_trusting_period() {
     assert_eq!(lc.submit_window(slice(&s, 0, 48)), Ok(1000 + TRUSTING_PERIOD));
 }
 
+/// Portaldot's clock, in seconds (pallet-contracts counts milliseconds).
+fn set_now(secs: u64) {
+    ink::env::test::set_block_timestamp::<ink::env::DefaultEnvironment>(secs * 1000);
+}
+
+#[ink::test]
+fn trusted_set_expires_on_portaldot_clock() {
+    let t = 1_800_000_000;
+    set_now(t);
+    let mut lc = synth_client("A1000");
+    assert_eq!(lc.validator_set().installed_at, t);
+    let w = slice(&segment("gas"), 0, 16);
+    set_now(t + TRUSTING_PERIOD + 1);
+    assert_eq!(lc.submit_window(w.clone()), Err(Error::TrustedSetExpired(t + TRUSTING_PERIOD + 1, t + TRUSTING_PERIOD)));
+    set_now(t + TRUSTING_PERIOD);
+    assert_eq!(lc.submit_window(w), Ok(1100));
+}
+
+#[ink::test]
+fn rotation_restarts_the_trusting_period() {
+    let (t, day) = (1_800_000_000, 86_400);
+    set_now(t);
+    let mut lc = synth_client("A1000");
+    set_now(t + 6 * day);
+    lc.submit_window(segment("rotation")).unwrap(); // 4000: A -> B, installed now
+    assert_eq!(lc.validator_set().installed_at, t + 6 * day);
+    assert_eq!(lc.previous_validator_set().installed_at, t);
+    // Past A's deadline: B still finalizes above 4040, A no longer checks the heights below it.
+    set_now(t + 10 * day);
+    assert_eq!(lc.submit_window(segment("afterRotation")), Ok(4100));
+    assert_eq!(
+        lc.submit_window(slice(&segment("gas"), 0, 16)),
+        Err(Error::TrustedSetExpired(t + 10 * day, t + TRUSTING_PERIOD))
+    );
+}
+
 #[ink::test]
 fn rotation_after_skipped_epochs() {
     let mut lc = synth_client("A1000");

@@ -30,4 +30,7 @@ pub enum Error {
     IncompleteProof,
     InvalidProof,
     InvalidAccount,
+    /// (Portaldot time, deadline): the set checking the window was installed more than a trusting
+    /// period ago. Last, so the indices above stay the same.
+    TrustedSetExpired(u64, u64),
 }

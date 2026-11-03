@@ -1,11 +1,13 @@
 // Driving the Parlia light client of BSC (ParliaClient on Portaldot).
 //
-// The client verifies by skipping (trusting period of 7 days), so the relay only submits:
+// The client verifies by skipping (a trusting period of 14 days on the deployment, counted both
+// from the trusted epoch block's BSC timestamp and from the moment the client installed the set,
+// on Portaldot's clock), so the relay only submits:
 //  - a window above each block a job has to prove (its receipt or storage),
 //  - an epoch window once too few live validators are in the client's trusted set (BSC testnet
 //    swaps one validator in and out almost every epoch, which plain windows pass over), and a
-//    refresh before the trusted epoch gets old (every few days), so the trusting period never
-//    runs out.
+//    refresh before the trusted epoch gets old (every 3 days by default), so the trusting period
+//    never runs out. If it does, the client accepts nothing again: there is no admin to reset it.
 // Before an epoch rotation, jobs still waiting on older blocks should be finalized first: after
 // two rotations the client no longer knows the set that sealed them. A job whose block is out of
 // reach anyway proves its commitment from the BSC Outbox's storage at a later block instead
@@ -17,10 +19,25 @@ import { decodeHeader, parseEpochExtra } from '../bsc/header.js';
 import { buildWindow, rpcHeaderSource, trustedOverlap, WindowError, type HeaderSource, type TrustedSet, type WindowOptions } from '../bsc/window.js';
 
 export interface TrustedSetView extends TrustedSet {
+  /** BSC timestamp of the epoch block that announced the set. */
   epochTimestamp: bigint;
+  /** Portaldot time (seconds) the client installed the set. */
+  installedAt: bigint;
+}
+
+/**
+ * When windows checked by `set` stop verifying: the earlier of its epoch block's timestamp and
+ * its installation time, plus the trusting period. BSC and Portaldot clocks both run in real
+ * seconds, so the two deadlines are compared directly.
+ */
+export function trustDeadline(set: Pick<TrustedSetView, 'epochTimestamp' | 'installedAt'>, trustingPeriod: bigint): bigint {
+  const since = set.installedAt < set.epochTimestamp ? set.installedAt : set.epochTimestamp;
+  return since + trustingPeriod;
 }
 
 export interface ParliaClientPort {
+  /** Seconds a set is trusted for (an immutable of the contract). */
+  trustingPeriod(): Promise<bigint>;
   validatorSet(): Promise<TrustedSetView>;
   /** Empty validators if the client has rotated less than once. */
   previousValidatorSet(): Promise<TrustedSetView>;
@@ -186,8 +203,9 @@ export class ParliaRelay {
 
   /**
    * Decides whether the trusted epoch should move: fewer than `minOverlap` live validators are
-   * trusted, the turn length changed, or the trusted epoch is older than `refreshAfter` (the
-   * trusting period must never run out). Returns the epoch to submit, or undefined.
+   * trusted, the turn length changed, or the trusted set is older than `refreshAfter`, counted
+   * from the earlier of its epoch block and its installation (the trusting period must never run
+   * out). Returns the epoch to submit, or undefined.
    */
   async epochDue(
     nowSec = BigInt(Math.floor(Date.now() / 1000)),
@@ -199,14 +217,14 @@ export class ParliaRelay {
     const overlap = trustedOverlap(current.validators, ann.validators);
     if (overlap < this.minOverlap) return { epoch: latest, reason: 'overlap', overlap };
     if (ann.turnLength !== current.turnLength) return { epoch: latest, reason: 'turn-length', overlap };
-    if (nowSec - current.epochTimestamp >= this.refreshAfter) return { epoch: latest, reason: 'refresh', overlap };
+    if (nowSec >= trustDeadline(current, this.refreshAfter)) return { epoch: latest, reason: 'refresh', overlap };
     return undefined;
   }
 
-  /** Seconds left before windows above the trusted set stop verifying. */
-  async trustRemaining(trustingPeriod: bigint, nowSec = BigInt(Math.floor(Date.now() / 1000))): Promise<bigint> {
+  /** Seconds left before windows above the trusted set stop verifying (negative once they have). */
+  async trustRemaining(nowSec = BigInt(Math.floor(Date.now() / 1000))): Promise<bigint> {
     const { current } = await this.sets();
-    return current.epochTimestamp + trustingPeriod - nowSec;
+    return trustDeadline(current, await this.lc.trustingPeriod()) - nowSec;
   }
 }
 

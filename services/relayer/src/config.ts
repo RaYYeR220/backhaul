@@ -37,7 +37,10 @@ export interface RelayerConfig {
   parlia: {
     tolerant: boolean;
     minOverlap: number;
+    /** Move the trusted epoch once the trusted set is this old (the client's trusting period is 14 days). */
     refreshAfterSec: bigint;
+    /** Alert in /status once less than this is left of the trusting period. */
+    trustAlertSec: bigint;
     confirmations: bigint;
     tickMs: number;
     /** Budget guard: Parlia windows cost tPOT (length fee + ring deposits). */
@@ -76,6 +79,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig 
       tolerant: (env.BACKHAUL_PARLIA_TOLERANT ?? '1') !== '0',
       minOverlap: num(env.PARLIA_MIN_OVERLAP, 7),
       refreshAfterSec: BigInt(num(env.PARLIA_REFRESH_AFTER_SEC, 3 * 86_400)),
+      trustAlertSec: BigInt(num(env.PARLIA_TRUST_ALERT_SEC, 5 * 86_400)),
       confirmations: BigInt(num(env.PARLIA_CONFIRMATIONS, 64)),
       tickMs: num(env.PARLIA_TICK_MS, 60_000),
       maxWindowsPerHour: num(env.PARLIA_MAX_WINDOWS_PER_HOUR, 12),
