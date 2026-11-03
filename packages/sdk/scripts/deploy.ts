@@ -181,6 +181,10 @@ function summary(P: Side, B: Side) {
   }
   const spent = (txs: TxLog[]) => txs.reduce((a, t) => a + t.gasUsed * t.gasPrice + t.value, 0n);
   if (P.txs.length || B.txs.length) log(`this run: ${P.txs.length + B.txs.length} txs; gas+value ${formatEther(spent(P.txs))} (portaldot), ${formatEther(spent(B.txs))} (bsc)`);
+  if (mode === 'live' && B.has('PortaldotLightClient')) {
+    log('next: start the relayer now (npm run relayer -- --env <path>). The BEEFY client rotates with');
+    log('commitments archived during each session, so it must be running before the next session ends.');
+  }
 }
 
 // ------------------------------------------------------------------ dry-run pricing
