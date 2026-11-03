@@ -1,0 +1,80 @@
+{
+  "at": "2026-11-03T17:19:18.034Z",
+  "network": "anvil fork of BSC testnet, live Portaldot V3 testnet data",
+  "forkBlock": "140612299",
+  "checkpoint": {
+    "setId": "520",
+    "signers": [
+      "0x4d13b6aea6cd423cc48d7159ac10b26927c2b421",
+      "0x4a69b8f722a9b486f9db0d243c908170012d7413"
+    ],
+    "checkpointBlock": 308659,
+    "checkpointMmrRoot": "0x41f9faf72c817783e17aef5c95db050b12915faf3666926ecadb65a647ca4038",
+    "deployGas": "2883130"
+  },
+  "commitment": {
+    "block": 308907,
+    "setId": "520",
+    "gasUsed": "77364"
+  },
+  "header": {
+    "number": 308906,
+    "gasUsed": "76308",
+    "stateRoot": "0xa30b93e3af59695565e640a2a84aed78c06f072bb061364dba0c3fbec41fd204"
+  },
+  "bind": {
+    "contract": "0x1d0c17a0ee1dcf15bd05a45ae789058a0586aa68",
+    "trieId": "0x2ced995fc955c9abb8d4a3009e7795ce5712518250f73272b6969031ffa93eb8",
+    "onChainTrieId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "gasUsed": "456870"
+  },
+  "storage": {
+    "key": "0x000000000000000000000000c3439de80429265793325a6b662232043ced04b6",
+    "value": "0x000000000000000000000000000000000000000000000001e68e243e81320000",
+    "verifyCommitment": true,
+    "verifyCommitmentOtherValue": false,
+    "verifyCommitmentGas": "510610",
+    "proofBytes": 3296,
+    "absentKey": "0xc08157aba98d87b46bfeeef58f6570269ccc916bfd5ce950158e8d7d903b0ca2",
+    "headerTimestamp": "1793726328",
+    "verifyAbsence": true,
+    "verifyAbsenceBeforeDeadline": false,
+    "verifyAbsenceOfPresentSlot": false
+  },
+  "attacks": [
+    {
+      "id": "beefy-forged-signature",
+      "reason": "InvalidSignature(0)",
+      "defended": true
+    },
+    {
+      "id": "beefy-stale-set",
+      "reason": "UnknownValidatorSet(503, 520)",
+      "defended": true
+    },
+    {
+      "id": "mmr-wrong-leaf",
+      "reason": "HeaderNotInMmr",
+      "defended": true
+    },
+    {
+      "id": "header-not-in-mmr",
+      "reason": "HeaderNotInMmr",
+      "defended": true
+    },
+    {
+      "id": "tampered-storage-proof",
+      "reason": "false",
+      "defended": true
+    },
+    {
+      "id": "replayed-nonce",
+      "skipped": "bscGateway, transferToBsc"
+    },
+    {
+      "id": "refund-filled-order",
+      "reason": "false",
+      "defended": true
+    }
+  ]
+}
