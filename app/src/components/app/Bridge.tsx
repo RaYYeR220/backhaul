@@ -124,11 +124,13 @@ export function Bridge() {
               <button key={d} type="button" aria-pressed={dir === d} onClick={() => setDir(d)}>
                 {d === "toPortaldot" ? (
                   <>
-                    BNB Chain <span className={s.arr}>→</span> Portaldot
+                    <span className={s.long}>BNB Chain</span>
+                    <span className={s.short}>BNB</span> <span className={s.arr}>→</span> Portaldot
                   </>
                 ) : (
                   <>
-                    Portaldot <span className={s.arr}>→</span> BNB Chain
+                    Portaldot <span className={s.arr}>→</span> <span className={s.long}>BNB Chain</span>
+                    <span className={s.short}>BNB</span>
                   </>
                 )}
               </button>
@@ -330,7 +332,7 @@ function DemoSend({
 
   return (
     <section className={s.path} aria-label="Send with the demo wallet">
-      <button type="button" className={`btn btn-primary ${s.wide}`} disabled={!!off || !ready || over || busy || empty} onClick={send}>
+      <button type="button" className={`btn btn-primary ${s.wide}`} disabled={!!off || !ready || over || empty} aria-busy={busy} onClick={() => !busy && send()}>
         {busy ? "Sending from the demo wallet…" : "Send with the demo wallet"}
       </button>
       <p className={s.pathNote}>
@@ -523,7 +525,7 @@ function WalletSend({
   } else {
     body = (
       <>
-        <button type="button" className={`btn btn-ghost ${s.wide}`} onClick={send} disabled={!ready || !!phase}>
+        <button type="button" className={`btn btn-ghost ${s.wide}`} onClick={() => !phase && send()} disabled={!ready} aria-busy={!!phase}>
           {phase ?? `${route.verb} ${route.send} from your wallet`}
         </button>
         <p className={s.pathNote}>

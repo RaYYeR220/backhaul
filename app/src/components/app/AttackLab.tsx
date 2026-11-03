@@ -259,8 +259,10 @@ function AttackRow({ n, a, run, onFire, busy }: { n: number; a: AttackInfo; run?
         <button
           type="button"
           className={`btn btn-sm ${state === "idle" ? "btn-primary" : "btn-ghost"} ${s.fire}`}
-          onClick={onFire}
-          disabled={!a.ready || run?.st === "firing" || busy}
+          // stays enabled while firing so keyboard focus is not dropped; a second press is ignored
+          onClick={() => run?.st !== "firing" && onFire()}
+          disabled={!a.ready || busy}
+          aria-busy={run?.st === "firing"}
           aria-label={`Fire: ${verb}`}
         >
           {!a.ready ? "Not ready" : run?.st === "firing" ? "Firing…" : run ? "Fire again" : "Fire"}

@@ -324,10 +324,19 @@
 }
 
 @media (max-width: 760px) {
+  /* on a phone the rail takes the full width, as on the landing */
   .railBox {
     margin-top: 28px;
-    padding: 20px 14px 16px;
-    border-radius: var(--r-card);
+    padding: 20px 0 0;
+    border: 0;
+    border-top: 1px solid var(--line);
+    border-radius: 0;
+    background: none;
+  }
+  .nodeHead {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
   }
   .meta {
     gap: 12px 22px;
