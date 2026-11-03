@@ -221,3 +221,24 @@ button {
     --gutter: 16px;
   }
 }
+
+/* the pitch deck (/deck) prints one slide per 16:9 page */
+@page deck {
+  size: 1280px 720px;
+  margin: 0;
+}
+@media print {
+  html:has([data-deck]) {
+    background: var(--ground);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  body:has([data-deck]) {
+    min-height: 0;
+    background: var(--ground);
+  }
+  body:has([data-deck])::after,
+  body:has([data-deck]) .skip {
+    display: none;
+  }
+}
