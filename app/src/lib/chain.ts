@@ -38,7 +38,9 @@ export async function bscMiners(from: number, to: number, signal?: AbortSignal):
   const reqs: RpcReq[] = [];
   for (let n = from; n <= to; n++) reqs.push({ method: "eth_getBlockByNumber", params: ["0x" + n.toString(16), false] });
   const blocks = await rpcBatch<{ number: string; miner: string } | null>(RPCS.bsc, reqs, signal);
-  return blocks.filter((b): b is { number: string; miner: string } => !!b).map((b) => ({ n: parseInt(b.number, 16), miner: b.miner.toLowerCase() }));
+  return blocks
+    .filter((b): b is { number: string; miner: string } => !!b)
+    .map((b) => ({ n: parseInt(b.number, 16), miner: b.miner.toLowerCase() }));
 }
 
 /**

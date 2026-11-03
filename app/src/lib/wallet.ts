@@ -12,7 +12,8 @@ export interface Eip1193 {
   removeListener?(event: string, fn: (...a: unknown[]) => void): void;
 }
 
-export const injected = (): Eip1193 | null => (typeof window !== "undefined" ? ((window as unknown as { ethereum?: Eip1193 }).ethereum ?? null) : null);
+export const injected = (): Eip1193 | null =>
+  typeof window !== "undefined" ? ((window as unknown as { ethereum?: Eip1193 }).ethereum ?? null) : null;
 
 const hexId = (id: number) => "0x" + id.toString(16);
 
@@ -118,7 +119,11 @@ export function lockedNonce(route: Route, r: Receipt): string | null {
   for (const log of r.logs) {
     if (log.address.toLowerCase() !== gw) continue;
     try {
-      const ev = decodeEventLog({ abi: route.from === "bsc" ? bscGatewayAbi : portaldotGatewayAbi, data: log.data, topics: log.topics as [Hex, ...Hex[]] });
+      const ev = decodeEventLog({
+        abi: route.from === "bsc" ? bscGatewayAbi : portaldotGatewayAbi,
+        data: log.data,
+        topics: log.topics as [Hex, ...Hex[]],
+      });
       if (ev.eventName === "Locked") return String((ev.args as { nonce: bigint }).nonce);
     } catch {
       // another event of the gateway
@@ -128,7 +133,12 @@ export function lockedNonce(route: Route, r: Receipt): string | null {
 }
 
 /** Balance of `asset` held by `owner` on `chain`, read from the public RPC. */
-export async function balanceOf(chain: ChainName, asset: string, owner: string, tokens: { ppot?: string; bnbb?: string }): Promise<bigint | null> {
+export async function balanceOf(
+  chain: ChainName,
+  asset: string,
+  owner: string,
+  tokens: { ppot?: string; bnbb?: string },
+): Promise<bigint | null> {
   if (asset === "tBNB" || asset === "tPOT") return BigInt(await rpc<string>(rpcOf(chain), "eth_getBalance", [owner, "latest"]));
   const token = asset === "pPOT" ? tokens.ppot : asset === "BNB.b" ? tokens.bnbb : undefined;
   if (!token) return null;

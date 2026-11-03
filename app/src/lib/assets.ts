@@ -19,10 +19,50 @@ export interface Route {
 }
 
 export const ROUTES: Route[] = [
-  { demo: "bnb-to-portaldot", kind: "BNB_TO_PORTALDOT", from: "bsc", to: "portaldot", send: "tBNB", receive: "BNB.b", verb: "Lock", feeBps: 0, decimals: 18 },
-  { demo: "ppot-to-portaldot", kind: "PPOT_TO_PORTALDOT", from: "bsc", to: "portaldot", send: "pPOT", receive: "tPOT", verb: "Burn", feeBps: 0, decimals: 14 },
-  { demo: "pot-to-bsc", kind: "POT_TO_BSC", from: "portaldot", to: "bsc", send: "tPOT", receive: "pPOT", verb: "Lock", feeBps: 10, decimals: 14 },
-  { demo: "bnbb-to-bsc", kind: "BNBB_TO_BSC", from: "portaldot", to: "bsc", send: "BNB.b", receive: "tBNB", verb: "Return", feeBps: 0, decimals: 18 },
+  {
+    demo: "bnb-to-portaldot",
+    kind: "BNB_TO_PORTALDOT",
+    from: "bsc",
+    to: "portaldot",
+    send: "tBNB",
+    receive: "BNB.b",
+    verb: "Lock",
+    feeBps: 0,
+    decimals: 18,
+  },
+  {
+    demo: "ppot-to-portaldot",
+    kind: "PPOT_TO_PORTALDOT",
+    from: "bsc",
+    to: "portaldot",
+    send: "pPOT",
+    receive: "tPOT",
+    verb: "Burn",
+    feeBps: 0,
+    decimals: 14,
+  },
+  {
+    demo: "pot-to-bsc",
+    kind: "POT_TO_BSC",
+    from: "portaldot",
+    to: "bsc",
+    send: "tPOT",
+    receive: "pPOT",
+    verb: "Lock",
+    feeBps: 10,
+    decimals: 14,
+  },
+  {
+    demo: "bnbb-to-bsc",
+    kind: "BNBB_TO_BSC",
+    from: "portaldot",
+    to: "bsc",
+    send: "BNB.b",
+    receive: "tBNB",
+    verb: "Return",
+    feeBps: 0,
+    decimals: 18,
+  },
 ];
 
 export const routeOfKind = (k: string | null | undefined) => ROUTES.find((r) => r.kind === k);

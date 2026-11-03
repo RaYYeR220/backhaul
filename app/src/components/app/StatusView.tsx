@@ -16,7 +16,11 @@ import s from "./StatusView.module.css";
 const TRUSTING_PERIOD = 7 * 86_400;
 
 export function StatusView() {
-  const st = usePoll((sig) => relayer.status(sig), () => 5_000, "status");
+  const st = usePoll(
+    (sig) => relayer.status(sig),
+    () => 5_000,
+    "status",
+  );
   const d = st.data;
   return (
     <>
@@ -29,7 +33,9 @@ export function StatusView() {
       {st.loading ? (
         <Empty title="Reading both light clients…" />
       ) : !d ? (
-        <Empty title="No status without the relayer.">Both panels come from the light-client contracts, which the relayer reads on each chain.</Empty>
+        <Empty title="No status without the relayer.">
+          Both panels come from the light-client contracts, which the relayer reads on each chain.
+        </Empty>
       ) : (
         <>
           <div className={s.faces}>
@@ -78,7 +84,10 @@ function BeefyPanel({ b }: { b: BeefySide }) {
   useEffect(() => {
     if (!lastTx || lastTx.kind !== "commitment" || signed?.tx === lastTx.tx) return;
     const ctl = new AbortController();
-    beefyCommitmentSigners(lastTx.tx, ctl.signal).then((idx) => setSigned({ tx: lastTx.tx, idx }), () => setSigned({ tx: lastTx.tx, idx: null }));
+    beefyCommitmentSigners(lastTx.tx, ctl.signal).then(
+      (idx) => setSigned({ tx: lastTx.tx, idx }),
+      () => setSigned({ tx: lastTx.tx, idx: null }),
+    );
     return () => ctl.abort();
   }, [lastTx, signed?.tx]);
 
@@ -88,20 +97,28 @@ function BeefyPanel({ b }: { b: BeefySide }) {
 
   return (
     <section className={s.panel} aria-labelledby="beefy-h">
-      <PanelHead id="beefy-h" title="Portaldot, as BNB Chain sees it" sub="BEEFY light client on BNB Chain" chain="bsc" address={b.client} tempo="beats" />
+      <PanelHead
+        id="beefy-h"
+        title="Portaldot, as BNB Chain sees it"
+        sub="BEEFY light client on BNB Chain"
+        chain="bsc"
+        address={b.client}
+        tempo="beats"
+      />
       {b.error ? (
         <PanelError msg={b.error} />
       ) : (
         <>
           <Big label="Latest Portaldot block proven on BNB Chain" chain="portaldot" n={b.latestBlock} />
-          <div className={s.dots} aria-label={idx ? `${idx.length} of ${n} BEEFY authorities signed the last commitment` : `${n} BEEFY authorities`}>
+          <div
+            className={s.dots}
+            aria-label={idx ? `${idx.length} of ${n} BEEFY authorities signed the last commitment` : `${n} BEEFY authorities`}
+          >
             {Array.from({ length: n }, (_, i) => (
               <i key={i} className={idx ? (idx.includes(i) ? s.on : undefined) : s.req} />
             ))}
             <span>
-              {idx
-                ? `${idx.length} of ${n} authorities signed the last commitment`
-                : `${n} of ${n} authorities must sign every commitment`}
+              {idx ? `${idx.length} of ${n} authorities signed the last commitment` : `${n} of ${n} authorities must sign every commitment`}
             </span>
           </div>
           {b.halted && (
@@ -119,14 +136,16 @@ function BeefyPanel({ b }: { b: BeefySide }) {
             <Row k="Behind Portaldot finality">
               {b.lagBlocks != null ? (
                 <>
-                  <span className="mono">{fmt(b.lagBlocks)}</span> blocks, about {duration(b.lagBlocks * CHAINS.portaldot.blockSec)} · finalized{" "}
-                  {b.finalized != null && <Hex chain="portaldot" kind="block" value={b.finalized} />}
+                  <span className="mono">{fmt(b.lagBlocks)}</span> blocks, about {duration(b.lagBlocks * CHAINS.portaldot.blockSec)} ·
+                  finalized {b.finalized != null && <Hex chain="portaldot" kind="block" value={b.finalized} />}
                 </>
               ) : (
                 "unknown"
               )}
             </Row>
-            <Row k="BEEFY has signed up to">{b.beefyHead != null ? <Hex chain="portaldot" kind="block" value={b.beefyHead} /> : "unknown"}</Row>
+            <Row k="BEEFY has signed up to">
+              {b.beefyHead != null ? <Hex chain="portaldot" kind="block" value={b.beefyHead} /> : "unknown"}
+            </Row>
             <Row k="Last light-client transaction">
               {lastTx ? (
                 <>
@@ -141,7 +160,8 @@ function BeefyPanel({ b }: { b: BeefySide }) {
               {left != null && epoch ? (
                 left > 0 ? (
                   <>
-                    in {duration(left)}, at <span className="mono">{clock(epoch.endsAt)}</span> (BABE epoch <span className="mono">{fmt(epoch.index)}</span> ends)
+                    in {duration(left)}, at <span className="mono">{clock(epoch.endsAt)}</span> (BABE epoch{" "}
+                    <span className="mono">{fmt(epoch.index)}</span> ends)
                   </>
                 ) : (
                   <>due now (BABE epoch {fmt(epoch.index)} has ended)</>
@@ -183,19 +203,41 @@ function ParliaPanel({ p }: { p: ParliaSide }) {
   }, [lw, validators, window?.block]);
 
   const sealed = window && lw && window.block === lw.block ? window.sealed : null;
-  const remaining = p.epochTimestamp ? Number(p.epochTimestamp) + TRUSTING_PERIOD - now / 1000 : p.trustRemainingSec ? Number(p.trustRemainingSec) : null;
+  const remaining = p.epochTimestamp
+    ? Number(p.epochTimestamp) + TRUSTING_PERIOD - now / 1000
+    : p.trustRemainingSec
+      ? Number(p.trustRemainingSec)
+      : null;
   const expires = p.epochTimestamp ? (Number(p.epochTimestamp) + TRUSTING_PERIOD) * 1000 : null;
   const lag = p.lagBlocks != null ? Number(p.lagBlocks) : null;
 
   return (
     <section className={s.panel} aria-labelledby="parlia-h">
-      <PanelHead id="parlia-h" title="BNB Chain, as Portaldot sees it" sub="Parlia light client on Portaldot" chain="portaldot" address={p.client} tempo="ticks" />
+      <PanelHead
+        id="parlia-h"
+        title="BNB Chain, as Portaldot sees it"
+        sub="Parlia light client on Portaldot"
+        chain="portaldot"
+        address={p.client}
+        tempo="ticks"
+      />
       {p.error ? (
         <PanelError msg={p.error} />
       ) : (
         <>
-          <Big label={lw ? "Latest BNB Chain block finalized on Portaldot" : "No window submitted yet"} chain="bsc" n={lw ? Number(lw.block) : undefined} />
-          <div className={s.dots} aria-label={sealed ? `${sealed.length} of ${validators.length} trusted validators sealed the last window` : `${validators.length} trusted validators`}>
+          <Big
+            label={lw ? "Latest BNB Chain block finalized on Portaldot" : "No window submitted yet"}
+            chain="bsc"
+            n={lw ? Number(lw.block) : undefined}
+          />
+          <div
+            className={s.dots}
+            aria-label={
+              sealed
+                ? `${sealed.length} of ${validators.length} trusted validators sealed the last window`
+                : `${validators.length} trusted validators`
+            }
+          >
             {validators.map((v, i) => (
               <i key={v} className={sealed ? (sealed.includes(i) ? s.on : undefined) : undefined} title={v} />
             ))}
@@ -269,7 +311,9 @@ function ParliaPanel({ p }: { p: ParliaSide }) {
                 "none yet"
               )}
             </Row>
-            {window?.untrusted ? <Row k="Seals not counted">{window.untrusted} headers in the last window came from validators outside the trusted set</Row> : null}
+            {window?.untrusted ? (
+              <Row k="Seals not counted">{window.untrusted} headers in the last window came from validators outside the trusted set</Row>
+            ) : null}
             {p.lastError && <Row k="Last error">{p.lastError}</Row>}
           </dl>
         </>
@@ -280,11 +324,27 @@ function ParliaPanel({ p }: { p: ParliaSide }) {
 
 /* ---------- parts ---------- */
 
-function PanelHead({ id, title, sub, chain, address, tempo }: { id: string; title: string; sub: string; chain: ChainName; address: string; tempo: "ticks" | "beats" }) {
+function PanelHead({
+  id,
+  title,
+  sub,
+  chain,
+  address,
+  tempo,
+}: {
+  id: string;
+  title: string;
+  sub: string;
+  chain: ChainName;
+  address: string;
+  tempo: "ticks" | "beats";
+}) {
   return (
     <header className={s.ph}>
       <span className={s.tempo} aria-hidden="true">
-        {tempo === "ticks" ? Array.from({ length: 12 }, (_, i) => <i key={i} className={s.tick} />) : Array.from({ length: 3 }, (_, i) => <i key={i} className={s.beat} />)}
+        {tempo === "ticks"
+          ? Array.from({ length: 12 }, (_, i) => <i key={i} className={s.tick} />)
+          : Array.from({ length: 3 }, (_, i) => <i key={i} className={s.beat} />)}
       </span>
       <h2 id={id}>{title}</h2>
       <p>
@@ -298,7 +358,13 @@ function Big({ label, chain, n }: { label: string; chain: ChainName; n?: number 
   return (
     <div className={s.big}>
       {n != null ? (
-        <a className={s.height} href={blockUrl(chain, n)} target="_blank" rel="noreferrer" aria-label={`${label}: ${fmt(n)}, on the explorer`}>
+        <a
+          className={s.height}
+          href={blockUrl(chain, n)}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`${label}: ${fmt(n)}, on the explorer`}
+        >
           <Roll className="mono" value={"#" + fmt(n)} />
         </a>
       ) : (
@@ -360,8 +426,8 @@ function Health({ d }: { d: Status }) {
         <Row k="Solver">
           {d.solver ? (
             <>
-              on · <Hex chain="bsc" kind="address" value={d.solver.address} /> · fills at {d.solver.limits.minFeeBps} bps or more, {d.solver.limits.minDeadlineLeft} s of
-              deadline left
+              on · <Hex chain="bsc" kind="address" value={d.solver.address} /> · fills at {d.solver.limits.minFeeBps} bps or more,{" "}
+              {d.solver.limits.minDeadlineLeft} s of deadline left
             </>
           ) : (
             <span className={s.dim}>off on this relayer</span>
@@ -388,7 +454,9 @@ function Health({ d }: { d: Status }) {
 
 function Addresses({ d }: { d: Status }) {
   const side = (chain: ChainName) =>
-    Object.entries(d.addresses[chain] ?? {}).filter(([k, v]) => typeof v === "string" && /^0x[0-9a-fA-F]{40}$/.test(v) && k !== "bnbbAssetId") as [string, string][];
+    Object.entries(d.addresses[chain] ?? {}).filter(
+      ([k, v]) => typeof v === "string" && /^0x[0-9a-fA-F]{40}$/.test(v) && k !== "bnbbAssetId",
+    ) as [string, string][];
   return (
     <section className={s.addrs} aria-labelledby="addr-h">
       <h2 id="addr-h" className={s.h2}>

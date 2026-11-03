@@ -52,7 +52,8 @@ export function richDetail(d: string): Rich {
   return out;
 }
 
-const tx = (s: Step | undefined): Tx[] => (s && s.tx ? [{ chain: s.chain, tx: s.tx, block: s.block }] : s && s.block ? [{ chain: s.chain, tx: null, block: s.block }] : []);
+const tx = (s: Step | undefined): Tx[] =>
+  s && s.tx ? [{ chain: s.chain, tx: s.tx, block: s.block }] : s && s.block ? [{ chain: s.chain, tx: null, block: s.block }] : [];
 
 export function transferNodes(j: TransferJob, signers: SignerCount | null): TNode[] {
   const dirIn = j.from === "bsc";
@@ -96,7 +97,9 @@ export function transferNodes(j: TransferJob, signers: SignerCount | null): TNod
         ? [`Signed by ${have} of ${of} BEEFY authorities`]
         : [`Signed by both BEEFY authorities`],
     body: dirIn
-      ? [`Portaldot's Parlia light client finalizes a block once ${need} distinct validators of the set it trusts have sealed headers from it onward.`]
+      ? [
+          `Portaldot's Parlia light client finalizes a block once ${need} distinct validators of the set it trusts have sealed headers from it onward.`,
+        ]
       : ["Both of Portaldot's BEEFY authorities have to sign a commitment that covers your block."],
     tone: proven ? "proven" : signers && have >= need ? "done" : "active",
     txs: [],
@@ -185,7 +188,12 @@ export function orderNodes(j: OrderJob, known: { ppot?: string; bnbb?: string })
     const body = s.detail ? richDetail(s.detail) : undefined;
     switch (s.name) {
       case "opened":
-        nodes.push({ ...base, title: [m(amount(a.amount)), ` ${a.sent} escrowed on ${chainLabel(j.from)}`], body: ["The order is open until its fill deadline."], tone: "done" });
+        nodes.push({
+          ...base,
+          title: [m(amount(a.amount)), ` ${a.sent} escrowed on ${chainLabel(j.from)}`],
+          body: ["The order is open until its fill deadline."],
+          tone: "done",
+        });
         break;
       case "solver fill sent":
         nodes.push({ ...base, title: ["Solver sent a fill"], body, tone: "done" });
@@ -194,17 +202,32 @@ export function orderNodes(j: OrderJob, known: { ppot?: string; bnbb?: string })
         nodes.push({ ...base, title: ["Solver passed"], body, tone: "info" });
         break;
       case "vault fill":
-        nodes.push({ ...base, title: ["LP vault sent a fill"], body: ["The vault fills only against a proof that the order was opened."], tone: "done" });
+        nodes.push({
+          ...base,
+          title: ["LP vault sent a fill"],
+          body: ["The vault fills only against a proof that the order was opened."],
+          tone: "done",
+        });
         break;
       case "vault passed":
         nodes.push({ ...base, title: ["LP vault passed"], body, tone: "info" });
         break;
       case "filled":
-        nodes.push({ ...base, title: [`Filled at ${plus(s.at)}: `, m(amount(a.outAmount)), ` ${a.received} paid on ${chainLabel(j.to)}`], body, tone: "proven" });
+        nodes.push({
+          ...base,
+          title: [`Filled at ${plus(s.at)}: `, m(amount(a.outAmount)), ` ${a.received} paid on ${chainLabel(j.to)}`],
+          body,
+          tone: "proven",
+        });
         break;
       case "beefy":
       case "parlia":
-        nodes.push({ ...base, title: [`Proven on ${chainLabel(s.chain ?? (s.name === "beefy" ? "bsc" : "portaldot"))}`], body, tone: "proven" });
+        nodes.push({
+          ...base,
+          title: [`Proven on ${chainLabel(s.chain ?? (s.name === "beefy" ? "bsc" : "portaldot"))}`],
+          body,
+          tone: "proven",
+        });
         break;
       case "settled":
         nodes.push({ ...base, title: ["Solver repaid after proof"], body, tone: "proven" });
@@ -216,7 +239,12 @@ export function orderNodes(j: OrderJob, known: { ppot?: string; bnbb?: string })
         nodes.push({ ...base, title: [m(amount(a.amount)), ` ${a.sent} refunded`], body, tone: "proven" });
         break;
       case "failed":
-        nodes.push({ ...base, title: ["Stopped"], body: richDetail(s.detail ?? j.error ?? "The relayer stopped on this step."), tone: "failed" });
+        nodes.push({
+          ...base,
+          title: ["Stopped"],
+          body: richDetail(s.detail ?? j.error ?? "The relayer stopped on this step."),
+          tone: "failed",
+        });
         break;
       default:
         nodes.push({ ...base, title: [s.name], body, tone: "info" });
@@ -235,10 +263,24 @@ export function orderNodes(j: OrderJob, known: { ppot?: string; bnbb?: string })
       });
   }
   if (j.state === "filled") {
-    nodes.push({ key: "wait-proof", lane: "main", title: ["Solver repaid after proof"], body: ["The escrow moves to the solver once the light client has proven the fill."], tone: "active", txs: [] });
+    nodes.push({
+      key: "wait-proof",
+      lane: "main",
+      title: ["Solver repaid after proof"],
+      body: ["The escrow moves to the solver once the light client has proven the fill."],
+      tone: "active",
+      txs: [],
+    });
   }
   if (j.state === "failed" && !j.steps.some((s) => s.name === "failed")) {
-    nodes.push({ key: "failed", lane: "main", title: ["Stopped"], body: richDetail(j.error ?? "The relayer stopped on this step."), tone: "failed", txs: [] });
+    nodes.push({
+      key: "failed",
+      lane: "main",
+      title: ["Stopped"],
+      body: richDetail(j.error ?? "The relayer stopped on this step."),
+      tone: "failed",
+      txs: [],
+    });
   }
   return nodes;
 }

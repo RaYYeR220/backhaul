@@ -72,12 +72,26 @@ const pd = loadDeployment("portaldot", 420420777);
 const bsc = loadDeployment("bsc", 97);
 
 const deployments = {
-  portaldot: pd && pd.contracts.PortaldotGateway
-    ? { chainId: pd.chainId, updatedAt: pd.updatedAt, gateway: pd.contracts.PortaldotGateway, bnbb: pd.meta.bnbb?.precompile ?? null, contracts: pd.contracts }
-    : null,
-  bsc: bsc && bsc.contracts.BscGateway
-    ? { chainId: bsc.chainId, updatedAt: bsc.updatedAt, gateway: bsc.contracts.BscGateway, ppot: bsc.contracts.PPOT ?? null, contracts: bsc.contracts }
-    : null,
+  portaldot:
+    pd && pd.contracts.PortaldotGateway
+      ? {
+          chainId: pd.chainId,
+          updatedAt: pd.updatedAt,
+          gateway: pd.contracts.PortaldotGateway,
+          bnbb: pd.meta.bnbb?.precompile ?? null,
+          contracts: pd.contracts,
+        }
+      : null,
+  bsc:
+    bsc && bsc.contracts.BscGateway
+      ? {
+          chainId: bsc.chainId,
+          updatedAt: bsc.updatedAt,
+          gateway: bsc.contracts.BscGateway,
+          ppot: bsc.contracts.PPOT ?? null,
+          contracts: bsc.contracts,
+        }
+      : null,
 };
 
 const json = (v) => JSON.stringify(v, null, 2);

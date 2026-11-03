@@ -16,7 +16,11 @@ export interface Poll<T> {
  * Loads `load` now and again every `every(data)` ms (null stops). The last good answer is kept
  * through later errors, so the view can say how old it is. Paused while the tab is hidden.
  */
-export function usePoll<T>(load: (signal: AbortSignal) => Promise<T>, every: (data: T | undefined, error: unknown) => number | null, key: string): Poll<T> {
+export function usePoll<T>(
+  load: (signal: AbortSignal) => Promise<T>,
+  every: (data: T | undefined, error: unknown) => number | null,
+  key: string,
+): Poll<T> {
   const [state, setState] = useState<{ data: T | undefined; error: unknown; loading: boolean; at: number | null; key: string }>({
     data: undefined,
     error: null,

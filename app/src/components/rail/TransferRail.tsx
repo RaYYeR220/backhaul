@@ -169,19 +169,19 @@ export function TransferRail(p: TransferRailProps) {
       </div>
 
       {p.steps.length > 0 && (
-      <ol className={s.steps}>
-        {p.steps.map((step, i) => (
-          <li key={i} className={step.done ? s.ok : undefined}>
-            <span className={s.ck}>
-              <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true">
-                <path d="M1.2 4.2l1.8 1.8 3.8-4" stroke="#fff" strokeWidth="1.3" fill="none" />
-              </svg>
-            </span>
-            <span>{step.label}</span>
-            <span className="sr-only">{step.done ? " (done)" : " (pending)"}</span>
-          </li>
-        ))}
-      </ol>
+        <ol className={s.steps}>
+          {p.steps.map((step, i) => (
+            <li key={i} className={step.done ? s.ok : undefined}>
+              <span className={s.ck}>
+                <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true">
+                  <path d="M1.2 4.2l1.8 1.8 3.8-4" stroke="#fff" strokeWidth="1.3" fill="none" />
+                </svg>
+              </span>
+              <span>{step.label}</span>
+              <span className="sr-only">{step.done ? " (done)" : " (pending)"}</span>
+            </li>
+          ))}
+        </ol>
       )}
 
       {p.footer}

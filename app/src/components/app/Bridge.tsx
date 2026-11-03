@@ -7,7 +7,19 @@ import { amount as fmtAmount, chainLabel, ROUTES, type Route } from "@/lib/asset
 import { CHAINS, type ChainName } from "@/lib/config";
 import { isUnreachable, RelayerError, relayer, type Status } from "@/lib/relayer";
 import { usePoll } from "@/lib/usePoll";
-import { allowance, approveCall, balanceOf, gatewayCall, gatewayFor, injected, lockedNonce, switchTo, waitReceipt, walletMessage, type Eip1193 } from "@/lib/wallet";
+import {
+  allowance,
+  approveCall,
+  balanceOf,
+  gatewayCall,
+  gatewayFor,
+  injected,
+  lockedNonce,
+  switchTo,
+  waitReceipt,
+  walletMessage,
+  type Eip1193,
+} from "@/lib/wallet";
 import { StruckCircle } from "../rail/TransferRail";
 import { duration, Hex, RelayerBanner, ViewHead } from "./ui";
 import s from "./Bridge.module.css";
@@ -29,22 +41,46 @@ function parseAmount(raw: string, route: Route): { wei: bigint | null; problem: 
 const STEPS: Record<string, { verb: string; what: string; body: string }[]> = {
   BNB_TO_PORTALDOT: [
     { verb: "Lock", what: "tBNB on BNB Chain", body: "The gateway holds it and logs the transfer." },
-    { verb: "Seal", what: "6 of 9 BNB Chain validators", body: "Six distinct validators seal the headers from your lock onward. Portaldot's Parlia light client checks every seal." },
-    { verb: "Release", what: "BNB.b on Portaldot", body: "A receipt proof of your lock releases BNB.b, a native Portaldot asset, with a small tPOT gas drop for a fresh account." },
+    {
+      verb: "Seal",
+      what: "6 of 9 BNB Chain validators",
+      body: "Six distinct validators seal the headers from your lock onward. Portaldot's Parlia light client checks every seal.",
+    },
+    {
+      verb: "Release",
+      what: "BNB.b on Portaldot",
+      body: "A receipt proof of your lock releases BNB.b, a native Portaldot asset, with a small tPOT gas drop for a fresh account.",
+    },
   ],
   PPOT_TO_PORTALDOT: [
     { verb: "Burn", what: "pPOT on BNB Chain", body: "The gateway burns it and logs the transfer." },
-    { verb: "Seal", what: "6 of 9 BNB Chain validators", body: "Six distinct validators seal the headers from your burn onward. Portaldot's Parlia light client checks every seal." },
+    {
+      verb: "Seal",
+      what: "6 of 9 BNB Chain validators",
+      body: "Six distinct validators seal the headers from your burn onward. Portaldot's Parlia light client checks every seal.",
+    },
     { verb: "Release", what: "tPOT on Portaldot", body: "A receipt proof of your burn releases tPOT from the gateway's lock." },
   ],
   POT_TO_BSC: [
-    { verb: "Lock", what: "tPOT on Portaldot", body: "The Outbox commits to the transfer in contract storage. Portaldot charges a storage deposit for that slot." },
-    { verb: "Sign", what: "2 of 2 BEEFY authorities", body: "Both BEEFY authorities sign a commitment past your block, and an MMR proof ties your block to it." },
+    {
+      verb: "Lock",
+      what: "tPOT on Portaldot",
+      body: "The Outbox commits to the transfer in contract storage. Portaldot charges a storage deposit for that slot.",
+    },
+    {
+      verb: "Sign",
+      what: "2 of 2 BEEFY authorities",
+      body: "Both BEEFY authorities sign a commitment past your block, and an MMR proof ties your block to it.",
+    },
     { verb: "Release", what: "pPOT on BNB Chain", body: "A storage proof of the commitment mints pPOT, net of the 0.1 % bridge fee." },
   ],
   BNBB_TO_BSC: [
     { verb: "Return", what: "BNB.b on Portaldot", body: "The gateway takes the BNB.b back and the Outbox commits to the transfer." },
-    { verb: "Sign", what: "2 of 2 BEEFY authorities", body: "Both BEEFY authorities sign a commitment past your block, and an MMR proof ties your block to it." },
+    {
+      verb: "Sign",
+      what: "2 of 2 BEEFY authorities",
+      body: "Both BEEFY authorities sign a commitment past your block, and an MMR proof ties your block to it.",
+    },
     { verb: "Release", what: "tBNB on BNB Chain", body: "A storage proof of the commitment releases tBNB from the gateway's lock." },
   ],
 };
@@ -57,7 +93,11 @@ export function Bridge() {
   const [raw, setRaw] = useState("");
   const [recipient, setRecipient] = useState("");
   const [touched, setTouched] = useState(false);
-  const st = usePoll((sig) => relayer.status(sig), () => 15_000, "status");
+  const st = usePoll(
+    (sig) => relayer.status(sig),
+    () => 15_000,
+    "status",
+  );
 
   const routes = ROUTES.filter((r) => (dir === "toPortaldot" ? r.from === "bsc" : r.from === "portaldot"));
   const route = routes[asset[dir]] ?? routes[0];
@@ -96,9 +136,7 @@ export function Bridge() {
           </div>
 
           <div className={s.field}>
-            <label htmlFor={`${uid}-amt`}>
-              You send on {chainLabel(route.from)}
-            </label>
+            <label htmlFor={`${uid}-amt`}>You send on {chainLabel(route.from)}</label>
             <div className={s.amountRow}>
               <input
                 id={`${uid}-amt`}
@@ -169,9 +207,25 @@ export function Bridge() {
             </p>
           </div>
 
-          <DemoSend route={route} raw={raw} wei={amt.wei} recipient={recipient} ready={ready} status={st.data} statusError={st.error} onSent={(id) => router.push(`/transfers/${encodeURIComponent(id)}`)} />
+          <DemoSend
+            route={route}
+            raw={raw}
+            wei={amt.wei}
+            recipient={recipient}
+            ready={ready}
+            status={st.data}
+            statusError={st.error}
+            onSent={(id) => router.push(`/transfers/${encodeURIComponent(id)}`)}
+          />
 
-          <WalletSend route={route} wei={amt.wei} recipient={recipient} ready={ready} wallet={wallet} onSent={(id) => router.push(`/transfers/${encodeURIComponent(id)}`)} />
+          <WalletSend
+            route={route}
+            wei={amt.wei}
+            recipient={recipient}
+            ready={ready}
+            wallet={wallet}
+            onSent={(id) => router.push(`/transfers/${encodeURIComponent(id)}`)}
+          />
         </form>
 
         <aside className={s.side} aria-labelledby={`${uid}-how`}>
@@ -258,13 +312,20 @@ function DemoSend({
       if (e instanceof RelayerError && e.status === 429) {
         const after = Number(e.body.retryAfterSec);
         setError(`${e.message}${Number.isFinite(after) ? `. Try again in ${duration(after, true)}.` : "."}`);
-      } else if (e instanceof RelayerError && e.status === 400 && e.body.cap) setError(`At most ${fmtAmount(String(e.body.cap), 14)} ${route.send} per request.`);
+      } else if (e instanceof RelayerError && e.status === 400 && e.body.cap)
+        setError(`At most ${fmtAmount(String(e.body.cap), 14)} ${route.send} per request.`);
       else if (e instanceof RelayerError && e.status === 503) setError("The demo wallet is off on this relayer.");
       else setError(e instanceof Error ? e.message : String(e));
     }
   };
 
-  const off = !status ? (isUnreachable(statusError) ? "The relayer is not answering, so the demo wallet cannot send." : "Reading the demo wallet's limits from the relayer.") : !demo ? "The demo wallet is off on this relayer." : null;
+  const off = !status
+    ? isUnreachable(statusError)
+      ? "The relayer is not answering, so the demo wallet cannot send."
+      : "Reading the demo wallet's limits from the relayer."
+    : !demo
+      ? "The demo wallet is off on this relayer."
+      : null;
   const empty = held === 0n;
 
   return (
@@ -278,8 +339,9 @@ function DemoSend({
             `The demo wallet holds no ${route.send} on ${chainLabel(route.from)} right now. Pick another asset or use your own wallet.`
           ) : (
             <>
-              No wallet needed: the relayer&apos;s demo key sends it for you. Up to <span className="mono">{fmtAmount(cap ?? "0", 14)}</span> {route.send} per request,{" "}
-              {demo!.limits.perIpPerHour} requests an hour per visitor
+              No wallet needed: the relayer&apos;s demo key sends it for you. Up to{" "}
+              <span className="mono">{fmtAmount(cap ?? "0", 14)}</span> {route.send} per request, {demo!.limits.perIpPerHour} requests an
+              hour per visitor
               {left != null && (
                 <>
                   , <span className="mono">{fmtAmount(left > 0n ? left : 0n, 6)}</span> {route.send} left today
@@ -289,7 +351,11 @@ function DemoSend({
             </>
           ))}
       </p>
-      {over && <p className={s.problem}>That is above the demo cap of {fmtAmount(cap!, 14)} {route.send}. Lower it, or send from your own wallet.</p>}
+      {over && (
+        <p className={s.problem}>
+          That is above the demo cap of {fmtAmount(cap!, 14)} {route.send}. Lower it, or send from your own wallet.
+        </p>
+      )}
       {error && (
         <p className={s.fail} role="alert">
           <StruckCircle size={12} />
@@ -347,7 +413,21 @@ function useWallet(): WalletState {
   return { eth, account, chainId, connect, error };
 }
 
-function WalletSend({ route, wei, recipient, ready, wallet, onSent }: { route: Route; wei: bigint | null; recipient: string; ready: boolean; wallet: WalletState; onSent: (id: string) => void }) {
+function WalletSend({
+  route,
+  wei,
+  recipient,
+  ready,
+  wallet,
+  onSent,
+}: {
+  route: Route;
+  wei: bigint | null;
+  recipient: string;
+  ready: boolean;
+  wallet: WalletState;
+  onSent: (id: string) => void;
+}) {
   const [phase, setPhase] = useState<string | null>(null);
   const [error, setError] = useState<{ msg: string; tx?: string } | null>(null);
   const gateway = gatewayFor(route);
@@ -368,7 +448,10 @@ function WalletSend({ route, wei, recipient, ready, wallet, onSent }: { route: R
         if (have == null || have < wei) {
           setPhase("Approve BNB.b in your wallet…");
           const ap = approveCall(wei);
-          const apHash = (await eth.request({ method: "eth_sendTransaction", params: [{ from: wallet.account, to: ap.to, data: ap.data }] })) as string;
+          const apHash = (await eth.request({
+            method: "eth_sendTransaction",
+            params: [{ from: wallet.account, to: ap.to, data: ap.data }],
+          })) as string;
           setPhase("Waiting for the approval to land…");
           const r = await waitReceipt(chain, apHash);
           if (r.status !== "0x1") throw Object.assign(new Error("The approval reverted on chain."), { tx: apHash });
@@ -408,7 +491,8 @@ function WalletSend({ route, wei, recipient, ready, wallet, onSent }: { route: R
   if (!gateway) {
     body = (
       <p className={s.pathNote}>
-        The gateway on {chainLabel(chain)} is not deployed in this build yet, so wallet sends are closed. They open as soon as its address is synced in.
+        The gateway on {chainLabel(chain)} is not deployed in this build yet, so wallet sends are closed. They open as soon as its address
+        is synced in.
       </p>
     );
   } else if (!wallet.eth) {
@@ -419,7 +503,9 @@ function WalletSend({ route, wei, recipient, ready, wallet, onSent }: { route: R
         <button type="button" className={`btn btn-ghost ${s.wide}`} onClick={wallet.connect}>
           Connect wallet
         </button>
-        <p className={s.pathNote}>Sends straight to the gateway on {chainLabel(chain)}. You pay the gas in {CHAINS[chain].native}.</p>
+        <p className={s.pathNote}>
+          Sends straight to the gateway on {chainLabel(chain)}. You pay the gas in {CHAINS[chain].native}.
+        </p>
       </>
     );
   } else if (!onChain) {
@@ -429,7 +515,8 @@ function WalletSend({ route, wei, recipient, ready, wallet, onSent }: { route: R
           Switch to {CHAINS[chain].full}
         </button>
         <p className={s.pathNote}>
-          Connected as <Hex chain={chain} kind="address" value={wallet.account} />. The network is added to your wallet if it does not know it.
+          Connected as <Hex chain={chain} kind="address" value={wallet.account} />. The network is added to your wallet if it does not know
+          it.
         </p>
       </>
     );
@@ -440,7 +527,8 @@ function WalletSend({ route, wei, recipient, ready, wallet, onSent }: { route: R
           {phase ?? `${route.verb} ${route.send} from your wallet`}
         </button>
         <p className={s.pathNote}>
-          Connected as <Hex chain={chain} kind="address" value={wallet.account} /> on {CHAINS[chain].full}. Gateway <Hex chain={chain} kind="address" value={gateway} />.
+          Connected as <Hex chain={chain} kind="address" value={wallet.account} /> on {CHAINS[chain].full}. Gateway{" "}
+          <Hex chain={chain} kind="address" value={gateway} />.
           {route.kind === "BNBB_TO_BSC" && " BNB.b needs an approval first if the gateway has no allowance."}
         </p>
       </>

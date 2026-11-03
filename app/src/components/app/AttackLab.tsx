@@ -43,19 +43,21 @@ const MATERIAL: Record<string, string> = {
 /** The throwaway key the lab sends its calls from (keccak256("backhaul attack lab")). */
 const ATTACKER = "0x9bB40db9756BB471b4cdcF21b1599F37f8984A9e";
 
-type Run =
-  | { st: "firing" }
-  | { st: "done"; r: AttackResult }
-  | { st: "missing"; missing: string[] }
-  | { st: "error"; msg: string };
+type Run = { st: "firing" } | { st: "done"; r: AttackResult } | { st: "missing"; missing: string[] } | { st: "error"; msg: string };
 
 const needs = (missing: string[]) => {
-  const words = [...new Set(missing.map((m) => MATERIAL[m] ?? (m.startsWith("originSettler") ? "a deployed OriginSettler" : `the deployed ${m}`)))];
+  const words = [
+    ...new Set(missing.map((m) => MATERIAL[m] ?? (m.startsWith("originSettler") ? "a deployed OriginSettler" : `the deployed ${m}`))),
+  ];
   return words.join(" and ");
 };
 
 export function AttackLab() {
-  const list = usePoll((sig) => relayer.attacks(sig), () => 60_000, "attacks");
+  const list = usePoll(
+    (sig) => relayer.attacks(sig),
+    () => 60_000,
+    "attacks",
+  );
   const [runs, setRuns] = useState<Record<string, Run>>({});
   const [volley, setVolley] = useState<{ at: number; of: number } | null>(null);
   const [said, setSaid] = useState("");
@@ -110,8 +112,16 @@ export function AttackLab() {
   const total = list.data?.total ?? 0;
 
   const groups: { chain: ChainName; title: string; sub: string }[] = [
-    { chain: "bsc", title: "Fired at BNB Chain", sub: "The BEEFY light client of Portaldot, its storage verifier and the BNB Chain gateway." },
-    { chain: "portaldot", title: "Fired at Portaldot", sub: "The Parlia light client of BNB Chain, its receipt verifier, the gateway and the order settler." },
+    {
+      chain: "bsc",
+      title: "Fired at BNB Chain",
+      sub: "The BEEFY light client of Portaldot, its storage verifier and the BNB Chain gateway.",
+    },
+    {
+      chain: "portaldot",
+      title: "Fired at Portaldot",
+      sub: "The Parlia light client of BNB Chain, its receipt verifier, the gateway and the order settler.",
+    },
   ];
 
   let n = 0;
@@ -126,42 +136,50 @@ export function AttackLab() {
       <RelayerBanner error={list.error} at={list.at} onRetry={list.refresh} />
 
       {list.data && (
-      <section className={s.board} aria-label="Scoreboard">
-        <div className={s.scoreCol}>
-          <div className={`${s.score} ${rejected === total && total > 0 ? s.all : ""}`}>
-            <span className={s.big}>
-              <Roll value={String(rejected)} />
-              <span className={s.of}>/ {total}</span>
+        <section className={s.board} aria-label="Scoreboard">
+          <div className={s.scoreCol}>
+            <div className={`${s.score} ${rejected === total && total > 0 ? s.all : ""}`}>
+              <span className={s.big}>
+                <Roll value={String(rejected)} />
+                <span className={s.of}>/ {total}</span>
+              </span>
+              <span className={s.word}>rejected</span>
+            </div>
+            <span className={s.pips} aria-hidden="true">
+              {items.map((a) => {
+                const r = runs[a.id];
+                const st = !r
+                  ? ""
+                  : r.st === "firing"
+                    ? s.pipFiring
+                    : r.st === "done"
+                      ? r.r.defended
+                        ? s.pipRejected
+                        : s.pipBreached
+                      : "";
+                return <i key={a.id} className={`${st} ${a.ready ? "" : s.pipWait}`} />;
+              })}
             </span>
-            <span className={s.word}>rejected</span>
           </div>
-          <span className={s.pips} aria-hidden="true">
-            {items.map((a) => {
-              const r = runs[a.id];
-              const st = !r ? "" : r.st === "firing" ? s.pipFiring : r.st === "done" ? (r.r.defended ? s.pipRejected : s.pipBreached) : "";
-              return <i key={a.id} className={`${st} ${a.ready ? "" : s.pipWait}`} />;
-            })}
-          </span>
-        </div>
-        <div className={s.boardSide}>
-          <p className={s.boardNote}>
-            {fired === 0
-                  ? `${ready.length} of ${total} have their proof material. Fire one, or all of them.`
-                  : `${fired} fired${breached ? `, ${breached} not rejected as expected` : ""}. ${ready.length} of ${total} are ready.`}
-          </p>
-          <div className={s.boardActions}>
-            {volley ? (
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => (stop.current = true)}>
-                Stop · firing {volley.at} of {volley.of}
-              </button>
-            ) : (
-              <button type="button" className="btn btn-primary btn-sm" onClick={fireAll} disabled={!ready.length}>
-                Fire all {ready.length === total ? total : `${ready.length} ready`}
-              </button>
-            )}
+          <div className={s.boardSide}>
+            <p className={s.boardNote}>
+              {fired === 0
+                ? `${ready.length} of ${total} have their proof material. Fire one, or all of them.`
+                : `${fired} fired${breached ? `, ${breached} not rejected as expected` : ""}. ${ready.length} of ${total} are ready.`}
+            </p>
+            <div className={s.boardActions}>
+              {volley ? (
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => (stop.current = true)}>
+                  Stop · firing {volley.at} of {volley.of}
+                </button>
+              ) : (
+                <button type="button" className="btn btn-primary btn-sm" onClick={fireAll} disabled={!ready.length}>
+                  Fire all {ready.length === total ? total : `${ready.length} ready`}
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
       )}
       <p className="sr-only" aria-live="polite">
         {said}
@@ -280,8 +298,8 @@ function Outcome({ a, run }: { a: AttackInfo; run?: Run }) {
         )}
         <span className={`mono ${s.reason}`}>{r.reverted ? r.reason : `returned ${r.reason}`}</span>
         <span className={s.meta}>
-          {r.defended ? `the expected ${name === "false" ? "refusal" : name}` : `expected ${a.expects.join(" or ")}`} · {r.ms} ms · eth_call to{" "}
-          <Hex chain={r.chain} kind="address" value={r.call.to} />
+          {r.defended ? `the expected ${name === "false" ? "refusal" : name}` : `expected ${a.expects.join(" or ")}`} · {r.ms} ms · eth_call
+          to <Hex chain={r.chain} kind="address" value={r.call.to} />
         </span>
       </p>
       <details className={s.call}>
@@ -295,7 +313,9 @@ function Outcome({ a, run }: { a: AttackInfo; run?: Run }) {
 function Tempo({ chain }: { chain: ChainName }) {
   return (
     <span className={s.tempo} aria-hidden="true">
-      {chain === "bsc" ? Array.from({ length: 12 }, (_, i) => <i key={i} className={s.tick} />) : Array.from({ length: 3 }, (_, i) => <i key={i} className={s.beat} />)}
+      {chain === "bsc"
+        ? Array.from({ length: 12 }, (_, i) => <i key={i} className={s.tick} />)
+        : Array.from({ length: 3 }, (_, i) => <i key={i} className={s.beat} />)}
     </span>
   );
 }

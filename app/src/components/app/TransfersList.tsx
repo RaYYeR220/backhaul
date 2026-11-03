@@ -25,8 +25,16 @@ const PILL: Record<string, { tone: "proven" | "waiting" | "failed"; label: strin
 
 export function TransfersList() {
   const [filter, setFilter] = useState<Filter>("all");
-  const list = usePoll((sig) => relayer.transfers({ limit: 100, type: filter === "all" ? undefined : filter }, sig), () => 8_000, `list:${filter}`);
-  const status = usePoll((sig) => relayer.status(sig), () => 60_000, "status");
+  const list = usePoll(
+    (sig) => relayer.transfers({ limit: 100, type: filter === "all" ? undefined : filter }, sig),
+    () => 8_000,
+    `list:${filter}`,
+  );
+  const status = usePoll(
+    (sig) => relayer.status(sig),
+    () => 60_000,
+    "status",
+  );
   const known = { ppot: status.data?.addresses?.bsc?.PPOT, bnbb: status.data?.addresses?.portaldot?.bnbb as string | undefined };
   const items = list.data?.items ?? [];
 
@@ -86,8 +94,8 @@ function Row({ j, known }: { j: Job; known: { ppot?: string; bnbb?: string } }) 
       </>
     ) : (
       <>
-        <span className="mono">{amount(j.inputAmount)}</span> {a.sent} <span className={s.dim}>for</span> <span className="mono">{amount(j.outputAmount)}</span>{" "}
-        {a.received}
+        <span className="mono">{amount(j.inputAmount)}</span> {a.sent} <span className={s.dim}>for</span>{" "}
+        <span className="mono">{amount(j.outputAmount)}</span> {a.received}
       </>
     );
   return (

@@ -24,7 +24,7 @@ const hex = (n) => "0x" + randomBytes(n).toString("hex");
 const addr = () => hex(20);
 const txh = () => hex(32);
 const iso = (ms) => new Date(ms).toISOString();
-const wei = (x) => (BigInt(Math.round(x * 1e6)) * E18 / 1_000_000n).toString();
+const wei = (x) => ((BigInt(Math.round(x * 1e6)) * E18) / 1_000_000n).toString();
 
 /* ---------- anchors from the live chains ---------- */
 
@@ -40,7 +40,14 @@ async function rpc(url, method, params = []) {
   return j.result;
 }
 
-const anchor = { bscHead: 72_000_000, validators: Array.from({ length: 9 }, addr), pdFinal: 1_500_000, pdBeefy: 1_499_997, setId: 500, live: false };
+const anchor = {
+  bscHead: 72_000_000,
+  validators: Array.from({ length: 9 }, addr),
+  pdFinal: 1_500_000,
+  pdBeefy: 1_499_997,
+  setId: 500,
+  live: false,
+};
 
 async function loadAnchors() {
   try {
@@ -58,7 +65,15 @@ async function loadAnchors() {
     const vs = await rpc(PD_NODE, "state_call", ["BeefyApi_validator_set", "0x"]);
     const setHex = vs.slice(-16);
     const setId = Number(BigInt("0x" + setHex.match(/../g).reverse().join("")));
-    Object.assign(anchor, { bscHead: head, epoch, validators, pdFinal: parseInt(h.number, 16), pdBeefy: parseInt(bh.number, 16), setId, live: true });
+    Object.assign(anchor, {
+      bscHead: head,
+      epoch,
+      validators,
+      pdFinal: parseInt(h.number, 16),
+      pdBeefy: parseInt(bh.number, 16),
+      setId,
+      live: true,
+    });
     console.log(`anchored to BSC #${head} (epoch ${epoch}, ${count} validators), Portaldot #${anchor.pdFinal}, BEEFY set ${setId}`);
   } catch (e) {
     console.log(`could not read the live chains (${e.message}); using made-up heights`);
@@ -83,10 +98,33 @@ const RELAYER = addr();
 const DEMO = addr();
 const ADDR = {
   portaldot: Object.fromEntries(
-    ["Outbox", "ParliaClient", "BscVerifier", "PortaldotGateway", "OriginSettler", "DestinationSettler", "PotVault", "BnbbVault", "PotForwarder", "BnbbForwarder"].map((k) => [k, addr()]),
+    [
+      "Outbox",
+      "ParliaClient",
+      "BscVerifier",
+      "PortaldotGateway",
+      "OriginSettler",
+      "DestinationSettler",
+      "PotVault",
+      "BnbbVault",
+      "PotForwarder",
+      "BnbbForwarder",
+    ].map((k) => [k, addr()]),
   ),
   bsc: Object.fromEntries(
-    ["Outbox", "PortaldotLightClient", "PortaldotVerifier", "PPOT", "BscGateway", "OriginSettler", "DestinationSettler", "PpotVault", "BnbVault", "PpotForwarder", "BnbForwarder"].map((k) => [k, addr()]),
+    [
+      "Outbox",
+      "PortaldotLightClient",
+      "PortaldotVerifier",
+      "PPOT",
+      "BscGateway",
+      "OriginSettler",
+      "DestinationSettler",
+      "PpotVault",
+      "BnbVault",
+      "PpotForwarder",
+      "BnbForwarder",
+    ].map((k) => [k, addr()]),
   ),
 };
 ADDR.portaldot.bnbb = "0x0000264500000000000000000000000000010000";
@@ -108,7 +146,20 @@ function transfer({ kindName, amount, recipient, t0, plan, tx }) {
   const j = {
     t0,
     plan: [at(0, "locked", from, { tx: sourceTx, state: "locked" }), ...plan],
-    base: { id, type: "transfer", state: "locked", from, to, nonce, kind: KIND[kindName], kindName, recipient, amount, sourceTx, error: null },
+    base: {
+      id,
+      type: "transfer",
+      state: "locked",
+      from,
+      to,
+      nonce,
+      kind: KIND[kindName],
+      kindName,
+      recipient,
+      amount,
+      sourceTx,
+      error: null,
+    },
   };
   jobs.set(id, j);
   return j;
@@ -150,7 +201,15 @@ function view(j, now = Date.now()) {
     const t = j.t0 + p.ms;
     const block = p.tx ? String(p.block ?? (p.chain === "bsc" ? bscAt(t) : pdAt(t))) : null;
     const detail = typeof p.detail === "function" ? p.detail(j, t) : (p.detail ?? null);
-    return { name: p.name, at: iso(t), chain: p.chain ?? null, tx: p.tx ?? null, block, link: p.tx && p.chain ? txLink(p.chain, p.tx, block) : null, detail };
+    return {
+      name: p.name,
+      at: iso(t),
+      chain: p.chain ?? null,
+      tx: p.tx ?? null,
+      block,
+      link: p.tx && p.chain ? txLink(p.chain, p.tx, block) : null,
+      detail,
+    };
   });
   const out = { ...j.base };
   for (const p of done) {
@@ -172,7 +231,9 @@ const lockBlock = (j) => {
 /** The proof and release plan of a canonical transfer, as the relayer would record it. */
 function canonicalPlan(from, { proofMs, releaseMs, fail }) {
   if (from === "bsc") {
-    const plan = [at(proofMs, "parlia", "portaldot", { tx: txh(), state: "proven", detail: (j) => `BSC block ${lockBlock(j)} finalized on Portaldot` })];
+    const plan = [
+      at(proofMs, "parlia", "portaldot", { tx: txh(), state: "proven", detail: (j) => `BSC block ${lockBlock(j)} finalized on Portaldot` }),
+    ];
     if (fail) plan.push(at(releaseMs, "failed", null, { state: "failed", error: fail, detail: fail }));
     else plan.push(at(releaseMs, "finalized", "portaldot", { tx: txh(), state: "finalized" }));
     return plan;
@@ -190,8 +251,20 @@ function canonicalPlan(from, { proofMs, releaseMs, fail }) {
 function seed() {
   const now = Date.now();
   const H = 3_600_000;
-  transfer({ kindName: "BNB_TO_PORTALDOT", amount: wei(0.002), recipient: addr(), t0: now - 5.2 * H, plan: canonicalPlan("bsc", { proofMs: 31_000, releaseMs: 38_000 }) });
-  transfer({ kindName: "POT_TO_BSC", amount: wei(0.999), recipient: addr(), t0: now - 4.1 * H, plan: canonicalPlan("portaldot", { proofMs: 52_000, releaseMs: 61_000 }) });
+  transfer({
+    kindName: "BNB_TO_PORTALDOT",
+    amount: wei(0.002),
+    recipient: addr(),
+    t0: now - 5.2 * H,
+    plan: canonicalPlan("bsc", { proofMs: 31_000, releaseMs: 38_000 }),
+  });
+  transfer({
+    kindName: "POT_TO_BSC",
+    amount: wei(0.999),
+    recipient: addr(),
+    t0: now - 4.1 * H,
+    plan: canonicalPlan("portaldot", { proofMs: 52_000, releaseMs: 61_000 }),
+  });
   order({
     from: "portaldot",
     inputToken: "0x0000000000000000000000000000000000000000",
@@ -202,7 +275,12 @@ function seed() {
     deadlineSec: 1800,
     plan: [
       at(3_000, "solver fill sent", "bsc", { tx: txh(), detail: "spread 40 bps, within limits" }),
-      at(5_000, "filled", "bsc", { tx: txh(), state: "filled", detail: `by ${SOLVER}, repay to ${SOLVER}`, fill: { tx: txh(), block: String(bscAt(now - 2.6 * H + 5000)), filler: SOLVER, repayTo: SOLVER } }),
+      at(5_000, "filled", "bsc", {
+        tx: txh(),
+        state: "filled",
+        detail: `by ${SOLVER}, repay to ${SOLVER}`,
+        fill: { tx: txh(), block: String(bscAt(now - 2.6 * H + 5000)), filler: SOLVER, repayTo: SOLVER },
+      }),
       at(44_000, "parlia", "portaldot", { tx: txh(), detail: (j, t) => `BSC block ${bscAt(j.t0 + 5000)} finalized on Portaldot` }),
       at(51_000, "settled", "portaldot", { tx: txh(), state: "settled", detail: `escrow to ${SOLVER}` }),
     ],
@@ -230,27 +308,140 @@ function seed() {
     ],
   });
   // two still crossing when the mock starts
-  transfer({ kindName: "POT_TO_BSC", amount: wei(0.4995), recipient: addr(), t0: now - 8_000, plan: canonicalPlan("portaldot", { proofMs: 46_000, releaseMs: 58_000 }) });
-  transfer({ kindName: "BNB_TO_PORTALDOT", amount: wei(0.0015), recipient: addr(), t0: now - 5_000, plan: canonicalPlan("bsc", { proofMs: 30_000, releaseMs: 37_000 }) });
+  transfer({
+    kindName: "POT_TO_BSC",
+    amount: wei(0.4995),
+    recipient: addr(),
+    t0: now - 8_000,
+    plan: canonicalPlan("portaldot", { proofMs: 46_000, releaseMs: 58_000 }),
+  });
+  transfer({
+    kindName: "BNB_TO_PORTALDOT",
+    amount: wei(0.0015),
+    recipient: addr(),
+    t0: now - 5_000,
+    plan: canonicalPlan("bsc", { proofMs: 30_000, releaseMs: 37_000 }),
+  });
 }
 
 /* ---------- attack lab ---------- */
 
 const ATTACKS = [
-  ["beefy-forged-signature", "Forged BEEFY signature", "bsc", "PortaldotLightClient.submitCommitment", ["InvalidSignature"], "A real commitment of the current validator set, moved to the next block number so it is new, with one byte of the first signature changed.", "InvalidSignature(0)"],
-  ["beefy-stale-set", "Commitment signed by a stale validator set", "bsc", "PortaldotLightClient.submitCommitment", ["UnknownValidatorSet"], "A real, correctly signed commitment from a validator set the light client has already rotated away from.", () => `UnknownValidatorSet(${anchor.setId - 1})`],
-  ["mmr-wrong-leaf", "MMR proof for the wrong leaf", "bsc", "PortaldotLightClient.importHeader", ["HeaderNotInMmr"], "A real header with a real MMR proof whose first sibling hash is changed, so the path no longer leads to the committed root.", "HeaderNotInMmr()"],
-  ["header-not-in-mmr", "Header that does not hash to its leaf", "bsc", "PortaldotLightClient.importHeader", ["HeaderNotInMmr"], "A real header and its real MMR proof, but the header claims a different state root.", "HeaderNotInMmr()"],
-  ["tampered-storage-proof", "Tampered storage value", "bsc", "PortaldotVerifier.verifyCommitment", ["false"], "A real storage proof of a Portaldot Outbox slot, presented as proving a different value.", "false"],
-  ["replayed-nonce", "Replayed transfer", "bsc", "BscGateway.finalize", ["AlreadyFinalized"], "A transfer the gateway already delivered, submitted again with its genuine proof.", "AlreadyFinalized(7)"],
-  ["parlia-forged-header", "BSC header sealed by a non-validator", "portaldot", "ParliaClient.submitWindow", ["BrokenLink"], "A real finality window whose first header is replaced by a forgery sealed with an attacker key. The real validators sealed the real chain, whose headers do not link to it.", () => `BrokenLink(${bscAt(Date.now()) - 79})`],
-  ["parlia-too-few-sealers", "Window with fewer than 2/3 distinct sealers", "portaldot", "ParliaClient.submitWindow", ["TooFewSigners"], "The shortest real window that finalizes a BSC block, minus its last header: one trusted validator short of ⌈2N/3⌉.", "TooFewSigners(5, 6)"],
-  ["receipt-not-included", "Receipt proof for a log that is not there", "portaldot", "BscVerifier.verifyCommitment", ["LogIndexOutOfRange", "false"], "A real receipt proof from a finalized BSC block, pointing at a log index the receipt does not have.", "LogIndexOutOfRange(64, 1)"],
-  ["settle-unfilled-order", "Solver claim for an unfilled order", "portaldot", "OriginSettler.settle", ["InvalidProof", "IncompleteProof"], "An open order nobody filled, settled to the attacker with a genuine proof of some other commitment.", "InvalidProof()"],
-  ["refund-filled-order", "Refund for a filled order", "bsc", "PortaldotVerifier.verifyAbsence", ["false"], "An absence proof for an Outbox slot that holds a commitment: proof that the order was filled, presented as proof that it was not.", "false"],
-  ["bnbb-beyond-locked", "BNB.b release beyond what was locked", "portaldot", "PortaldotGateway.finalize", ["InvalidProof"], "A release of the gateway's whole BNB.b supply to the attacker, backed by a genuine receipt proof of a real BSC block that locked nothing of the kind.", "InvalidProof()"],
+  [
+    "beefy-forged-signature",
+    "Forged BEEFY signature",
+    "bsc",
+    "PortaldotLightClient.submitCommitment",
+    ["InvalidSignature"],
+    "A real commitment of the current validator set, moved to the next block number so it is new, with one byte of the first signature changed.",
+    "InvalidSignature(0)",
+  ],
+  [
+    "beefy-stale-set",
+    "Commitment signed by a stale validator set",
+    "bsc",
+    "PortaldotLightClient.submitCommitment",
+    ["UnknownValidatorSet"],
+    "A real, correctly signed commitment from a validator set the light client has already rotated away from.",
+    () => `UnknownValidatorSet(${anchor.setId - 1})`,
+  ],
+  [
+    "mmr-wrong-leaf",
+    "MMR proof for the wrong leaf",
+    "bsc",
+    "PortaldotLightClient.importHeader",
+    ["HeaderNotInMmr"],
+    "A real header with a real MMR proof whose first sibling hash is changed, so the path no longer leads to the committed root.",
+    "HeaderNotInMmr()",
+  ],
+  [
+    "header-not-in-mmr",
+    "Header that does not hash to its leaf",
+    "bsc",
+    "PortaldotLightClient.importHeader",
+    ["HeaderNotInMmr"],
+    "A real header and its real MMR proof, but the header claims a different state root.",
+    "HeaderNotInMmr()",
+  ],
+  [
+    "tampered-storage-proof",
+    "Tampered storage value",
+    "bsc",
+    "PortaldotVerifier.verifyCommitment",
+    ["false"],
+    "A real storage proof of a Portaldot Outbox slot, presented as proving a different value.",
+    "false",
+  ],
+  [
+    "replayed-nonce",
+    "Replayed transfer",
+    "bsc",
+    "BscGateway.finalize",
+    ["AlreadyFinalized"],
+    "A transfer the gateway already delivered, submitted again with its genuine proof.",
+    "AlreadyFinalized(7)",
+  ],
+  [
+    "parlia-forged-header",
+    "BSC header sealed by a non-validator",
+    "portaldot",
+    "ParliaClient.submitWindow",
+    ["BrokenLink"],
+    "A real finality window whose first header is replaced by a forgery sealed with an attacker key. The real validators sealed the real chain, whose headers do not link to it.",
+    () => `BrokenLink(${bscAt(Date.now()) - 79})`,
+  ],
+  [
+    "parlia-too-few-sealers",
+    "Window with fewer than 2/3 distinct sealers",
+    "portaldot",
+    "ParliaClient.submitWindow",
+    ["TooFewSigners"],
+    "The shortest real window that finalizes a BSC block, minus its last header: one trusted validator short of ⌈2N/3⌉.",
+    "TooFewSigners(5, 6)",
+  ],
+  [
+    "receipt-not-included",
+    "Receipt proof for a log that is not there",
+    "portaldot",
+    "BscVerifier.verifyCommitment",
+    ["LogIndexOutOfRange", "false"],
+    "A real receipt proof from a finalized BSC block, pointing at a log index the receipt does not have.",
+    "LogIndexOutOfRange(64, 1)",
+  ],
+  [
+    "settle-unfilled-order",
+    "Solver claim for an unfilled order",
+    "portaldot",
+    "OriginSettler.settle",
+    ["InvalidProof", "IncompleteProof"],
+    "An open order nobody filled, settled to the attacker with a genuine proof of some other commitment.",
+    "InvalidProof()",
+  ],
+  [
+    "refund-filled-order",
+    "Refund for a filled order",
+    "bsc",
+    "PortaldotVerifier.verifyAbsence",
+    ["false"],
+    "An absence proof for an Outbox slot that holds a commitment: proof that the order was filled, presented as proof that it was not.",
+    "false",
+  ],
+  [
+    "bnbb-beyond-locked",
+    "BNB.b release beyond what was locked",
+    "portaldot",
+    "PortaldotGateway.finalize",
+    ["InvalidProof"],
+    "A release of the gateway's whole BNB.b supply to the attacker, backed by a genuine receipt proof of a real BSC block that locked nothing of the kind.",
+    "InvalidProof()",
+  ],
 ];
-const MISSING = { "replayed-nonce": ["transferToBsc"], "refund-filled-order": ["presentAbsence"], "settle-unfilled-order": ["openOrder"], "tampered-storage-proof": ["portaldotCommitment"] };
+const MISSING = {
+  "replayed-nonce": ["transferToBsc"],
+  "refund-filled-order": ["presentAbsence"],
+  "settle-unfilled-order": ["openOrder"],
+  "tampered-storage-proof": ["portaldotCommitment"],
+};
 const notReady = new Set((process.env.MOCK_NOT_READY ?? "").split(",").filter(Boolean));
 const undefended = new Set((process.env.MOCK_UNDEFENDED ?? "").split(",").filter(Boolean));
 
@@ -293,10 +484,11 @@ function status() {
   const epochTs = Math.floor(START / 1000) - 2 * 86_400 - 3_600;
   const count = (type) => {
     const out = {};
-    for (const j of jobs.values()) if (j.base.type === type) {
-      const s = view(j, now).state;
-      out[s] = (out[s] ?? 0) + 1;
-    }
+    for (const j of jobs.values())
+      if (j.base.type === type) {
+        const s = view(j, now).state;
+        out[s] = (out[s] ?? 0) + 1;
+      }
     return out;
   };
   return {
@@ -310,7 +502,9 @@ function status() {
       finalized,
       lagBlocks: finalized - latestBlock,
       archived: 1312,
-      halted: process.env.MOCK_HALT ? `missed the handoff from set ${anchor.setId} to ${anchor.setId + 1}: no archived commitment of set ${anchor.setId}` : null,
+      halted: process.env.MOCK_HALT
+        ? `missed the handoff from set ${anchor.setId} to ${anchor.setId + 1}: no archived commitment of set ${anchor.setId}`
+        : null,
       lastError: null,
     },
     bscToPortaldot: {
@@ -328,7 +522,15 @@ function status() {
     },
     jobs: { transfers: count("transfer"), orders: count("order") },
     relayer: { address: RELAYER, balances: { portaldot: "812.5", bsc: "0.091" } },
-    solver: { address: SOLVER, limits: { maxOutput: { tPOT: wei(20), tBNB: wei(0.02), pPOT: wei(20), "BNB.b": wei(0.02) }, minFeeBps: 20, minDeadlineLeft: 120, prefund: wei(0.5) } },
+    solver: {
+      address: SOLVER,
+      limits: {
+        maxOutput: { tPOT: wei(20), tBNB: wei(0.02), pPOT: wei(20), "BNB.b": wei(0.02) },
+        minFeeBps: 20,
+        minDeadlineLeft: 120,
+        prefund: wei(0.5),
+      },
+    },
     demo: process.env.MOCK_DEMO_OFF ? null : { address: DEMO, limits: demoLimits, usedToday },
     addresses: ADDR,
   };
@@ -400,34 +602,52 @@ async function handle(req, res) {
   if (m === "POST" && a) {
     const row = ATTACKS.find((x) => x[0] === a[1]);
     if (!row) throw new HttpError(404, "no such attack");
-    if (notReady.has(row[0])) throw new HttpError(409, "this attack needs real proof material that does not exist yet", { missing: MISSING[row[0]] ?? ["bscReceipt"] });
+    if (notReady.has(row[0]))
+      throw new HttpError(409, "this attack needs real proof material that does not exist yet", {
+        missing: MISSING[row[0]] ?? ["bscReceipt"],
+      });
     const started = Date.now();
     await sleep(220 + Math.floor(Math.random() * 480));
     const [id, title, chain, target, expects, , reasonOf] = row;
     const ok = !undefended.has(id);
     const reason = ok ? (typeof reasonOf === "function" ? reasonOf() : reasonOf) : expects.includes("false") ? "true" : "succeeded";
     const reverted = ok && reason !== "false";
-    return { id, title, chain, target, call: { to: targetAddress(chain, target), data: hex(196) }, reverted, reason, defended: ok && expects.includes(reason.split("(")[0]), ms: Date.now() - started };
+    return {
+      id,
+      title,
+      chain,
+      target,
+      call: { to: targetAddress(chain, target), data: hex(196) },
+      reverted,
+      reason,
+      defended: ok && expects.includes(reason.split("(")[0]),
+      ms: Date.now() - started,
+    };
   }
   if (m === "POST" && path === "/demo/transfer") {
     if (process.env.MOCK_DEMO_OFF) throw new HttpError(503, "the demo signer is not configured");
     const b = await readBody(req);
     const r = ROUTES[b.route];
     if (!r) throw new HttpError(400, `route must be one of ${Object.keys(ROUTES).join(", ")}`);
-    if (typeof b.recipient !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(b.recipient)) throw new HttpError(400, "recipient must be a 0x address");
-    if (typeof b.amount !== "string" || !/^\d+(\.\d{1,18})?$/.test(b.amount)) throw new HttpError(400, 'amount must be a decimal string, e.g. "0.5"');
+    if (typeof b.recipient !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(b.recipient))
+      throw new HttpError(400, "recipient must be a 0x address");
+    if (typeof b.amount !== "string" || !/^\d+(\.\d{1,18})?$/.test(b.amount))
+      throw new HttpError(400, 'amount must be a decimal string, e.g. "0.5"');
     const amount = parseAmount(b.amount);
     if ((r.asset === "tPOT" || r.asset === "pPOT") && amount % 10_000n !== 0n) throw new HttpError(400, "tPOT has 14 decimals");
     if (amount <= 0n) throw new HttpError(400, "amount must be positive");
     const cap = BigInt(demoLimits.perRequest[r.asset]);
     if (amount > cap) throw new HttpError(400, `at most ${cap} wei of ${r.asset} per request`, { cap: cap.toString() });
     const used = BigInt(usedToday[r.asset] ?? "0");
-    if (used + amount > BigInt(demoLimits.perDay[r.asset])) throw new HttpError(429, `daily ${r.asset} budget of the demo signer is used up`, { retryAfterSec: 3600 });
+    if (used + amount > BigInt(demoLimits.perDay[r.asset]))
+      throw new HttpError(429, `daily ${r.asset} budget of the demo signer is used up`, { retryAfterSec: 3600 });
     const ip = req.socket.remoteAddress ?? "local";
     const now = Date.now();
     const recent = (hits.get(ip) ?? []).filter((x) => now - x < 3_600_000);
     if (recent.length >= demoLimits.perIpPerHour) {
-      throw new HttpError(429, "too many demo transfers from this address, try again later", { retryAfterSec: Math.ceil((recent[0] + 3_600_000 - now) / 1000) });
+      throw new HttpError(429, "too many demo transfers from this address, try again later", {
+        retryAfterSec: Math.ceil((recent[0] + 3_600_000 - now) / 1000),
+      });
     }
     hits.set(ip, [...recent, now]);
     usedToday[r.asset] = (used + amount).toString();
@@ -443,7 +663,15 @@ async function handle(req, res) {
     });
     res.statusCode = 202;
     const block = lockBlock(j);
-    return { id: j.base.id, route: b.route, amount: amount.toString(), recipient: b.recipient, tx: j.base.sourceTx, link: txLink(from, j.base.sourceTx, block), statusUrl: `/transfers/${encodeURIComponent(j.base.id)}` };
+    return {
+      id: j.base.id,
+      route: b.route,
+      amount: amount.toString(),
+      recipient: b.recipient,
+      tx: j.base.sourceTx,
+      link: txLink(from, j.base.sourceTx, block),
+      statusUrl: `/transfers/${encodeURIComponent(j.base.id)}`,
+    };
   }
   throw new HttpError(404, "not found");
 }

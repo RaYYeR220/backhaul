@@ -29,7 +29,15 @@ export function useLanes(): Lanes {
     let ticks: number[] = [];
     let beats: number[] = [];
     const push = () =>
-      alive && setLanes({ live: true, failed: false, bscHead: ticks.at(-1) ?? null, pdtHead: beats.at(-1) ?? null, ticks: [...ticks], beats: [...beats] });
+      alive &&
+      setLanes({
+        live: true,
+        failed: false,
+        bscHead: ticks.at(-1) ?? null,
+        pdtHead: beats.at(-1) ?? null,
+        ticks: [...ticks],
+        beats: [...beats],
+      });
     const sink: FeedSink = {
       reset(r: FeedReset) {
         ticks = r.headers.map((h) => h.n).slice(-TICKS);

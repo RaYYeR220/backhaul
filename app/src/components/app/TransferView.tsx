@@ -23,7 +23,11 @@ export function TransferView({ id }: { id: string }) {
     (d, e) => (d && settled(d) ? 20_000 : e && isUnreachable(e) ? 8_000 : 3_000),
     id,
   );
-  const status = usePoll((sig) => relayer.status(sig), () => 60_000, "status");
+  const status = usePoll(
+    (sig) => relayer.status(sig),
+    () => 60_000,
+    "status",
+  );
   const notFound = job.error instanceof RelayerError && job.error.status === 404;
   if (notFound && firstMiss.current === null) firstMiss.current = Date.now();
   if (job.data) firstMiss.current = null;
@@ -53,13 +57,13 @@ function NotIndexed({ id, since }: { id: string; since: number }) {
     <Empty title={waited < 120 ? "Not indexed yet." : "Still not indexed."}>
       {waited < 120 ? (
         <>
-          The relayer picks transfers up from finalized Portaldot blocks and from BNB Chain blocks 15 deep, so a new one shows up
-          after about 15 s. This page checks every 3 s.
+          The relayer picks transfers up from finalized Portaldot blocks and from BNB Chain blocks 15 deep, so a new one shows up after
+          about 15 s. This page checks every 3 s.
         </>
       ) : (
         <>
-          Nothing is indexed under <span className="mono">{id}</span> after {duration(waited)}. If you just sent it, check that the
-          source transaction landed; otherwise the id may be wrong.
+          Nothing is indexed under <span className="mono">{id}</span> after {duration(waited)}. If you just sent it, check that the source
+          transaction landed; otherwise the id may be wrong.
         </>
       )}
       <div className={s.waited}>
@@ -216,12 +220,25 @@ function useReveal(target: number) {
   return shown;
 }
 
-const ordinal = (n: number) => `${n}${n % 10 === 1 && n % 100 !== 11 ? "st" : n % 10 === 2 && n % 100 !== 12 ? "nd" : n % 10 === 3 && n % 100 !== 13 ? "rd" : "th"}`;
+const ordinal = (n: number) =>
+  `${n}${n % 10 === 1 && n % 100 !== 11 ? "st" : n % 10 === 2 && n % 100 !== 12 ? "nd" : n % 10 === 3 && n % 100 !== 13 ? "rd" : "th"}`;
 const h = (n: number | string) => ({ mono: "#" + fmt(Number(n)) });
 
 /* ---------- the rail, in this transfer's real state ---------- */
 
-function Rail({ j, signers, signersError, reveal, lockBlock }: { j: TransferJob; signers: Signers | null; signersError: string | null; reveal: number; lockBlock: number | null }) {
+function Rail({
+  j,
+  signers,
+  signersError,
+  reveal,
+  lockBlock,
+}: {
+  j: TransferJob;
+  signers: Signers | null;
+  signersError: string | null;
+  reveal: number;
+  lockBlock: number | null;
+}) {
   const lanes = useLanes();
   const dirIn = j.from === "bsc";
   const route = routeOfKind(j.kindName);
@@ -245,8 +262,24 @@ function Rail({ j, signers, signersError, reveal, lockBlock }: { j: TransferJob;
     sealed = Math.min(order.length, signers.quorum);
     sealers = signers.validators.map((v, i) => {
       const pos = order.indexOf(i);
-      const state: Sealer["state"] = pos >= 0 ? (gateOpen ? "quorum" : pos === order.length - 1 && !quorum ? "active" : "sealed") : quorum || gateOpen ? "unused" : "idle";
-      return { key: v, index: String(i), aside: pos >= 0 ? ordinal(pos + 1) : undefined, tag: v.slice(2, 6).toLowerCase(), state, meter: { filled: pos >= 0 ? Math.min(signers.counts[i], 8) : 0, of: 8 } };
+      const state: Sealer["state"] =
+        pos >= 0
+          ? gateOpen
+            ? "quorum"
+            : pos === order.length - 1 && !quorum
+              ? "active"
+              : "sealed"
+          : quorum || gateOpen
+            ? "unused"
+            : "idle";
+      return {
+        key: v,
+        index: String(i),
+        aside: pos >= 0 ? ordinal(pos + 1) : undefined,
+        tag: v.slice(2, 6).toLowerCase(),
+        state,
+        meter: { filled: pos >= 0 ? Math.min(signers.counts[i], 8) : 0, of: 8 },
+      };
     });
     caption = failed
       ? [j.error ?? "Stopped"]
@@ -281,8 +314,14 @@ function Rail({ j, signers, signersError, reveal, lockBlock }: { j: TransferJob;
         : [`Reading the ${dirIn ? "sealers from BNB Chain" : "BEEFY authorities from Portaldot"}`];
   }
 
-  const ticks = lanes.ticks.map((n) => ({ n, mark: dirIn && n === lockBlock ? ("deposit" as const) : !dirIn && n === finBlock ? ("release" as const) : undefined }));
-  const beats = lanes.beats.map((n) => ({ n, mark: !dirIn && n === lockBlock ? ("lock" as const) : dirIn && n === finBlock ? ("release" as const) : undefined }));
+  const ticks = lanes.ticks.map((n) => ({
+    n,
+    mark: dirIn && n === lockBlock ? ("deposit" as const) : !dirIn && n === finBlock ? ("release" as const) : undefined,
+  }));
+  const beats = lanes.beats.map((n) => ({
+    n,
+    mark: !dirIn && n === lockBlock ? ("lock" as const) : dirIn && n === finBlock ? ("release" as const) : undefined,
+  }));
   const amt = amount(j.amount);
 
   return (
@@ -318,7 +357,8 @@ function Rail({ j, signers, signersError, reveal, lockBlock }: { j: TransferJob;
             {signers?.kind === "parlia" && signers.scannedTo >= signers.from && (
               <>
                 {" "}
-                Sealers read from BNB Chain blocks <span className="mono">#{fmt(signers.from)}</span>–<span className="mono">#{fmt(signers.scannedTo)}</span>
+                Sealers read from BNB Chain blocks <span className="mono">#{fmt(signers.from)}</span>–
+                <span className="mono">#{fmt(signers.scannedTo)}</span>
                 {signers.untrusted ? `, ${signers.untrusted} sealed by a validator outside the set and not counted` : ""}.
               </>
             )}
@@ -348,7 +388,19 @@ function RichText({ parts }: { parts: Rich }) {
 
 /* ---------- the vertical timeline ---------- */
 
-function Timeline({ nodes, start, signers, reveal, signersError }: { nodes: TNode[]; start: string; signers: Signers | null; reveal: number; signersError: string | null }) {
+function Timeline({
+  nodes,
+  start,
+  signers,
+  reveal,
+  signersError,
+}: {
+  nodes: TNode[];
+  start: string;
+  signers: Signers | null;
+  reveal: number;
+  signersError: string | null;
+}) {
   // consecutive fast-lane nodes form one branch off the main line
   const groups: (TNode | TNode[])[] = [];
   for (const n of nodes) {
@@ -379,7 +431,14 @@ function Timeline({ nodes, start, signers, reveal, signersError }: { nodes: TNod
   );
 }
 
-const TONE_WORD: Record<string, string> = { done: "done", proven: "proven", active: "in progress", pending: "not yet", failed: "stopped", info: "note" };
+const TONE_WORD: Record<string, string> = {
+  done: "done",
+  proven: "proven",
+  active: "in progress",
+  pending: "not yet",
+  failed: "stopped",
+  info: "note",
+};
 
 function Node({ n, t0, children }: { n: TNode; t0: number; children?: ReactNode }) {
   const at = n.at ? Date.parse(n.at) : null;
@@ -446,7 +505,10 @@ function SignerList({ signers, reveal, error }: { signers: Signers | null; revea
       <p className={s.signers}>
         {signers.authorities.map((k, i) => (
           <span key={k} className={signers.signedPast ? s.signedOn : undefined}>
-            authority {i} <span className="mono">{k.slice(0, 8)}…{k.slice(-6)}</span>
+            authority {i}{" "}
+            <span className="mono">
+              {k.slice(0, 8)}…{k.slice(-6)}
+            </span>
           </span>
         ))}
         <span className={s.signNote}>

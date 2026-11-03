@@ -104,7 +104,14 @@ export function useSigners(chain: "bsc" | "portaldot" | null, from: number | nul
         try {
           set ??= await beefyValidatorSet(ctl.signal);
           const head = await beefyFinalized(ctl.signal);
-          const s: BeefySigners = { kind: "beefy", from, setId: set.setId, authorities: set.authorities, beefyHead: head, signedPast: head >= from };
+          const s: BeefySigners = {
+            kind: "beefy",
+            from,
+            setId: set.setId,
+            authorities: set.authorities,
+            beefyHead: head,
+            signedPast: head >= from,
+          };
           if (alive) {
             setSigners(s);
             setError(null);
