@@ -1,0 +1,70 @@
+{
+  "at": "2026-11-03T20:00:21.452Z",
+  "mmr": {
+    "nodes": [
+      {
+        "url": "https://test-node-v3.portaldot.dev",
+        "block": 310003,
+        "ok": false,
+        "error": "Leaf was not found (LeafNotFound)",
+        "rootOk": true
+      },
+      {
+        "url": "https://live-v3-node.portaldot.dev",
+        "block": 922096,
+        "ok": false,
+        "error": "Leaf was not found (LeafNotFound)",
+        "rootOk": true
+      }
+    ]
+  },
+  "ethRoots": {
+    "url": "https://test-evm-rpc-v3.portaldot.dev",
+    "head": 310506,
+    "equal": 6,
+    "blocks": [
+      {
+        "number": 310394,
+        "txs": 1,
+        "stateRoot": "0x943807ab343ed97e3777ac6fa357dd614edc6b7a33ec0f76d53e84702b8c483f",
+        "transactionsRoot": "0x943807ab343ed97e3777ac6fa357dd614edc6b7a33ec0f76d53e84702b8c483f",
+        "receiptsRoot": "0x4ceced080687f1f5f2bb04923e78dd82297d02d7bc6bd91fc53ad22ec0f80ec4"
+      },
+      {
+        "number": 310393,
+        "txs": 1,
+        "stateRoot": "0x302d9236a2f9bb7fe1a035cbeab295919cddce8e5e5adc0e0ab16f2df4e9e1a5",
+        "transactionsRoot": "0x302d9236a2f9bb7fe1a035cbeab295919cddce8e5e5adc0e0ab16f2df4e9e1a5",
+        "receiptsRoot": "0xa52df998e4035fa7a28f462efaccabbe1e22c745ef6b09b9831e63185115cbcc"
+      },
+      {
+        "number": 310392,
+        "txs": 1,
+        "stateRoot": "0x5e615a06be3ab5db3d9d973219a915d7d64e6ef402da8014e4444038efa6066c",
+        "transactionsRoot": "0x5e615a06be3ab5db3d9d973219a915d7d64e6ef402da8014e4444038efa6066c",
+        "receiptsRoot": "0x7fe085c94ccde5077dfc60bd244ba4e2b2b67b0f132aaa099efd793d90ab0dd3"
+      },
+      {
+        "number": 310391,
+        "txs": 1,
+        "stateRoot": "0xb3cf956f84963679fa8e6bf2d0ab22e89a0e73634ac20274b1480f760e2ffe58",
+        "transactionsRoot": "0xb3cf956f84963679fa8e6bf2d0ab22e89a0e73634ac20274b1480f760e2ffe58",
+        "receiptsRoot": "0x85d10bc5ef244b8aa556d3c65c09ae579b12d20184cb5c04172e1784123e1689"
+      },
+      {
+        "number": 310390,
+        "txs": 1,
+        "stateRoot": "0x654c8bd293c342aa27a20a4cd727ea37010e8fc4ffdcf3d4829e98f163398dd3",
+        "transactionsRoot": "0x654c8bd293c342aa27a20a4cd727ea37010e8fc4ffdcf3d4829e98f163398dd3",
+        "receiptsRoot": "0x419ea566f1d3b6d03ff9fc0922d8bf0667ba5a3c597d360ac107b50251ec1121"
+      },
+      {
+        "number": 310389,
+        "txs": 1,
+        "stateRoot": "0xfa6504feeee7e57cc596e90570d3f523f4ca509745d8a65f7f5ba5d52d237c93",
+        "transactionsRoot": "0xfa6504feeee7e57cc596e90570d3f523f4ca509745d8a65f7f5ba5d52d237c93",
+        "receiptsRoot": "0x5a00d54b5b4eebcaae2c2e0adcc707448d74e77e2ef127b0f6def23c107df149"
+      }
+    ]
+  }
+}
