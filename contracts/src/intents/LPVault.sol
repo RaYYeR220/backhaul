@@ -24,14 +24,25 @@ import {IRemoteVerifier} from "../interfaces/IRemoteVerifier.sol";
 ///
 /// Accounting: `idle` is the asset the vault has counted; `pendingRepay` is principal sent out on
 /// fills and not back yet. Anything above `idle` in the balance is new money: it first pays down
-/// `pendingRepay`, the rest (the fee) raises the share price. So a fill leaves the share price
-/// flat and the gain only shows once the repayment has actually arrived.
+/// `pendingRepay`, the rest (the fee) is a gain. So a fill leaves the share price flat and the gain
+/// only shows once the repayment has actually arrived.
+///
+/// A gain vests linearly over {VESTING_PERIOD}. Anyone can make a repayment land (the gateways'
+/// `finalize` is permissionless), so without vesting a deposit just before the landing and a
+/// withdrawal just after, in one transaction, would take a share of a fee the pool earned before
+/// that capital arrived. Deposits buy shares at the full value, {totalAssets} with the unvested
+/// gain in it; withdrawals pay out of the vested value only, {totalAssets} minus {lockedGain}. So
+/// such a round trip gets nothing of the gain, a late depositor never dilutes a gain that has
+/// landed, and an LP who leaves while a gain is still vesting leaves the unvested part of it to the
+/// LPs who stay.
 contract LPVault {
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
 
     /// virtual shares against the first-depositor donation trick
     uint256 internal constant VIRTUAL_SHARES = 1e6;
+    /// @notice A realized gain vests linearly over this many seconds.
+    uint256 public constant VESTING_PERIOD = 6 hours;
 
     address public immutable asset; // address(0) = native
     DestinationSettler public immutable dst;
@@ -46,6 +57,11 @@ contract LPVault {
 
     uint128 public idle;
     uint128 public pendingRepay;
+    /// @dev One storage slot: the gain still unvested at `_lockedAt`, vesting linearly to zero at
+    ///      `_unlockAt`.
+    uint128 private _locked;
+    uint64 private _lockedAt;
+    uint64 private _unlockAt;
     uint256 public totalShares;
     mapping(address => uint256) public sharesOf;
 
@@ -126,7 +142,10 @@ contract LPVault {
         if (shares == 0 || shares > sharesOf[msg.sender]) revert InsufficientShares();
         _sync(0);
         uint256 cash = idle;
-        assets = shares * (cash + pendingRepay + 1) / (totalShares + VIRTUAL_SHARES);
+        uint256 vested = cash + pendingRepay;
+        uint256 locked = lockedGain();
+        vested = vested > locked ? vested - locked : 0;
+        assets = shares * (vested + 1) / (totalShares + VIRTUAL_SHARES);
         if (assets > cash) revert InsufficientIdle();
         sharesOf[msg.sender] -= shares;
         totalShares -= shares;
@@ -189,9 +208,17 @@ contract LPVault {
         _sync(0);
     }
 
+    /// @notice Everything the pool owns, with any unvested gain; what a deposit buys into.
     function totalAssets() external view returns (uint256) {
         (uint256 cash, uint256 pending) = _synced(0);
         return cash + pending;
+    }
+
+    /// @notice The part of past gains that has not vested yet: withdrawals leave it in the pool.
+    /// @dev A gain that arrives but is not synced yet is not in it (a withdrawal syncs first).
+    function lockedGain() public view returns (uint256) {
+        (uint256 locked,) = _lockedNow();
+        return locked;
     }
 
     function _sync(uint256 incoming) private {
@@ -199,10 +226,34 @@ contract LPVault {
         uint256 oldCash = idle;
         if (cash == oldCash) return;
         uint256 principal = pendingRepay - pending;
+        uint256 gain = cash - oldCash - principal;
         idle = cash.toUint128();
         // forge-lint: disable-next-line(unsafe-typecast)
         pendingRepay = uint128(pending); // never above the old value
-        emit Repaid(principal, cash - oldCash - principal);
+        if (gain != 0) _lock(gain);
+        emit Repaid(principal, gain);
+    }
+
+    /// @dev Adds `gain` to the unvested amount. The new unlock time is the amount-weighted average
+    ///      of what is left of the old one and a full period for the new gain, so a dust gain
+    ///      cannot hold back the vesting of a large one.
+    function _lock(uint256 gain) private {
+        (uint256 locked, uint256 left) = _lockedNow();
+        uint256 total = locked + gain;
+        uint256 duration = (locked * left + gain * VESTING_PERIOD) / total; // ≥ 1: left ≥ 1 when locked > 0
+        _locked = total.toUint128();
+        // forge-lint: disable-next-line(unsafe-typecast)
+        _lockedAt = uint64(block.timestamp); // seconds
+        // forge-lint: disable-next-line(unsafe-typecast)
+        _unlockAt = uint64(block.timestamp + duration); // duration ≤ VESTING_PERIOD
+    }
+
+    /// @dev The unvested gain now, and the seconds until it has all vested.
+    function _lockedNow() private view returns (uint256 locked, uint256 left) {
+        uint256 end = _unlockAt;
+        if (block.timestamp >= end) return (0, 0);
+        left = end - block.timestamp;
+        locked = uint256(_locked) * left / (end - _lockedAt);
     }
 
     /// @param incoming native value of the current call, not yet counted

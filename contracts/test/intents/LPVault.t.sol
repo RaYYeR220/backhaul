@@ -68,10 +68,13 @@ contract LPVaultTest is Test {
     address internal forwarder = makeAddr("forwarder"); // where repayments land on Portaldot
     uint32 internal deadline;
     uint64 internal nonce;
+    /// setUp's time. Tests warp to absolute times from it: under via-ir, `block.timestamp` read
+    /// after a warp in the same test can return the value from before it.
+    uint256 internal constant T = 1_800_000_000;
 
     function setUp() public {
         vm.chainId(PORTALDOT);
-        vm.warp(1_800_000_000);
+        vm.warp(T);
         deadline = uint32(block.timestamp + 600);
         outboxP = new Outbox();
         outboxB = new Outbox();
@@ -343,7 +346,10 @@ contract LPVaultTest is Test {
         vault.notifyRepaid();
         assertEq(vault.pendingRepay(), 0);
         assertEq(vault.idle(), 100.04e18);
+        assertEq(vault.lockedGain(), 0.04e18);
 
+        vm.warp(T + vault.VESTING_PERIOD()); // the fee has vested
+        assertEq(vault.lockedGain(), 0);
         vm.prank(lp);
         uint256 out = vault.withdraw(shares);
         assertApproxEqAbs(out, 100.04e18, 1e7);
@@ -355,9 +361,10 @@ contract LPVaultTest is Test {
         (bytes32 id, bytes memory d) = _open(address(0), 10.05e18, address(asset), 10e18);
         _fill(vault, id, d);
         asset.mint(address(vault), 10.05e18); // repaid, not yet synced
-        uint256 s2 = _deposit(vault, lp2, 100e18); // deposit syncs first
+        uint256 s2 = _deposit(vault, lp2, 100e18); // deposit syncs first, and buys in at the full value
         assertLt(s2, s1);
 
+        vm.warp(T + vault.VESTING_PERIOD());
         vm.prank(lp);
         uint256 a1 = vault.withdraw(s1);
         vm.prank(lp2);
@@ -384,6 +391,7 @@ contract LPVaultTest is Test {
         asset.mint(address(vault), 1e18);
         vault.notifyRepaid();
         assertEq(vault.totalAssets(), 101e18);
+        vm.warp(T + vault.VESTING_PERIOD());
         vm.prank(lp);
         assertApproxEqAbs(vault.withdraw(shares), 101e18, 1e7);
     }
@@ -399,6 +407,8 @@ contract LPVaultTest is Test {
 
         uint256 s = _deposit(vault, lp, 10e18);
         assertGt(s, 0);
+        // the donation is a gain like any other: it vests before anyone can take it out
+        vm.warp(T + vault.VESTING_PERIOD());
         vm.prank(lp);
         uint256 back = vault.withdraw(s);
         assertGe(back, 10e18 - 10e18 / 1e5);
@@ -428,6 +438,85 @@ contract LPVaultTest is Test {
         assertGe(asset.balanceOf(address(vault)), x + y - x2 - y2);
     }
 
+    // ---------------------------------------------------------------- vesting
+
+    /// Deposit, make the repayment land (anyone can call the gateway's finalize), withdraw, all in
+    /// one transaction: the round trip takes none of the fee the pool earned before it.
+    function test_jitDepositAroundRepaymentGetsNoFee() public {
+        uint256 s1 = _deposit(vault, lp, 100e18);
+        // one fill: 50 pPOT out, 50.15 tPOT in (30 bps fee)
+        (bytes32 id, bytes memory d) = _open(address(0), 50.15e18, address(asset), 50e18);
+        _fill(vault, id, d);
+
+        address jit = makeAddr("jit");
+        asset.mint(jit, 900e18);
+        vm.startPrank(jit);
+        asset.approve(address(vault), type(uint256).max);
+        uint256 shares = vault.deposit(900e18);
+        vm.stopPrank();
+        asset.mint(address(vault), 50.10e18); // the repayment (50.15 minus the 10 bps lockPOT fee)
+        vm.prank(jit);
+        uint256 out = vault.withdraw(shares);
+        assertLe(out, 900e18, "nothing of the 0.10 fee");
+        assertApproxEqAbs(out, 900e18, 1e7);
+
+        // The LP that funded the fill gets all of it once it has vested.
+        vm.warp(T + vault.VESTING_PERIOD());
+        vm.prank(lp);
+        assertApproxEqAbs(vault.withdraw(s1), 100.10e18, 1e7);
+    }
+
+    function test_gainVestsLinearly() public {
+        uint256 s1 = _deposit(vault, lp, 100e18);
+        asset.mint(address(vault), 6e18);
+        vault.notifyRepaid();
+        assertEq(vault.lockedGain(), 6e18);
+
+        vm.warp(T + 2 hours);
+        assertEq(vault.lockedGain(), 4e18);
+        // a withdrawal of half the shares pays half of what has vested
+        vm.prank(lp);
+        assertApproxEqAbs(vault.withdraw(s1 / 2), 51e18, 1e7);
+
+        // a dust gain does not hold back the rest: the unlock time is weighted by amount
+        asset.mint(address(vault), 1);
+        vault.notifyRepaid();
+        assertApproxEqAbs(vault.lockedGain(), 4e18, 1);
+        vm.warp(T + 6 hours);
+        assertEq(vault.lockedGain(), 0);
+        uint256 rest = vault.sharesOf(lp);
+        vm.prank(lp);
+        assertApproxEqAbs(vault.withdraw(rest), 55e18, 1e7);
+    }
+
+    function test_newGainExtendsByItsWeight() public {
+        _deposit(vault, lp, 100e18);
+        asset.mint(address(vault), 4e18);
+        vault.notifyRepaid();
+        vm.warp(T + 3 hours); // 2 locked, 3 hours left
+        asset.mint(address(vault), 2e18); // a fresh gain of the same size
+        vault.notifyRepaid();
+        assertEq(vault.lockedGain(), 4e18);
+        // unlock in (2·3h + 2·6h) / 4 = 4.5 hours, linearly from now
+        vm.warp(T + 3 hours + 2.25 hours);
+        assertEq(vault.lockedGain(), 2e18);
+        vm.warp(T + 3 hours + 4.5 hours);
+        assertEq(vault.lockedGain(), 0);
+    }
+
+    function test_leavingDuringVestingLeavesTheUnvestedPartBehind() public {
+        uint256 s1 = _deposit(vault, lp, 100e18);
+        uint256 s2 = _deposit(vault, lp2, 100e18);
+        asset.mint(address(vault), 2e18);
+        vault.notifyRepaid();
+        // lp leaves at once and gets back its deposit, lp2 stays and gets the whole gain
+        vm.prank(lp);
+        assertApproxEqAbs(vault.withdraw(s1), 100e18, 1e7);
+        vm.warp(T + vault.VESTING_PERIOD());
+        vm.prank(lp2);
+        assertApproxEqAbs(vault.withdraw(s2), 102e18, 1e7);
+    }
+
     // ---------------------------------------------------------------- native vault
 
     function test_nativeVaultFillAndRepayViaReceive() public {
@@ -445,6 +534,7 @@ contract LPVaultTest is Test {
         assertEq(nvault.pendingRepay(), 0);
         assertEq(nvault.totalAssets(), 100.05e18);
 
+        vm.warp(T + nvault.VESTING_PERIOD());
         uint256 before = lp.balance;
         vm.prank(lp);
         nvault.withdraw(shares);
@@ -469,6 +559,7 @@ contract LPVaultTest is Test {
         (bool ok,) = address(nvault).call{value: 10.05e18}("");
         assertTrue(ok);
         uint256 shares = nvault.sharesOf(lp);
+        vm.warp(T + nvault.VESTING_PERIOD());
         vm.prank(lp);
         assertApproxEqAbs(nvault.withdraw(shares), 100.05e18, 1e7);
     }
