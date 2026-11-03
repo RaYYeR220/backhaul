@@ -3,8 +3,9 @@ import { EXPLORERS, type ChainName } from "./config";
 /** Substrate AccountId32 of an EVM address on revive: the h160 followed by twelve 0xEE bytes. */
 export const accountId32 = (h160: string) => `0x${h160.slice(2).toLowerCase()}${"ee".repeat(12)}`;
 
+// The Portaldot explorer is a hash-routed app: /#/blocks/<n>, /#/accounts/<AccountId32 or SS58>.
 export function blockUrl(chain: ChainName, n: string | number): string {
-  return chain === "bsc" ? `${EXPLORERS.bsc}/block/${n}` : `${EXPLORERS.portaldot}/blocks/${n}`;
+  return chain === "bsc" ? `${EXPLORERS.bsc}/block/${n}` : `${EXPLORERS.portaldot}/#/blocks/${n}`;
 }
 
 /**
@@ -17,7 +18,7 @@ export function txUrl(chain: ChainName, tx: string, block?: string | number | nu
 }
 
 export function addressUrl(chain: ChainName, address: string): string {
-  return chain === "bsc" ? `${EXPLORERS.bsc}/address/${address}` : `${EXPLORERS.portaldot}/accounts/${accountId32(address)}`;
+  return chain === "bsc" ? `${EXPLORERS.bsc}/address/${address}` : `${EXPLORERS.portaldot}/#/accounts/${accountId32(address)}`;
 }
 
 /** 0x1234…cdef */
