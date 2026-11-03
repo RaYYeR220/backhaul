@@ -1,0 +1,131 @@
+.hero {
+  position: relative;
+  z-index: 2;
+  padding: 72px var(--gutter) 0;
+  text-align: center;
+}
+
+.h1 {
+  font-family: var(--display);
+  font-weight: 500;
+  font-stretch: 112.5%;
+  font-size: clamp(42px, 5.9vw, 86px);
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+  max-width: 1200px;
+  margin: 0 auto;
+  text-wrap: balance;
+}
+
+.sub {
+  margin: 22px auto 0;
+  max-width: 600px;
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  text-wrap: balance;
+}
+
+.ctas {
+  margin-top: 30px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.proofline {
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--ink-3);
+  text-wrap: balance;
+}
+.dot {
+  display: inline-block;
+  vertical-align: middle;
+  margin: -2px 9px 0 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-2);
+  animation: breathe 2.4s var(--ease) infinite;
+}
+@keyframes breathe {
+  0% {
+    box-shadow: 0 0 0 0 rgba(243, 243, 241, 0.3);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 7px rgba(243, 243, 241, 0);
+  }
+}
+
+.object {
+  margin: 54px auto 0;
+  max-width: var(--wrap);
+}
+
+/* where the rail's data comes from */
+.src {
+  margin: 22px auto 0;
+  min-height: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+.src button {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--line-3);
+}
+.src button:hover {
+  color: var(--ink);
+}
+.ld {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink-3);
+}
+.live .ld {
+  background: var(--ink);
+  animation: breathe 2s var(--ease) infinite;
+}
+
+@media (max-width: 760px) {
+  .hero {
+    padding-top: 48px;
+  }
+  .sub {
+    font-size: 16px;
+  }
+  .proofline {
+    font-size: 12px;
+    max-width: 330px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .ctas :global(.btn) {
+    height: 44px;
+    padding: 0 18px;
+  }
+  .object {
+    margin-top: 40px;
+  }
+  .src {
+    flex-wrap: wrap;
+    text-align: center;
+    padding: 0 8px;
+    min-height: 64px;
+    align-content: flex-start;
+  }
+}
