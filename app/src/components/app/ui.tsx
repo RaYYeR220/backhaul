@@ -91,9 +91,10 @@ export function clock(ms: number | string) {
   return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())} UTC`;
 }
 
-export function duration(sec: number) {
+export function duration(sec: number, coarse = false) {
   const s = Math.max(0, Math.round(sec));
   if (s < 60) return `${s} s`;
+  if (coarse && s < 3600) return `${Math.floor(s / 60)} min`;
   if (s < 3600) return `${Math.floor(s / 60)} min ${s % 60 ? `${s % 60} s` : ""}`.trim();
   if (s < 86_400) return `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`;
   return `${Math.floor(s / 86_400)} d ${Math.floor((s % 86_400) / 3600)} h`;
@@ -103,7 +104,7 @@ export function duration(sec: number) {
 export function Ago({ at }: { at: number | string }) {
   const now = useNow(1000);
   const t = typeof at === "number" ? at : Date.parse(at);
-  return <time dateTime={new Date(t).toISOString()}>{duration((now - t) / 1000)} ago</time>;
+  return <time dateTime={new Date(t).toISOString()}>{duration((now - t) / 1000, true)} ago</time>;
 }
 
 /** A small state label. `proven` carries the accent, `failed` is hollow and struck. */
