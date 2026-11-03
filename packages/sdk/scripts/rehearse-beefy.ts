@@ -78,7 +78,8 @@ try {
   const verifier = vRcpt.contractAddress!;
   const trieId = await trieIdOf(pd.api, CONTRACT, h);
   const bindHash = await wallet.writeContract({ address: verifier, abi: portaldotVerifierAbi, functionName: 'bindTrieId', args: [h, await buildBindProof(pd.api, CONTRACT, h)], chain: null });
-  out.bind = { contract: CONTRACT, trieId, onChainTrieId: await pub.readContract({ address: verifier, abi: portaldotVerifierAbi, functionName: 'trieId' }), gasUsed: await gasOf(bindHash) };
+  const bindGas = await gasOf(bindHash);
+  out.bind = { contract: CONTRACT, header: h, trieId, onChainTrieId: await pub.readContract({ address: verifier, abi: portaldotVerifierAbi, functionName: 'trieId' }), gasUsed: bindGas };
 
   const key = `0x${'00'.repeat(12)}${HOLDER.slice(2)}` as Hex;
   const raw = await pd.api.rpc.childstate.getStorage(childInfoKey(trieId), reviveSlotKey(outboxSlot(key)), await pd.api.rpc.chain.getBlockHash(h));

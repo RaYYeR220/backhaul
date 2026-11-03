@@ -1,0 +1,291 @@
+{
+  "at": "2026-11-03T17:23:07.497Z",
+  "network": "local anvil node standing in for Portaldot, live BSC testnet data",
+  "checkpoint": {
+    "epoch": "140582000",
+    "timestamp": "1793712716",
+    "activeFrom": "140582040",
+    "turnLength": 8,
+    "validators": [
+      "0x08265dA01E1A65d62b903c7B34c08cB389bF3D99",
+      "0x1a3d9D7A717D64e6088aC937d5aAcDD3E20ca963",
+      "0x32415e630B9B3489639dEE7de21274Ab64016226",
+      "0x53387F3321FD69d1E030BB921230dFb188826AFF",
+      "0x798443fb327CaD5dFD47CA4dDB15BB876D6C40E0",
+      "0x7f5f2cF1aec83bF0c74DF566a41aa7ed65EA84Ea",
+      "0x90409F56966B5da954166eB005Cb1A8790430BA1",
+      "0xd447b49CD040D20BC21e49ffEa6487F5638e4346",
+      "0xF9a1Db0d6f22Bd78ffAECCbc8F47c83Df9FBdbCf"
+    ],
+    "epochsBack": 30,
+    "epochsWithAnotherSet": 27,
+    "minOverlap": 8,
+    "changes": [
+      {
+        "epoch": "140583000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140584000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140585000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140586000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140588000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140589000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140590000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140592000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140593000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140594000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140595000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140596000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140597000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140598000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140599000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140600000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140601000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140602000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140603000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140604000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140605000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140606000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140608000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140609000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140610000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140611000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      },
+      {
+        "epoch": "140612000",
+        "overlap": 8,
+        "added": [
+          "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+        ]
+      }
+    ]
+  },
+  "window": {
+    "block": "140612765",
+    "headers": 44,
+    "bytes": 39303,
+    "distinctSealers": 7,
+    "untrustedSealers": [
+      "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3"
+    ],
+    "headersSealedByUntrusted": 8,
+    "gasUsed": "1669820",
+    "finalizedHashMatches": true
+  },
+  "receipt": {
+    "tx": "0x99ce0bb845f0ecd004e8883ef24edf7dc41a3c6a37cd24e103464db45f9020e8",
+    "emitter": "0xae13d989dac2f0debff460ac112a837c89baa7cd",
+    "topic0": "0x7fcf532c15f0a6db0bd6d0e038bea71d30d808c7d98cb3bf7268a95bf5081b65",
+    "key": "0x000000000000000000000000e70b4f0eec256fbebc95211a743f01cd5d75a731",
+    "value": "0x000000000000000000000000000000000000000000000000000102bc7fec2400",
+    "proofNodes": 2,
+    "proofBytes": 11264,
+    "verifiesWithItsTopic": true,
+    "otherValue": false,
+    "productionVerifierNeedsCommittedTopic": false,
+    "verifyGas": "190730"
+  },
+  "absence": {
+    "account": "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd",
+    "key": "0xf596a1be4b865360c1a0c19370840dd3a2215fb977fdafdb71dad6879687d94e",
+    "block": "140612847",
+    "timestamp": "1793726597",
+    "windowGas": "1608102",
+    "proofBytes": 7392,
+    "verifyAbsence": true,
+    "beforeDeadline": false
+  },
+  "attacks": [
+    {
+      "id": "parlia-forged-header",
+      "reason": "BrokenLink(140612766)",
+      "defended": true
+    },
+    {
+      "id": "parlia-too-few-sealers",
+      "reason": "TooFewSigners(5, 6)",
+      "defended": true
+    },
+    {
+      "id": "receipt-not-included",
+      "reason": "LogIndexOutOfRange(67, 8)",
+      "defended": true
+    },
+    {
+      "id": "settle-unfilled-order",
+      "reason": "InvalidProof",
+      "defended": true
+    },
+    {
+      "id": "bnbb-beyond-locked",
+      "reason": "InvalidProof",
+      "defended": true
+    }
+  ],
+  "windows": [
+    {
+      "kind": "window",
+      "block": "140612765",
+      "headers": 44,
+      "bytes": 39303
+    },
+    {
+      "kind": "window",
+      "block": "140612847",
+      "headers": 42,
+      "bytes": 37533
+    }
+  ]
+}
