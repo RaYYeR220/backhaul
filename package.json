@@ -11,7 +11,12 @@
     "deploy": "tsx packages/sdk/scripts/deploy.ts",
     "deploy:dry": "tsx packages/sdk/scripts/deploy.ts --dry-run",
     "relayer": "npm start -w services/relayer --",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build:ink": "tsx packages/sdk/scripts/build-ink.ts",
+    "test:ink": "cd ink/parlia_client && cargo test --release",
+    "bench:evm": "cd contracts && forge test --match-contract ParliaBenchmarkTest",
+    "bench:wasm": "cd ink/bench && cargo run --release",
+    "benchmark": "tsx packages/sdk/scripts/benchmark.ts && tsx packages/sdk/scripts/render-benchmark.ts"
   },
   "engines": {
     "node": ">=22"

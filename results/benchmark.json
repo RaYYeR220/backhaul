@@ -1,0 +1,215 @@
+{
+  "generatedAt": "2026-11-03T19:22:49.017Z",
+  "inputs": {
+    "source": "bsc-headers.json (BSC testnet, epoch 140342000, from E+2) and bsc-storage.json (WBNB slot 0)",
+    "window16": {
+      "headers": 16,
+      "firstBlock": 140342002,
+      "rlpBytes": 14304,
+      "headersKeccak": "0x4b3dc88b2282fff9d1e702d7ffa23c5b6ecf24bd6bae3be6a634d7d6767dc350",
+      "evmCalldataBytes": 15492,
+      "inkInputBytes": 14341
+    },
+    "window32": {
+      "headers": 32,
+      "firstBlock": 140342002,
+      "rlpBytes": 28596,
+      "headersKeccak": "0x9d14333da7906d469d854627d1a054116f70a7d1cd3e3f5b5e287fec5a42212d",
+      "evmCalldataBytes": 30916,
+      "inkInputBytes": 28665
+    },
+    "window48": {
+      "headers": 48,
+      "firstBlock": 140342002,
+      "rlpBytes": 42873,
+      "headersKeccak": "0xee2a32600dbbcb419956f4a8208e3f06525937b00a24b2cb9776b21ed6f9185a",
+      "evmCalldataBytes": 46308,
+      "inkInputBytes": 42974
+    },
+    "storageProof": {
+      "blockNumber": 140468572,
+      "account": "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd",
+      "slot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "accountProofNodes": 11,
+      "storageProofNodes": 6,
+      "evmCalldataBytes": 7620,
+      "inkInputBytes": 6158
+    }
+  },
+  "window16": {
+    "evm": {
+      "refTime": null,
+      "proofSize": null,
+      "gas": null,
+      "fee": null,
+      "storageDeposit": null,
+      "finalizes": null
+    },
+    "wasm": {
+      "refTime": null,
+      "proofSize": null,
+      "gas": null,
+      "fee": null,
+      "storageDeposit": null,
+      "finalizes": null
+    }
+  },
+  "window32": {
+    "evm": {
+      "refTime": null,
+      "proofSize": null,
+      "gas": null,
+      "fee": null,
+      "storageDeposit": null,
+      "finalizes": null
+    },
+    "wasm": {
+      "refTime": null,
+      "proofSize": null,
+      "gas": null,
+      "fee": null,
+      "storageDeposit": null,
+      "finalizes": null
+    }
+  },
+  "window48": {
+    "evm": {
+      "refTime": null,
+      "proofSize": null,
+      "gas": null,
+      "fee": null,
+      "storageDeposit": null,
+      "finalizes": null
+    },
+    "wasm": {
+      "refTime": null,
+      "proofSize": null,
+      "gas": null,
+      "fee": null,
+      "storageDeposit": null,
+      "finalizes": null
+    }
+  },
+  "storageProof": {
+    "evm": {
+      "refTime": null,
+      "proofSize": null,
+      "gas": null,
+      "fee": null,
+      "storageDeposit": null,
+      "finalizes": null
+    },
+    "wasm": {
+      "refTime": null,
+      "proofSize": null,
+      "gas": null,
+      "fee": null,
+      "storageDeposit": null,
+      "finalizes": null
+    }
+  },
+  "local": {
+    "window16": {
+      "evm": {
+        "gas": 811732,
+        "executionGas": 610060,
+        "intrinsicGas": 201672,
+        "calldataBytes": 15492,
+        "finalizes": false
+      },
+      "wasm": {
+        "refTime": 4441432188,
+        "proofSize": 22859,
+        "storageDepositUnits": 0,
+        "inputBytes": 14341,
+        "finalizes": false
+      }
+    },
+    "window32": {
+      "evm": {
+        "gas": 1555098,
+        "executionGas": 1177358,
+        "intrinsicGas": 377740,
+        "calldataBytes": 30916,
+        "finalizes": false
+      },
+      "wasm": {
+        "refTime": 8155558792,
+        "proofSize": 25019,
+        "storageDepositUnits": 0,
+        "inputBytes": 28665,
+        "finalizes": false
+      }
+    },
+    "window48": {
+      "evm": {
+        "gas": 2379410,
+        "executionGas": 1827194,
+        "intrinsicGas": 552216,
+        "calldataBytes": 46308,
+        "finalizes": true
+      },
+      "wasm": {
+        "refTime": 12323111694,
+        "proofSize": 30837,
+        "storageDepositUnits": 113,
+        "inputBytes": 42974,
+        "finalizes": true
+      }
+    },
+    "storageProof": {
+      "evm": {
+        "gas": 413570,
+        "executionGas": 288914,
+        "intrinsicGas": 124656,
+        "calldataBytes": 7620
+      },
+      "wasm": {
+        "refTime": 1375259313,
+        "proofSize": 21260,
+        "inputBytes": 6158
+      }
+    },
+    "evmNote": "forge, solc 0.8.28 via-IR optimizer 200 (the Portaldot size profile changes code size, not these counts). executionGas = vm.lastCallGas on a fresh client; intrinsicGas = 21000 + 16/4 per non-zero/zero calldata byte.",
+    "wasmNote": "ink_sandbox 5.1.1: pallet-contracts 38 with its reference WeightInfo and default Schedule, running the release wasm in-process. refTime in picoseconds, proofSize in bytes. storageDepositUnits count 1 per byte plus 1 per item (the sandbox's deposit prices)."
+  },
+  "code": {
+    "evm": {
+      "contract": "ParliaClient.sol",
+      "bytes": 5672,
+      "profile": "portaldot (optimizer_runs 1, no metadata)"
+    },
+    "wasm": {
+      "contract": "ink/parlia_client",
+      "bytes": 20088
+    }
+  },
+  "chain": {
+    "at": "2026-11-03T19:22:48.056Z",
+    "runtime": "portaldot-v3 3002",
+    "contracts": {
+      "depositPerByte": "6000000000000",
+      "depositPerItem": "15000000000000",
+      "codeHashLockupDepositPercent": "30.00%",
+      "apiVersion": "4"
+    },
+    "revive": {
+      "depositPerByte": "6000000000000",
+      "depositPerItem": "15000000000000"
+    },
+    "inkUpload": {
+      "wasmBytes": 20088,
+      "codeHash": "0x2d3c62fbe822483ebc2567cbd0fb4d6f0d27b6fa3b5cad047bb42bac002826ac",
+      "ok": false,
+      "error": "contracts.CodeRejected",
+      "debugMessage": "Can't load the module into wasmi!",
+      "minimalModule": {
+        "ok": false,
+        "error": "contracts.CodeRejected"
+      }
+    }
+  },
+  "notes": [
+    "Live dry-runs need both clients deployed; ParliaClient and the ink! client (meta.parliaClientInk) missing at 2026-11-03T19:22:48.056Z."
+  ]
+}
