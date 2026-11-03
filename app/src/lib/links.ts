@@ -5,6 +5,7 @@ export const links = {
   docs: `${REPO}#readme`,
   trust: `${REPO}/blob/main/docs/TRUST.md`,
   app: "/app",
+  transfers: "/transfers",
   status: "/status",
   attacks: "/attacks",
 } as const;

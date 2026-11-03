@@ -2,7 +2,7 @@ import Link from "next/link";
 import { links } from "@/lib/links";
 import s from "./Chrome.module.css";
 
-function Mark() {
+export function Mark() {
   return (
     <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
       <path d="M1 11h7.5M13.5 11H21" stroke="currentColor" strokeWidth="1.4" />
