@@ -7,7 +7,7 @@ import type { KeyringPair } from '@polkadot/keyring/types';
 import { getAddress, type Hex } from 'viem';
 import type { ParliaCheckpoint } from '../bsc/checkpoint.js';
 import { BSC_CHAIN_ID } from '../chains.js';
-import { encodeInkConstructor, inkDryRunInstantiate, inkInstantiateWithCode, loadInkArtifact, type Weight } from '../ink/parlia.js';
+import { codeParam, encodeInkConstructor, inkDryRunInstantiate, inkInstantiateWithCode, loadInkArtifact, type Weight } from '../ink/parlia.js';
 
 /** The checkpoint as deployments/portaldot.json keeps it (bigints may come back as strings). */
 export function checkpointFromMeta(m: unknown): ParliaCheckpoint {
@@ -52,7 +52,7 @@ export async function quoteInkDeploy(api: ApiPromise, origin: string, cp: Parlia
   const dry = await inkDryRunInstantiate(api, origin, art.wasm, data);
   const ok = !dry.dispatchError && !dry.reverted;
   const gas = ok ? dry.gasRequired : DEFAULT_GAS;
-  const tx = (api.tx as any).contracts.instantiateWithCode(0, { refTime: gas.refTime, proofSize: gas.proofSize }, null, art.wasm, data, '0x');
+  const tx = (api.tx as any).contracts.instantiateWithCode(0, { refTime: gas.refTime, proofSize: gas.proofSize }, null, codeParam(art.wasm), data, '0x');
   const fee = BigInt((await tx.paymentInfo(origin)).partialFee.toString());
   const quote: InkQuote = { wasmBytes: art.bytes, codeHash: art.codeHash, data, ok, gasRequired: ok ? dry.gasRequired : undefined, deposit: 0n, depositMethod: '', fee };
   if (ok) {
@@ -61,7 +61,7 @@ export async function quoteInkDeploy(api: ApiPromise, origin: string, cp: Parlia
     return quote;
   }
   if (dry.dispatchError) {
-    const r: any = await (api.call as any).contractsApi.instantiate(origin, 0, null, null, { Upload: art.wasm }, data, '0x');
+    const r: any = await (api.call as any).contractsApi.instantiate(origin, 0, null, null, { Upload: codeParam(art.wasm) }, data, '0x');
     const debug = new TextDecoder().decode(r.debugMessage.toU8a(true));
     quote.reason = `${dry.dispatchError}${debug ? ` ("${debug}")` : ''}`;
   } else quote.reason = 'the constructor reverted';

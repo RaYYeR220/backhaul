@@ -1,9 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { TypeRegistry } from '@polkadot/types';
 import { u8aToHex } from '@polkadot/util';
 import { describe, expect, it } from 'vitest';
 import { getAddress, type Hex } from 'viem';
 import {
+  codeParam,
   decodeInkStorageAt,
   decodeInkSubmitWindow,
   decodeInkTrustedSet,
@@ -63,5 +65,13 @@ describe('ink! parlia_client messages', () => {
     const set = decodeInkTrustedSet(Uint8Array.from([0, 4, ...new Array(20).fill(0xab), 8, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0]));
     expect(set).toEqual({ validators: [getAddress(`0x${'ab'.repeat(20)}`)], turnLength: 8, epoch: 1n, activeFrom: 2n, epochTimestamp: 3n });
     expect(() => decodeInkSubmitWindow(Uint8Array.from([1, 1]))).toThrow(/LangError/);
+  });
+
+  it('hands code to polkadot.js as hex, not as a raw Uint8Array', () => {
+    const wasm = Uint8Array.from([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
+    const registry = new TypeRegistry();
+    // A raw Uint8Array is read as length-prefixed: the leading 0x00 of every wasm makes it empty.
+    expect(registry.createType('Bytes', wasm).length).toBe(0);
+    expect(registry.createType('Bytes', codeParam(wasm)).length).toBe(wasm.length);
   });
 });

@@ -98,10 +98,14 @@ p(
 );
 if (c?.inkUpload) {
   const u = c.inkUpload;
+  const i = c.inkInstantiate;
   p(
-    `**Can the chain take the ink! code?** \`ContractsApi_upload_code\` dry-run of the ${int(u.wasmBytes)}-byte build at ${c.at}: ` +
-      (u.ok ? `accepted, code deposit ${planckToTpot(BigInt(u.deposit))} tPOT.` : `\`${u.error}\`${u.debugMessage ? ` ("${u.debugMessage}")` : ''}.`) +
-      ` Control, a minimal valid module (one memory import, empty \`call\` and \`deploy\`): ${u.minimalModule?.ok ? 'accepted' : `\`${u.minimalModule?.error}\``}.`,
+    `**Does the chain take the ink! code?** Dry-runs at ${c.at}: \`ContractsApi_upload_code\` of the ${int(u.wasmBytes)}-byte build ` +
+      (u.ok ? `is accepted, code deposit ${planckToTpot(BigInt(u.deposit))} tPOT` : `fails with \`${u.error}\``) +
+      (i
+        ? `; \`ContractsApi_instantiate\` from the checkpoint at BSC epoch ${int(i.checkpointEpoch)} ` +
+          (i.ok ? `succeeds: ${ms(i.refTime)} refTime, deposit ${tpot(i.deposit)} (${i.depositMethod}), fee ${tpot(i.fee)}.` : `fails: ${i.reason}.`)
+        : '.'),
     '',
   );
 }

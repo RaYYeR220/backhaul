@@ -247,6 +247,13 @@ export function loadInkArtifact(dir = INK_ARTIFACT_DIR): InkArtifact {
 
 // ---- dry-runs (ContractsApi) and deployment ----
 
+/**
+ * Code as a `Bytes` argument for polkadot.js: hex. A raw Uint8Array is taken as already
+ * SCALE-encoded (compact length first), and since wasm starts with 0x00 it becomes empty code,
+ * which pallet-contracts answers with CodeRejected ("Can't load the module into wasmi!").
+ */
+export const codeParam = (wasm: Uint8Array): Hex => u8aToHex(wasm) as Hex;
+
 export interface Weight {
   refTime: bigint;
   proofSize: bigint;
@@ -281,7 +288,7 @@ function dispatchErrorOf(api: ApiPromise, e: any): string {
 
 /** ContractsApi_instantiate: uploads `wasm` and runs the constructor, without a transaction. */
 export async function inkDryRunInstantiate(api: ApiPromise, origin: string, wasm: Uint8Array, data: Hex, salt: Hex = '0x'): Promise<InkDryRun> {
-  const r: any = await (api.call as any).contractsApi.instantiate(origin, 0, null, null, { Upload: wasm }, data, salt);
+  const r: any = await (api.call as any).contractsApi.instantiate(origin, 0, null, null, { Upload: codeParam(wasm) }, data, salt);
   const out: InkDryRun = {
     gasConsumed: weight(r.gasConsumed),
     gasRequired: weight(r.gasRequired),
@@ -334,7 +341,7 @@ export async function inkInstantiateWithCode(
   data: Hex,
   opts: { gasLimit: Weight; storageDepositLimit: bigint; salt?: Hex },
 ): Promise<{ address: string; hash: Hex; block: number }> {
-  const tx = api.tx.contracts.instantiateWithCode(0, { refTime: opts.gasLimit.refTime, proofSize: opts.gasLimit.proofSize }, opts.storageDepositLimit, u8aToHex(wasm), data, opts.salt ?? '0x');
+  const tx = api.tx.contracts.instantiateWithCode(0, { refTime: opts.gasLimit.refTime, proofSize: opts.gasLimit.proofSize }, opts.storageDepositLimit, codeParam(wasm), data, opts.salt ?? '0x');
   return new Promise((resolvePromise, reject) => {
     let unsub: (() => void) | undefined;
     tx.signAndSend(signer, ({ status, dispatchError, events }) => {

@@ -1,6 +1,6 @@
 # Benchmark: the Parlia light client on EVM and on WASM
 
-Generated from `results/benchmark.json` (2026-11-03T19:22:49.017Z) by `packages/sdk/scripts/render-benchmark.ts`. Do not edit by hand.
+Generated from `results/benchmark.json` (2026-11-03T19:32:06.622Z) by `packages/sdk/scripts/render-benchmark.ts`. Do not edit by hand.
 
 The same BSC light client runs twice on Portaldot: `ParliaClient.sol` on pallet-revive (EVM) and its ink! twin
 `ink/parlia_client` on pallet-contracts (WASM). Both get byte-identical inputs: real BSC testnet headers and a real
@@ -36,7 +36,7 @@ No live dry-run yet: both clients must be deployed first (`npm run deploy -- --e
 Fee = the transaction fee (weight + length) from `paymentInfo` plus any storage deposit the call charges. EVM gas is
 pallet-revive's `gasConsumed` from the same dry-run.
 
-**Can the chain take the ink! code?** `ContractsApi_upload_code` dry-run of the 20,088-byte build at 2026-11-03T19:22:48.056Z: `contracts.CodeRejected` ("Can't load the module into wasmi!"). Control, a minimal valid module (one memory import, empty `call` and `deploy`): `contracts.CodeRejected`.
+**Does the chain take the ink! code?** Dry-runs at 2026-11-03T19:32:03.635Z: `ContractsApi_upload_code` of the 20,088-byte build is accepted, code deposit 1209.24 tPOT; `ContractsApi_instantiate` from the checkpoint at BSC epoch 140,629,000 succeeds: 0.359 ms refTime, deposit 1595.152000 tPOT (ContractsApi_instantiate dry-run), fee 2.045064 tPOT.
 
 ## Local measurements (same inputs)
 
@@ -60,8 +60,8 @@ Per extra header (48 vs 16): 38,035 EVM gas; 0.246 ms of WASM refTime.
 | ParliaClient.sol (portaldot (optimizer_runs 1, no metadata)) | 5,672 | 340.32 tPOT |
 | ink/parlia_client | 20,088 | 1205.28 tPOT |
 
-DepositPerByte 0.06 tPOT, DepositPerItem 0.15 tPOT, code-hash lockup 30.00% (read from the chain 2026-11-03T19:22:48.056Z). The instantiating account also locks that share of the code deposit.
+DepositPerByte 0.06 tPOT, DepositPerItem 0.15 tPOT, code-hash lockup 30.00% (read from the chain 2026-11-03T19:32:03.635Z). The instantiating account also locks that share of the code deposit.
 
 ## Notes
 
-- Live dry-runs need both clients deployed; ParliaClient and the ink! client (meta.parliaClientInk) missing at 2026-11-03T19:22:48.056Z.
+- Live dry-runs need both clients deployed; ParliaClient and the ink! client (meta.parliaClientInk) missing at 2026-11-03T19:32:03.635Z.

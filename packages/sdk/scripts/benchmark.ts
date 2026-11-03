@@ -13,23 +13,25 @@
  * 3. Live dry-runs against the deployed clients in deployments/portaldot.json: ReviveApi_call and
  *    eth_estimateGas for ParliaClient, ContractsApi_call for the ink! client, each on a fresh window
  *    of live BSC headers. Without deployed clients this step says what to deploy and is skipped.
- *    Also dry-runs an upload of the ink! code (ContractsApi_upload_code), so a chain that refuses
- *    the code shows up here instead of during a deploy.
+ *    Also dry-runs the upload of the ink! code (ContractsApi_upload_code) and its instantiation
+ *    from a fresh checkpoint (ContractsApi_instantiate), which price the deploy.
  *
  * Writes results/benchmark.json. Missing values are null; the renderer prints "not measured yet".
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createPublicClient, encodeFunctionData, getAddress, http, keccak256, concat, type Address, type Hex, type PublicClient } from 'viem';
-import { hexToU8a } from '@polkadot/util';
 import { bscVerifierAbi, parliaClientAbi } from '../src/abi.js';
+import { checkpointAt } from '../src/bsc/checkpoint.js';
 import { BscClient } from '../src/bsc/client.js';
 import { headerRlp } from '../src/bsc/header.js';
 import { buildWindow, type HeaderSource, type TrustedSet } from '../src/bsc/window.js';
 import { PORTALDOT_EVM_RPC, PORTALDOT_SUBSTRATE_WS } from '../src/chains.js';
 import { fmtUnits } from '../src/deploy/cost.js';
 import { DEFAULT_DEPLOYMENTS_DIR, loadDeployment } from '../src/deployments.js';
+import { quoteInkDeploy } from '../src/deploy/ink.js';
 import {
+  codeParam,
   decodeInkSubmitWindow,
   decodeInkTrustedSet,
   encodeInkFinalized,
@@ -164,19 +166,29 @@ async function measureLive() {
     chain.contracts = { depositPerByte: c.depositPerByte.toString(), depositPerItem: c.depositPerItem.toString(), codeHashLockupDepositPercent: c.codeHashLockupDepositPercent.toHuman(), apiVersion: c.apiVersion?.toString() };
     chain.revive = { depositPerByte: api.consts.revive.depositPerByte.toString(), depositPerItem: api.consts.revive.depositPerItem.toString() };
 
-    // Can the chain take the ink! code at all? Dry-run the upload, with a minimal module as control.
+    // Can the chain take the ink! code? Dry-run the upload, and the instantiation from a fresh
+    // checkpoint (the same constructor arguments the deploy would send).
     const art = loadInkArtifact();
-    const upload = async (code: Uint8Array) => {
-      const r = await api.call.contractsApi.uploadCode(origin, code, null, 'Enforced');
-      if (r.isOk) return { ok: true, deposit: r.asOk.deposit.toString() };
-      const e = r.asErr;
-      return { ok: false, error: e.isModule ? (({ section, name }) => `${section}.${name}`)(api.registry.findMetaError(e.asModule)) : e.toString() };
+    const up = await api.call.contractsApi.uploadCode(origin, codeParam(art.wasm), null, 'Enforced');
+    const upErr = up.isErr ? (up.asErr.isModule ? (({ section, name }: any) => `${section}.${name}`)(api.registry.findMetaError(up.asErr.asModule)) : up.asErr.toString()) : undefined;
+    chain.inkUpload = { wasmBytes: art.bytes, codeHash: art.codeHash, ok: up.isOk, deposit: up.isOk ? up.asOk.deposit.toString() : undefined, error: upErr };
+    log(`ink! upload dry-run: ${up.isOk ? `ok, code deposit ${tpot(BigInt(up.asOk.deposit.toString()))} tPOT` : upErr}`);
+    const bscForCp = new BscClient();
+    const head0 = await bscForCp.blockNumber();
+    const cpEpoch = head0 - 200n - ((head0 - 200n) % 1000n);
+    const cp = await checkpointAt(bscForCp, cpEpoch);
+    const q = await quoteInkDeploy(portaldot.api, origin, cp, 7n * 86_400n);
+    chain.inkInstantiate = {
+      checkpointEpoch: Number(cp.epoch),
+      ok: q.ok,
+      reason: q.reason,
+      refTime: q.gasRequired ? Number(q.gasRequired.refTime) : null,
+      proofSize: q.gasRequired ? Number(q.gasRequired.proofSize) : null,
+      deposit: tpot(q.deposit),
+      depositMethod: q.depositMethod,
+      fee: tpot(q.fee),
     };
-    const ours = await upload(art.wasm);
-    const inst = await api.call.contractsApi.instantiate(origin, 0, null, null, { Upload: art.wasm }, '0x', '0x');
-    const minimal = await upload(hexToU8a(MINIMAL_MODULE));
-    chain.inkUpload = { wasmBytes: art.bytes, codeHash: art.codeHash, ...ours, debugMessage: new TextDecoder().decode(inst.debugMessage.toU8a(true)) || undefined, minimalModule: minimal };
-    log(`ink! upload dry-run: ${ours.ok ? `ok, deposit ${tpot(BigInt((ours as any).deposit))} tPOT` : ours.error} (minimal module: ${minimal.ok ? 'ok' : minimal.error})`);
+    log(`ink! instantiate dry-run (checkpoint ${cp.epoch}): ${q.ok ? `ok, deposit ${tpot(q.deposit)} tPOT + fee ${tpot(q.fee)} tPOT` : q.reason}`);
 
     const dep = loadDeployment('portaldot', opt('deployments', DEFAULT_DEPLOYMENTS_DIR));
     const evmClient = dep.contracts.ParliaClient?.address;
@@ -259,9 +271,6 @@ async function measureLive() {
     await disconnectPortaldot(portaldot);
   }
 }
-
-/** (module (import "env" "memory" (memory 1 16)) (func (export "call")) (func (export "deploy"))) */
-const MINIMAL_MODULE = '0x0061736d0100000001040160000002100103656e76066d656d6f72790201011003030200000711020463616c6c0000066465706c6f7900010a070202000b02000b';
 
 async function main() {
   if (!flag('offline')) {

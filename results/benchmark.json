@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-03T19:22:49.017Z",
+  "generatedAt": "2026-11-03T19:32:06.622Z",
   "inputs": {
     "source": "bsc-headers.json (BSC testnet, epoch 140342000, from E+2) and bsc-storage.json (WBNB slot 0)",
     "window16": {
@@ -185,7 +185,7 @@
     }
   },
   "chain": {
-    "at": "2026-11-03T19:22:48.056Z",
+    "at": "2026-11-03T19:32:03.635Z",
     "runtime": "portaldot-v3 3002",
     "contracts": {
       "depositPerByte": "6000000000000",
@@ -200,16 +200,20 @@
     "inkUpload": {
       "wasmBytes": 20088,
       "codeHash": "0x2d3c62fbe822483ebc2567cbd0fb4d6f0d27b6fa3b5cad047bb42bac002826ac",
-      "ok": false,
-      "error": "contracts.CodeRejected",
-      "debugMessage": "Can't load the module into wasmi!",
-      "minimalModule": {
-        "ok": false,
-        "error": "contracts.CodeRejected"
-      }
+      "ok": true,
+      "deposit": "120924000000000000"
+    },
+    "inkInstantiate": {
+      "checkpointEpoch": 140629000,
+      "ok": true,
+      "refTime": 359487145,
+      "proofSize": 30012,
+      "deposit": "1595.152000",
+      "depositMethod": "ContractsApi_instantiate dry-run",
+      "fee": "2.045064"
     }
   },
   "notes": [
-    "Live dry-runs need both clients deployed; ParliaClient and the ink! client (meta.parliaClientInk) missing at 2026-11-03T19:22:48.056Z."
+    "Live dry-runs need both clients deployed; ParliaClient and the ink! client (meta.parliaClientInk) missing at 2026-11-03T19:32:03.635Z."
   ]
 }
