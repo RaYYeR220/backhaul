@@ -26,7 +26,8 @@
  *          --estimate-from <0x funded Portaldot address>  --keep (leave local nodes running)
  *          --minimal (= --no-bnb-vaults: no LP vaults on the BNB routes; BNB still bridges)
  *          --with-feed  also deploy BscFeed (Chainlink BNB/USD proven from BSC storage)
- *          --fund-relayer <tPOT>  phase A sends this to the relayer's key (default 100)
+ *          --fund-relayer <tPOT>  phase A sends this to the relayer's key on Portaldot (default 100)
+ *          --fund-relayer-bnb <tBNB>  and this on BSC (default 0.02)
  *          --with-ink   also upload the ink! ParliaClient to pallet-contracts with the ops key
  *                       (PORTALDOT_OPS_MNEMONIC), from the EVM client's checkpoint; the dry-run
  *                       prices it with ContractsApi_instantiate. Build it first with
@@ -97,6 +98,7 @@ const phases: Phase[] = phaseArg === 'A' ? ['A'] : phaseArg === 'B' && mode === 
 /** Phases the cost report prices. */
 const pricedPhases: Phase[] = phaseArg ? [phaseArg as Phase] : ['A', 'B'];
 const fundRelayerValue = parseEther(opt('fund-relayer', '100')!);
+const fundRelayerBnb = parseEther(opt('fund-relayer-bnb', '0.02')!);
 /** Parlia trusting period, on both clocks: the relayer refreshes every 3 days, 14 leaves room for a long outage. */
 const TRUSTING_PERIOD = 14n * 86_400n;
 const SUPPLY = 1_000_000n * 10n ** 18n;
@@ -243,6 +245,7 @@ function planOptions(relayer: Address | undefined, forceFundTo?: Address) {
     withFeed: flag('with-feed'),
     withInk: flag('with-ink'),
     fundRelayer: to && (fundRelayerValue > 0n || forceFundTo) ? { to, value: fundRelayerValue > 0n ? fundRelayerValue : 1n } : undefined,
+    fundRelayerBsc: relayer && fundRelayerBnb > 0n ? { to: relayer, value: fundRelayerBnb } : undefined,
     trustingPeriod: TRUSTING_PERIOD,
     seeds,
     archivePath: resolve(DATA, 'portaldot-justifications.jsonl'),

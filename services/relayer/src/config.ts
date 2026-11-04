@@ -70,7 +70,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig 
   const same = (k?: Hex) => !!k && !!deployer && privateKeyToAddress(k) === privateKeyToAddress(deployer);
   if (env.ALLOW_DEPLOYER_KEY !== '1') {
     if (same(relayerKey)) throw new Error('RELAYER_PK is the deployer key; give the relayer its own key (BACKHAUL_RELAYER_PK)');
-    if (same(hexKey(env.DEMO_PK)) || same(hexKey(env.SOLVER_PK))) throw new Error('DEMO_PK / SOLVER_PK must not be the deployer key');
+    if ((env.DEMO_PK !== 'relayer' && same(hexKey(env.DEMO_PK))) || same(hexKey(env.SOLVER_PK))) throw new Error('DEMO_PK / SOLVER_PK must not be the deployer key');
   }
   const dataDir = resolve(env.BACKHAUL_DATA ?? resolve(import.meta.dirname, '../data'));
   const ws = env.PORTALDOT_WS ?? PORTALDOT_SUBSTRATE_WS;
@@ -82,7 +82,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig 
     bsc: { rpc: bscRpc, rpcs: [bscRpc, BSC_RPC_FALLBACK].filter((x, i, a) => a.indexOf(x) === i) },
     relayerKey,
     solverKey: hexKey(env.SOLVER_PK),
-    demoKey: hexKey(env.DEMO_PK),
+    // DEMO_PK=relayer: the demo signer uses the relayer's key (one funded key, never the deployer)
+    demoKey: env.DEMO_PK === 'relayer' ? relayerKey : hexKey(env.DEMO_PK),
     port: num(env.RELAYER_PORT, 8787),
     beefy: { commitEveryMs: num(env.BEEFY_COMMIT_EVERY_MS, 10 * 60_000), tickMs: num(env.BEEFY_TICK_MS, 60_000) },
     parlia: {

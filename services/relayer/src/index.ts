@@ -69,23 +69,24 @@ async function main() {
   };
   const watcher = new Watcher(store, runner, chainScans(ch, { portaldot: deployBlock('portaldot'), bsc: deployBlock('bsc') }), log);
   const beefy = new BeefyLoop(ch, cfg.beefy, log);
-  const parlia = new ParliaLoop(ch, runner, env, cfg.parlia, log);
+  // BSC → Portaldot runs once ParliaClient is deployed (deploy phase B)
+  const parlia = ch.parlia ? new ParliaLoop(ch, runner, env, cfg.parlia, log) : undefined;
 
   log(`relayer ${ch.pd.relayer.address}; solver ${solver ? sEnv!.address : 'off'}; demo ${ch.pd.demo?.address ?? 'off'}`);
 
   if (flag('once')) {
     await beefy.tick();
-    await parlia.tick();
+    await parlia?.tick();
     await watcher.tick();
     await runner.tick();
     log(JSON.stringify(await beefy.status()));
-    log(JSON.stringify(await parlia.status(), (_, v) => (typeof v === 'bigint' ? v.toString() : v)));
+    if (parlia) log(JSON.stringify(await parlia.status(), (_, v) => (typeof v === 'bigint' ? v.toString() : v)));
     await ch.close();
     return;
   }
 
   await beefy.start();
-  parlia.start();
+  parlia?.start();
   let jobsBusy = false;
   const jobsTimer = setInterval(async () => {
     if (jobsBusy) return;
@@ -109,7 +110,7 @@ async function main() {
     };
     const [b, p, pdBal, bscBal] = await Promise.all([
       beefy.status().catch((e) => ({ error: (e as Error).message })),
-      parlia.status().catch((e) => ({ error: (e as Error).message })),
+      parlia ? parlia.status().catch((e) => ({ error: (e as Error).message })) : Promise.resolve({ deployed: false }),
       ch.pd.pub.getBalance({ address: ch.pd.relayer.address }),
       ch.bsc.pub.getBalance({ address: ch.bsc.relayer.address }),
     ]);
@@ -130,7 +131,7 @@ async function main() {
   const shutdown = async () => {
     log('shutting down');
     clearInterval(jobsTimer);
-    parlia.stop();
+    parlia?.stop();
     await beefy.stop();
     server?.close();
     await ch.close();

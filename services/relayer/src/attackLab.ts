@@ -46,12 +46,13 @@ export function createAttackLab(ch: Chains, store: JsonlStore, cacheMs = 60_000)
     }
 
     // Any log of a block the Parlia client holds will do for the receipt attacks.
-    const finalizedBlocks = [
+    const parlia = ch.parlia;
+    const finalizedBlocks = !parlia ? [] : [
       ...done.filter((j) => j.src === 'bsc').map((j) => BigInt(j.srcBlock)),
       ...ch.events.parlia.map((e) => BigInt(e.block)),
     ].sort((a, b) => (a < b ? 1 : -1));
     for (const b of finalizedBlocks.slice(0, 3)) {
-      if (!(await ch.parlia.lc.isFinalized(b))) continue;
+      if (!(await parlia!.lc.isFinalized(b))) continue;
       m.bscReceipt = await once(`receipt:${b}`, async () => {
         const [block, receipts] = await Promise.all([ch.bsc.rpc.block(b), ch.bsc.rpc.blockReceipts(b)]);
         const idx = receipts.findIndex((r) => r.logs.length > 0);
@@ -65,9 +66,9 @@ export function createAttackLab(ch: Chains, store: JsonlStore, cacheMs = 60_000)
     // A fresh window above a recent BSC block, against the client's trusted sets.
     const head = await ch.bsc.rpc.blockNumber();
     const start = head - 80n - (head % 16n); // stable within a minute, so the memo holds
-    m.parliaWindow = await once(`window:${start}`, async () => {
-      const current = await ch.parlia.lc.validatorSet();
-      const prev = await ch.parlia.lc.previousValidatorSet();
+    m.parliaWindow = !parlia ? undefined : await once(`window:${start}`, async () => {
+      const current = await parlia.lc.validatorSet();
+      const prev = await parlia.lc.previousValidatorSet();
       return bsc.buildWindow(ch.bsc.rpc, start, current, { previous: prev.validators.length ? prev : undefined, tolerateUntrusted: ch.cfg.parlia.tolerant });
     });
 

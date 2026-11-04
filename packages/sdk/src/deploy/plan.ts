@@ -72,6 +72,8 @@ export interface PlanConfig {
   withInk?: boolean;
   /** Phase A sends this much tPOT from the deployer to the relayer's own key (planned nonce). */
   fundRelayer?: { to: Address; value: bigint };
+  /** Phase A also sends this much tBNB to the relayer's key on BSC (BEEFY commits, finalize). */
+  fundRelayerBsc?: { to: Address; value: bigint };
   seeds: Seeds;
   /** Live Portaldot substrate client (BEEFY checkpoint, BNB.b, bindTrieId). */
   portaldot: PortaldotClient;
@@ -199,6 +201,10 @@ export function deploySteps(P: Side, B: Side, cfg: PlanConfig): StepDef[] {
   deploy('A', B, 'DestinationSettler', 'DestinationSettler', () => [B.addr('Outbox'), BigInt(BSC_CHAIN_ID)]);
   deploy('A', B, 'PpotVault', 'LPVault', () => [B.addr('PPOT'), B.addr('DestinationSettler'), B.addr('PortaldotVerifier'), fee]);
   if (bnb) deploy('A', B, 'BnbVault', 'LPVault', () => [zeroAddress, B.addr('DestinationSettler'), B.addr('PortaldotVerifier'), fee]);
+  if (cfg.fundRelayerBsc && cfg.fundRelayerBsc.value > 0n) {
+    const f = cfg.fundRelayerBsc;
+    S.push({ id: 'bsc: fund the relayer key', phase: 'A', on: 'bsc', tx: { step: 'fund.relayer.bsc', phase: 'A', kind: 'transfer' }, run: () => B.transfer('fund.relayer.bsc', f.to, f.value) });
+  }
 
   call('A', P, 'PortaldotGateway.setRemote', () =>
     P.call('PortaldotGateway.setRemote', P.addr('PortaldotGateway'), portaldotGatewayAbi as Abi, 'setRemote', [B.addr('BscGateway')], {

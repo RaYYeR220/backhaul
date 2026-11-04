@@ -139,6 +139,13 @@ describe('the phased Backhaul plan', () => {
     ]);
   });
 
+  it('funds the relayer on BSC at the end of phase A without touching the Portaldot plan', () => {
+    const { P, B } = sides();
+    const withBnb = deploySteps(P, B, cfg({ fundRelayerBsc: { to: RELAYER, value: parseEther('0.02') } }));
+    expect(plannedTxs(withBnb, 'bsc', ['A']).at(-1)).toMatchObject({ step: 'fund.relayer.bsc', kind: 'transfer' });
+    expect(plannedTxs(withBnb, 'portaldot')).toEqual(plannedTxs(deploySteps(P, B, cfg()), 'portaldot'));
+  });
+
   it('keeps the saved plan, re-plans only after BscVerifier, and refuses to move it', async () => {
     const nonce = { n: 3 };
     const s = fakeSender(DEPLOYER, nonce);

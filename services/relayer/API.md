@@ -71,7 +71,8 @@ Both light clients, the job counters and every address. Cached for 5 s.
   set (and stays set) if a whole session was missed and the client can no longer rotate.
   `lastTx.kind` is `commitment`, `header` or `rotate`. If the client cannot be read the object is
   `{ "client": "0x…", "error": "…" }`.
-- `bscToPortaldot` describes the Parlia light client of BSC that lives on Portaldot.
+- `bscToPortaldot` describes the Parlia light client of BSC that lives on Portaldot. Until it
+  is deployed (deploy phase B) it is `{ "deployed": false }` and only Portaldot → BSC is relayed.
   `trustRemainingSec` is how long windows above the trusted set still verify: the client trusts a
   set for `trustingPeriodSec` (14 days) from the earlier of its epoch block (`epochTimestamp`, BSC
   time) and the moment the client installed it (`installedAt`, Portaldot time), and accepts no

@@ -56,14 +56,14 @@ export class ParliaLoop {
     if (this.running) return;
     this.running = true;
     try {
-      const due = await this.ch.parlia.epochDue();
+      const due = await this.ch.parlia!.epochDue();
       if (due) {
         this.log(`parlia: moving the trusted epoch to ${due.epoch} (${due.reason}, overlap ${due.overlap})`);
         const head = await this.env.bscHead();
         for (const b of this.runner.pendingBscBlocks()) {
           if (head >= b + 15n) await this.env.bscFinalize(b).catch((e) => this.log(`parlia: pending ${b}: ${(e as Error).message}`));
         }
-        await this.ch.parlia.advanceTo(due.epoch);
+        await this.ch.parlia!.advanceTo(due.epoch);
       }
       this.lastError = null;
     } catch (e) {
@@ -75,8 +75,8 @@ export class ParliaLoop {
   }
 
   async status(nowSec = BigInt(Math.floor(Date.now() / 1000))): Promise<ParliaStatus> {
-    const set = await this.ch.parlia.lc.validatorSet();
-    const period = await this.ch.parlia.lc.trustingPeriod();
+    const set = await this.ch.parlia!.lc.validatorSet();
+    const period = await this.ch.parlia!.lc.trustingPeriod();
     const remaining = trustDeadline(set, period) - nowSec;
     const head = await this.ch.bsc.rpc.blockNumber();
     let liveOverlap: number | null = null;

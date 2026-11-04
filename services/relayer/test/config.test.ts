@@ -19,6 +19,11 @@ describe('relayer keys', () => {
     expect(() => loadConfig({ PORTALDOT_DEPLOYER_PK: DEPLOYER, RELAYER_PK: RELAYER, SOLVER_PK: DEPLOYER })).toThrow(/SOLVER_PK/);
   });
 
+  it('lets the demo signer share the relayer key', () => {
+    const c = loadConfig({ PORTALDOT_DEPLOYER_PK: DEPLOYER, BACKHAUL_RELAYER_PK: RELAYER, DEMO_PK: 'relayer' });
+    expect(c.demoKey).toBe(RELAYER);
+  });
+
   it('allows it only when asked to, for local runs', () => {
     expect(loadConfig({ PORTALDOT_DEPLOYER_PK: DEPLOYER, RELAYER_PK: DEPLOYER, ALLOW_DEPLOYER_KEY: '1' }).relayerKey).toBe(DEPLOYER);
   });

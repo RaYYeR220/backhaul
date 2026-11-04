@@ -40,7 +40,8 @@ export interface Chains {
   bsc: Side & { rpc: bsc.BscClient };
   archive: portaldot.JustificationArchive;
   beefy: BeefyRelay;
-  parlia: ParliaRelay;
+  /** Undefined until ParliaClient is deployed (phase B): then only Portaldot → BSC runs. */
+  parlia?: ParliaRelay;
   /** Recent light-client transactions, newest last. */
   events: { beefy: BeefyEvent[]; parlia: ParliaEvent[] };
   close(): Promise<void>;
@@ -51,7 +52,7 @@ export const hashCachePathOf = (cfg: RelayerConfig) => resolve(cfg.dataDir, 'por
 
 export async function connectChains(cfg: RelayerConfig, store: JsonlStore, log: (m: string) => void): Promise<Chains> {
   const addrs = loadAddresses(cfg.deploymentsDir);
-  if (!addrs.bsc.PortaldotLightClient || !addrs.portaldot.ParliaClient) {
+  if (!addrs.bsc.PortaldotLightClient) {
     throw new Error(`no light clients in ${cfg.deploymentsDir}; deploy first`);
   }
   const client = await portaldot.connectPortaldot(cfg.portaldot.ws, cfg.portaldot.http);
@@ -95,14 +96,15 @@ export async function connectChains(cfg: RelayerConfig, store: JsonlStore, log: 
     archive,
     { log: (m) => log(`beefy: ${m}`), onEvent: (e) => keep(events.beefy, e, 'events:beefy') },
   );
-  const parlia = new ParliaRelay(parliaClientPort(pd.pub, pd.relayer, addrs.portaldot.ParliaClient), rpcBscSource(rpc), {
+  if (!addrs.portaldot.ParliaClient) log('no ParliaClient yet: relaying Portaldot → BSC only');
+  const parlia = addrs.portaldot.ParliaClient ? new ParliaRelay(parliaClientPort(pd.pub, pd.relayer, addrs.portaldot.ParliaClient), rpcBscSource(rpc), {
     tolerateUntrusted: cfg.parlia.tolerant,
     minOverlap: cfg.parlia.minOverlap,
     refreshAfter: cfg.parlia.refreshAfterSec,
     confirmations: cfg.parlia.confirmations,
     log: (m) => log(`parlia: ${m}`),
     onEvent: (e) => keep(events.parlia, e, 'events:parlia'),
-  });
+  }) : undefined;
   return {
     cfg,
     addrs,
@@ -114,6 +116,11 @@ export async function connectChains(cfg: RelayerConfig, store: JsonlStore, log: 
     events,
     close: () => portaldot.disconnectPortaldot(client),
   };
+}
+
+function needParlia(ch: Chains): ParliaRelay {
+  if (!ch.parlia) throw new Error('BSC → Portaldot is not deployed yet (ParliaClient comes in deploy phase B)');
+  return ch.parlia;
 }
 
 const sideOf = (ch: Chains, c: ChainName): Side => (c === 'portaldot' ? ch.pd : ch.bsc);
@@ -157,16 +164,18 @@ export function jobEnv(ch: Chains, log: (m: string) => void): JobEnv {
     },
     bscHead: () => ch.bsc.rpc.blockNumber(),
     async bscFinalize(block) {
-      if (await ch.parlia.lc.isFinalized(block)) return {};
+      const parlia = needParlia(ch);
+      if (await parlia.lc.isFinalized(block)) return {};
       budget.take();
-      return { tx: await ch.parlia.finalize(block) };
+      return { tx: await parlia.finalize(block) };
     },
     bscCommitmentProof: (txHash, key) => bsc.buildCommitmentProof(ch.bsc.rpc, txHash, outboxB, key),
     bscStorageCommitmentProof: (key) => bsc.grabCommitmentProof(ch.bsc.rpc, outboxB, key),
     bscAbsenceProof: (key) => bsc.grabAbsenceProof(ch.bsc.rpc, outboxB, key),
     async bscProvableFrom() {
-      const prev = await ch.parlia.lc.previousValidatorSet();
-      return prev.validators.length > 0 ? prev.activeFrom : (await ch.parlia.lc.validatorSet()).activeFrom;
+      const parlia = needParlia(ch);
+      const prev = await parlia.lc.previousValidatorSet();
+      return prev.validators.length > 0 ? prev.activeFrom : (await parlia.lc.validatorSet()).activeFrom;
     },
     read: <T>(c: ChainName, to: Address, abi: Abi, fn: string, args: readonly unknown[] = []) =>
       sideOf(ch, c).pub.readContract({ address: to, abi, functionName: fn, args }) as Promise<T>,
