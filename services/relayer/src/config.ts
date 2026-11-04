@@ -2,6 +2,7 @@
 
 import { resolve } from 'node:path';
 import { parseEther, type Hex } from 'viem';
+import { privateKeyToAddress } from 'viem/accounts';
 import { BSC_RPC, BSC_RPC_FALLBACK, DEFAULT_DEPLOYMENTS_DIR, PORTALDOT_EVM_RPC, PORTALDOT_SUBSTRATE_WS } from '@backhaul/sdk';
 
 export interface DemoLimits {
@@ -60,8 +61,17 @@ const num = (v: string | undefined, d: number) => (v ? Number(v) : d);
 const eth = (v: string | undefined, d: string) => parseEther(v ?? d);
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayerConfig {
-  const relayerKey = hexKey(env.RELAYER_PK) ?? hexKey(env.PORTALDOT_DEPLOYER_PK);
-  if (!relayerKey) throw new Error('set RELAYER_PK (or PORTALDOT_DEPLOYER_PK)');
+  // The relayer has its own key. The deployer's Portaldot nonces are reserved by the phased
+  // deploy (src/deploy/nonces.ts in the SDK): one stray transaction from it would move the address
+  // the PortaldotGateway trusts as its verifier.
+  const relayerKey = hexKey(env.RELAYER_PK) ?? hexKey(env.BACKHAUL_RELAYER_PK);
+  if (!relayerKey) throw new Error('set RELAYER_PK (or BACKHAUL_RELAYER_PK): the relayer never sends from the deployer key');
+  const deployer = hexKey(env.PORTALDOT_DEPLOYER_PK);
+  const same = (k?: Hex) => !!k && !!deployer && privateKeyToAddress(k) === privateKeyToAddress(deployer);
+  if (env.ALLOW_DEPLOYER_KEY !== '1') {
+    if (same(relayerKey)) throw new Error('RELAYER_PK is the deployer key; give the relayer its own key (BACKHAUL_RELAYER_PK)');
+    if (same(hexKey(env.DEMO_PK)) || same(hexKey(env.SOLVER_PK))) throw new Error('DEMO_PK / SOLVER_PK must not be the deployer key');
+  }
   const dataDir = resolve(env.BACKHAUL_DATA ?? resolve(import.meta.dirname, '../data'));
   const ws = env.PORTALDOT_WS ?? PORTALDOT_SUBSTRATE_WS;
   const bscRpc = env.BSC_RPC ?? BSC_RPC;

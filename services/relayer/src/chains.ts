@@ -56,7 +56,14 @@ export async function connectChains(cfg: RelayerConfig, store: JsonlStore, log: 
   }
   const client = await portaldot.connectPortaldot(cfg.portaldot.ws, cfg.portaldot.http);
   const rpc = new bsc.BscClient({ urls: cfg.bsc.rpcs });
-  const mk = (chain: ChainName, key?: Hex) => (key ? senderFor(chain, key, chain === 'portaldot' ? cfg.portaldot.evmRpc : cfg.bsc.rpc) : undefined);
+  // One sender per (chain, key): a demo or solver key equal to the relayer key shares its nonce queue.
+  const senders = new Map<string, TxSender>();
+  const mk = (chain: ChainName, key?: Hex) => {
+    if (!key) return undefined;
+    const id = `${chain}:${key.toLowerCase()}`;
+    if (!senders.has(id)) senders.set(id, senderFor(chain, key, chain === 'portaldot' ? cfg.portaldot.evmRpc : cfg.bsc.rpc));
+    return senders.get(id);
+  };
   const pd = {
     pub: publicClientFor('portaldot', cfg.portaldot.evmRpc),
     relayer: mk('portaldot', cfg.relayerKey)!,
