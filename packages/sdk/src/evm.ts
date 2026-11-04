@@ -36,6 +36,8 @@ export interface TxRequest {
   to?: Address;
   data: Hex;
   value?: bigint;
+  /** Exact nonce to send at (planned deploys); default: the account's next one. */
+  nonce?: number;
   /** Label for logs and errors. */
   label?: string;
 }
@@ -91,6 +93,7 @@ export class TxSender {
       gas,
       gasPrice,
       type: 'legacy',
+      ...(req.nonce !== undefined ? { nonce: req.nonce } : {}),
     } as any);
     const receipt = await this.pub.waitForTransactionReceipt({ hash, timeout: this.opts.timeoutMs ?? 180_000 });
     if (receipt.status !== 'success') throw new Error(`${req.label ?? 'tx'} reverted on chain: ${hash}`);
