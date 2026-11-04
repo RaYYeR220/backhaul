@@ -226,6 +226,36 @@
     {
       "label": "canonical · locked",
       "chain": "portaldot",
+      "tx": "0xddc0cafb8bba236cd4d62941c32024a037f00606587801c4b96a3ecfbbc6fb3d",
+      "block": 319008
+    },
+    {
+      "label": "canonical · beefy",
+      "chain": "bsc",
+      "tx": "0x9b9cdedfdbad2ec9e31dd1f0f90aab09408f18eb951b89ed7057adfd064ffb3c",
+      "block": null
+    },
+    {
+      "label": "canonical · beefy",
+      "chain": "bsc",
+      "tx": "0x054d8d956b7430067aca3e8671eb06090bd5c5508e3c98da75096e89289f88d4",
+      "block": null
+    },
+    {
+      "label": "canonical · beefy",
+      "chain": "bsc",
+      "tx": "0x123609deabb08047e22be88f8c6b4c7a3979506575ff419dacf1e4f4f22fc0c6",
+      "block": null
+    },
+    {
+      "label": "canonical · finalized",
+      "chain": "bsc",
+      "tx": "0xb7c177b293edfc0837696871a4f3f935cc52693c1fc349d5fd5cfdd30c2abcf2",
+      "block": 140748342
+    },
+    {
+      "label": "canonical · locked",
+      "chain": "portaldot",
       "tx": "0xe91cf0dd49c50deae2f9db19f0d46d87e0a4be8cd29e101bb8b34100a0bacf30",
       "block": 318574
     },
@@ -240,12 +270,6 @@
       "chain": "bsc",
       "tx": "0x178a6fd65f855628225cbcc0011b88020710089e2eaa98b29ee4e04b947a8d51",
       "block": null
-    },
-    {
-      "label": "canonical · finalized",
-      "chain": "bsc",
-      "tx": "0xea9874bdeb4b6d1cb4b22faa99e887d28156e20ce14897b8dc58e1ff6c6a3f78",
-      "block": 140742532
     }
   ],
   "sources": [

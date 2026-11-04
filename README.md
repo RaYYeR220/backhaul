@@ -7,7 +7,7 @@ Bridges secured by a handful of keys have lost about **$806M** in three incident
 Built for the Portaldot Hacker House 2026, Multi-Chain & Cross-Chain Infra track. Portaldot V3 testnet and BNB Chain testnet only.
 
 <!-- render:status -->
-**Status, 2026-11-04 09:39 UTC:** deployed, 2 contracts on Portaldot V3 testnet and 8 on BNB Chain testnet; 1 proven transfer and 0 fast fills recorded. Every address and transaction: [docs/PROOF.md](docs/PROOF.md).
+**Status, 2026-11-04 11:35 UTC:** deployed, 2 contracts on Portaldot V3 testnet and 8 on BNB Chain testnet; 2 proven transfers and 0 fast fills recorded. Every address and transaction: [docs/PROOF.md](docs/PROOF.md).
 <!-- /render:status -->
 
 ## What it does
@@ -129,13 +129,13 @@ Bridged tBNB arrives as BNB.b, a `pallet-assets` asset. Its whole fixed supply i
 | Keys that can release bridged funds | 0 on either chain | No owner, admin, pause or upgrade path in any contract: [TRUST.md](docs/TRUST.md) |
 | Tests | 434 passing, 0 failing: Foundry 263 · SDK 92 (+2 live-only, skipped offline) · relayer 44 · ink! 35 | `npm run test:counts` → [results/test-counts.json](results/test-counts.json) at `e77b97d` |
 | Forged proofs rejected, local rehearsals | 11 of 11 fired; `replayed-nonce` needs a live transfer (forge: `test_finalizeTwiceReverts`) | [rehearsal-beefy.json](results/rehearsal-beefy.json) · [rehearsal-parlia.json](results/rehearsal-parlia.json) |
-| Forged proofs rejected, testnet | 6 of 6 (eth_call) | [results/attacks.json](results/attacks.json) |
+| Forged proofs rejected, testnet | 7 of 7 (eth_call) | [results/attacks.json](results/attacks.json) |
 | BEEFY on BNB Chain: commitment · header import · set rotation | 103,370 · 109,482 · 420,353 gas | Foundry on recorded Portaldot data ([beefy-gas-local.json](results/beefy-gas-local.json)); the BSC-fork rehearsal rotated set 520 → 521 on live Portaldot data |
 | Portaldot contract storage proven on BNB Chain | 573,322 gas (main trie + child trie, 3,428 B calldata) | [beefy-gas-local.json](results/beefy-gas-local.json) |
 | BNB Chain finality on Portaldot (EVM) | 44 real headers, 39.3 kB, 7 distinct sealers → final for 1,669,820 gas | [rehearsal-parlia.json](results/rehearsal-parlia.json) |
 | EVM vs WASM, 48 real headers, same input | 1,827,194 execution gas vs 12.32 ms refTime, 30.8 kB proofSize | [BENCHMARK.md](docs/BENCHMARK.md) |
 | Wait for BNB Chain finality | 42–44 headers ≈ 19–20 s | MODELED: header counts from the rehearsal windows × 0.45 s blocks |
-| Time to funds, canonical (median) | Portaldot → BNB Chain 40 s · BNB Chain → Portaldot not measured yet | [live-transfers.json](results/live-transfers.json) |
+| Time to funds, canonical (median) | Portaldot → BNB Chain 46 s · BNB Chain → Portaldot not measured yet | [live-transfers.json](results/live-transfers.json) |
 | Time to funds, fast fill (median) | Portaldot → BNB Chain not measured yet · BNB Chain → Portaldot not measured yet | [live-transfers.json](results/live-transfers.json) |
 | Deploy cost, full | 3,138 tPOT + 0.0112 tBNB, of which 26 tPOT and 0.01 tBNB seed the gas pool and vaults | Dry-run: live `eth_estimateGas` on Portaldot, fork gas on BSC ([deploy-cost-estimate.json](results/deploy-cost-estimate.json)) |
 | User cost on Portaldot | bridge tPOT 3.92 tPOT · open an order 7.86 tPOT | Fees plus storage deposit, same dry-run |

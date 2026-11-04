@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-04T09:39:14.044Z",
+  "at": "2026-11-04T11:35:55.744Z",
   "relayer": "https://35-205-62-150.sslip.io",
   "attacks": [
     {
@@ -7,6 +7,14 @@
       "title": "Forged BEEFY signature",
       "chain": "bsc",
       "reason": "InvalidSignature(0)",
+      "target": "PortaldotLightClient.submitCommitment",
+      "defended": true
+    },
+    {
+      "id": "beefy-stale-set",
+      "title": "Commitment signed by a stale validator set",
+      "chain": "bsc",
+      "reason": "UnknownValidatorSet(537, 538)",
       "target": "PortaldotLightClient.submitCommitment",
       "defended": true
     },
@@ -38,7 +46,7 @@
       "id": "replayed-nonce",
       "title": "Replayed transfer",
       "chain": "bsc",
-      "reason": "AlreadyFinalized(0)",
+      "reason": "AlreadyFinalized(1)",
       "target": "BscGateway.finalize",
       "defended": true
     },
@@ -52,7 +60,6 @@
     }
   ],
   "notReady": [
-    "beefy-stale-set",
     "parlia-forged-header",
     "parlia-too-few-sealers",
     "receipt-not-included",

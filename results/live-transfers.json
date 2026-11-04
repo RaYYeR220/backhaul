@@ -1,7 +1,52 @@
 {
-  "at": "2026-11-04T09:39:14.044Z",
+  "at": "2026-11-04T11:35:55.744Z",
   "relayer": "https://35-205-62-150.sslip.io",
   "transfers": [
+    {
+      "id": "portaldot:1",
+      "direction": "portaldot-to-bsc",
+      "kind": "canonical",
+      "asset": "tPOT",
+      "amount": "999000000000000000",
+      "state": "finalized",
+      "steps": [
+        {
+          "label": "locked",
+          "chain": "portaldot",
+          "tx": "0xddc0cafb8bba236cd4d62941c32024a037f00606587801c4b96a3ecfbbc6fb3d",
+          "block": 319008,
+          "at": "2026-11-04T10:18:48.570Z"
+        },
+        {
+          "label": "beefy",
+          "chain": "bsc",
+          "tx": "0x9b9cdedfdbad2ec9e31dd1f0f90aab09408f18eb951b89ed7057adfd064ffb3c",
+          "at": "2026-11-04T10:19:28.393Z",
+          "detail": "Portaldot header 319009 proven on BSC"
+        },
+        {
+          "label": "beefy",
+          "chain": "bsc",
+          "tx": "0x054d8d956b7430067aca3e8671eb06090bd5c5508e3c98da75096e89289f88d4",
+          "at": "2026-11-04T10:19:28.393Z",
+          "detail": "Portaldot header 319009 proven on BSC"
+        },
+        {
+          "label": "beefy",
+          "chain": "bsc",
+          "tx": "0x123609deabb08047e22be88f8c6b4c7a3979506575ff419dacf1e4f4f22fc0c6",
+          "at": "2026-11-04T10:19:28.393Z",
+          "detail": "Portaldot header 319009 proven on BSC"
+        },
+        {
+          "label": "finalized",
+          "chain": "bsc",
+          "tx": "0xb7c177b293edfc0837696871a4f3f935cc52693c1fc349d5fd5cfdd30c2abcf2",
+          "block": 140748342,
+          "at": "2026-11-04T10:19:34.150Z"
+        }
+      ]
+    },
     {
       "id": "portaldot:0",
       "direction": "portaldot-to-bsc",

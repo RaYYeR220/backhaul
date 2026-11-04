@@ -183,6 +183,22 @@ function BeefyPanel({ b }: { b: BeefySide }) {
 /* ---------- BNB Chain, as Portaldot sees it ---------- */
 
 function ParliaPanel({ p }: { p: ParliaSide }) {
+  if (!p.client) {
+    return (
+      <section className={s.panel} aria-labelledby="parlia-h">
+        <PanelHead id="parlia-h" title="BNB Chain, as Portaldot sees it" sub="Parlia light client on Portaldot" chain="portaldot" tempo="ticks" />
+        <p className={s.halt}>
+          <span>
+            <b>Not deployed yet.</b> This half goes live once its storage deposit on Portaldot is funded. Its address is already fixed, and the Portaldot gateway points at it.
+          </span>
+        </p>
+      </section>
+    );
+  }
+  return <ParliaPanelLive p={p} />;
+}
+
+function ParliaPanelLive({ p }: { p: ParliaSide }) {
   const now = useNow(1000);
   const [window, setWindow] = useState<{ block: string; sealed: number[]; untrusted: number } | null>(null);
   const lw = p.lastWindow;
@@ -336,7 +352,7 @@ function PanelHead({
   title: string;
   sub: string;
   chain: ChainName;
-  address: string;
+  address?: string;
   tempo: "ticks" | "beats";
 }) {
   return (
@@ -348,7 +364,7 @@ function PanelHead({
       </span>
       <h2 id={id}>{title}</h2>
       <p>
-        {sub} · <Hex chain={chain} kind="address" value={address} />
+        {sub} · {address ? <Hex chain={chain} kind="address" value={address} /> : "not deployed yet"}
       </p>
     </header>
   );

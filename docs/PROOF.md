@@ -7,7 +7,7 @@ BNB Chain links go to [testnet.bscscan.com](https://testnet.bscscan.com). The Po
 To re-check any transfer below without trusting this page: `npx tsx packages/sdk/scripts/verify-onchain.ts <source tx>`.
 
 <!-- render:status -->
-**Status, 2026-11-04 09:39 UTC:** deployed, 2 contracts on Portaldot V3 testnet and 8 on BNB Chain testnet; 1 proven transfer and 0 fast fills recorded. Every address and transaction: [docs/PROOF.md](PROOF.md).
+**Status, 2026-11-04 11:35 UTC:** deployed, 2 contracts on Portaldot V3 testnet and 8 on BNB Chain testnet; 2 proven transfers and 0 fast fills recorded. Every address and transaction: [docs/PROOF.md](PROOF.md).
 <!-- /render:status -->
 
 ## Contracts
@@ -56,32 +56,36 @@ Wiring and seeding:
 <!-- render:proof-transfers -->
 ### Portaldot V3 testnet → BNB Chain testnet
 
-`portaldot:0`: 0.9990 tPOT, 40 s from lock to payout.
+`portaldot:1`: 0.9990 tPOT, 46 s from lock to payout.
 
 | Step | Chain | Transaction | At | Detail |
 | --- | --- | --- | --- | --- |
-| locked | Portaldot V3 testnet | `0xe91cf0dd49c50deae2f9db19f0d46d87e0a4be8cd29e101bb8b34100a0bacf30` ([block 318,574](https://scanner-testnet-v3.portaldot.dev/#/blocks/318574)) | 2026-11-04 09:35 UTC |  |
-| beefy | BNB Chain testnet | [`0x532abe5c375b32482cfcede49fad2c2e6cf4608142eabcf1033d35a87a10eb78`](https://testnet.bscscan.com/tx/0x532abe5c375b32482cfcede49fad2c2e6cf4608142eabcf1033d35a87a10eb78) | 2026-11-04 09:35 UTC | Portaldot header 318574 proven on BSC |
-| beefy | BNB Chain testnet | [`0x178a6fd65f855628225cbcc0011b88020710089e2eaa98b29ee4e04b947a8d51`](https://testnet.bscscan.com/tx/0x178a6fd65f855628225cbcc0011b88020710089e2eaa98b29ee4e04b947a8d51) | 2026-11-04 09:35 UTC | Portaldot header 318574 proven on BSC |
-| finalized | BNB Chain testnet | [`0xea9874bdeb4b6d1cb4b22faa99e887d28156e20ce14897b8dc58e1ff6c6a3f78`](https://testnet.bscscan.com/tx/0xea9874bdeb4b6d1cb4b22faa99e887d28156e20ce14897b8dc58e1ff6c6a3f78) | 2026-11-04 09:35 UTC |  |
+| locked | Portaldot V3 testnet | `0xddc0cafb8bba236cd4d62941c32024a037f00606587801c4b96a3ecfbbc6fb3d` ([block 319,008](https://scanner-testnet-v3.portaldot.dev/#/blocks/319008)) | 2026-11-04 10:18 UTC |  |
+| beefy | BNB Chain testnet | [`0x9b9cdedfdbad2ec9e31dd1f0f90aab09408f18eb951b89ed7057adfd064ffb3c`](https://testnet.bscscan.com/tx/0x9b9cdedfdbad2ec9e31dd1f0f90aab09408f18eb951b89ed7057adfd064ffb3c) | 2026-11-04 10:19 UTC | Portaldot header 319009 proven on BSC |
+| beefy | BNB Chain testnet | [`0x054d8d956b7430067aca3e8671eb06090bd5c5508e3c98da75096e89289f88d4`](https://testnet.bscscan.com/tx/0x054d8d956b7430067aca3e8671eb06090bd5c5508e3c98da75096e89289f88d4) | 2026-11-04 10:19 UTC | Portaldot header 319009 proven on BSC |
+| beefy | BNB Chain testnet | [`0x123609deabb08047e22be88f8c6b4c7a3979506575ff419dacf1e4f4f22fc0c6`](https://testnet.bscscan.com/tx/0x123609deabb08047e22be88f8c6b4c7a3979506575ff419dacf1e4f4f22fc0c6) | 2026-11-04 10:19 UTC | Portaldot header 319009 proven on BSC |
+| finalized | BNB Chain testnet | [`0xb7c177b293edfc0837696871a4f3f935cc52693c1fc349d5fd5cfdd30c2abcf2`](https://testnet.bscscan.com/tx/0xb7c177b293edfc0837696871a4f3f935cc52693c1fc349d5fd5cfdd30c2abcf2) | 2026-11-04 10:19 UTC |  |
 
 ### BNB Chain testnet → Portaldot V3 testnet
 
 not measured yet: no finalized transfer in this direction yet.
+
+1 more jobs in [results/live-transfers.json](../results/live-transfers.json), recorded 2026-11-04 11:35 UTC.
 <!-- /render:proof-transfers -->
 
 ## Forged proofs against the deployed contracts
 
 <!-- render:proof-attacks -->
-Recorded 2026-11-04 09:39 UTC from https://35-205-62-150.sslip.io: 6 of 6 rejected.
+Recorded 2026-11-04 11:35 UTC from https://35-205-62-150.sslip.io: 7 of 7 rejected.
 
 | Attack | Target | Rejected with | Reverted transaction |
 | --- | --- | --- | --- |
 | Forged BEEFY signature | `PortaldotLightClient.submitCommitment` | `InvalidSignature(0)` | eth_call only |
+| Commitment signed by a stale validator set | `PortaldotLightClient.submitCommitment` | `UnknownValidatorSet(537, 538)` | eth_call only |
 | MMR proof for the wrong leaf | `PortaldotLightClient.importHeader` | `HeaderNotInMmr` | eth_call only |
 | Header that does not hash to its leaf | `PortaldotLightClient.importHeader` | `HeaderNotInMmr` | eth_call only |
 | Tampered storage value | `PortaldotVerifier.verifyCommitment` | `false` | eth_call only |
-| Replayed transfer | `BscGateway.finalize` | `AlreadyFinalized(0)` | eth_call only |
+| Replayed transfer | `BscGateway.finalize` | `AlreadyFinalized(1)` | eth_call only |
 | Refund for a filled order | `PortaldotVerifier.verifyAbsence` | `false` | eth_call only |
 <!-- /render:proof-attacks -->
 
