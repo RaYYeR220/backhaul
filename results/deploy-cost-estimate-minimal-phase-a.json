@@ -1,0 +1,165 @@
+{
+  "at": "2026-11-04T09:30:13.848Z",
+  "phases": [
+    "A"
+  ],
+  "rates": {
+    "reuseCodeRate": "18373871914121760",
+    "gasPrice": "22550",
+    "deployBase": "9079596419392380200",
+    "codeRate": "83647179816415761",
+    "slotRate": "3902133594611921900",
+    "callBase": "12307437180873450",
+    "byteRate": "101612251525525"
+  },
+  "portaldot": {
+    "fee": "317519678006872111200",
+    "value": "100000000000000000000",
+    "phases": {
+      "A": {
+        "fee": "317519678006872111200",
+        "value": "100000000000000000000"
+      }
+    },
+    "lines": [
+      {
+        "phase": "A",
+        "step": "deploy Outbox",
+        "method": "live estimate",
+        "fee": "44977065224767173850",
+        "value": "0"
+      },
+      {
+        "phase": "A",
+        "step": "deploy PortaldotGateway",
+        "method": "live estimate",
+        "fee": "268612206272076349650",
+        "value": "0"
+      },
+      {
+        "phase": "A",
+        "step": "PortaldotGateway.setRemote",
+        "method": "model: 1 new items",
+        "fee": "3918099072847714250",
+        "value": "0"
+      },
+      {
+        "phase": "A",
+        "step": "fund.relayer",
+        "method": "model: 0 new items",
+        "fee": "12307437180873450",
+        "value": "100000000000000000000"
+      }
+    ]
+  },
+  "bsc": {
+    "gasPrice": "100000000",
+    "fee": "1005222100000000",
+    "value": "20000000000000000",
+    "phases": {
+      "A": {
+        "fee": "1005222100000000",
+        "value": "20000000000000000"
+      }
+    },
+    "lines": [
+      {
+        "phase": "A",
+        "step": "deploy Outbox",
+        "method": "fork gas 151465",
+        "fee": "15146500000000",
+        "value": "0"
+      },
+      {
+        "phase": "A",
+        "step": "deploy PortaldotLightClient",
+        "method": "fork gas 2883130",
+        "fee": "288313000000000",
+        "value": "0"
+      },
+      {
+        "phase": "A",
+        "step": "deploy PortaldotVerifier",
+        "method": "fork gas 2069046",
+        "fee": "206904600000000",
+        "value": "0"
+      },
+      {
+        "phase": "A",
+        "step": "deploy PPOT",
+        "method": "fork gas 556548",
+        "fee": "55654800000000",
+        "value": "0"
+      },
+      {
+        "phase": "A",
+        "step": "deploy BscGateway",
+        "method": "fork gas 687242",
+        "fee": "68724200000000",
+        "value": "0"
+      },
+      {
+        "phase": "A",
+        "step": "BscGateway.setRemote",
+        "method": "fork gas 45120",
+        "fee": "4512000000000",
+        "value": "0"
+      },
+      {
+        "phase": "A",
+        "step": "deploy OriginSettler",
+        "method": "fork gas 1143863",
+        "fee": "114386300000000",
+        "value": "0"
+      },
+      {
+        "phase": "A",
+        "step": "deploy DestinationSettler",
+        "method": "fork gas 460172",
+        "fee": "46017200000000",
+        "value": "0"
+      },
+      {
+        "phase": "A",
+        "step": "deploy PpotVault",
+        "method": "fork gas 1351145",
+        "fee": "135114500000000",
+        "value": "0"
+      },
+      {
+        "phase": "A",
+        "step": "fund.relayer.bsc",
+        "method": "fork gas 21000",
+        "fee": "2100000000000",
+        "value": "20000000000000000"
+      },
+      {
+        "phase": "A",
+        "step": "beefy submitCommitment (for the bind)",
+        "method": "forge gas 103370",
+        "fee": "10337000000000",
+        "value": "0"
+      },
+      {
+        "phase": "A",
+        "step": "beefy importHeader (for the bind)",
+        "method": "forge gas 109482",
+        "fee": "10948200000000",
+        "value": "0"
+      },
+      {
+        "phase": "A",
+        "step": "PortaldotVerifier.bindTrieId",
+        "method": "forge gas 470638",
+        "fee": "47063800000000",
+        "value": "0"
+      }
+    ]
+  },
+  "running": {
+    "parliaWindowFresh": "20295005385802711050",
+    "parliaWindowWarm": "4686471007355023450",
+    "storageItem": "3902133594611921900",
+    "userOps": []
+  }
+}

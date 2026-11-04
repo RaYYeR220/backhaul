@@ -1,0 +1,241 @@
+{
+  "chain": "portaldot",
+  "chainId": 420420777,
+  "contracts": {
+    "Outbox": {
+      "artifact": "Outbox",
+      "address": "0x788eb8bd959A995EA980E0477d5CBAD650bd09d5",
+      "tx": "0x63be19e45f30eb6c76512238500ccfeaf0d74606fc243e8d8b8a9cf1f0807e96",
+      "block": 318529,
+      "args": [],
+      "codeBytes": 399
+    },
+    "PortaldotGateway": {
+      "artifact": "PortaldotGateway",
+      "address": "0x4a832A5EC6045FdCF9Ef5B448128fE07d21723F3",
+      "tx": "0x5ca6bdd10eb1887e4222198e4367c399a1bfb4b01f286bbe3e100c98073044ae",
+      "block": 318530,
+      "args": [
+        "0x788eb8bd959A995EA980E0477d5CBAD650bd09d5",
+        "0x30cc25b79b28b7d482200C6e86c9b828E4958d53",
+        "0x0000264500000000000000000000000000010000"
+      ],
+      "codeBytes": 3218
+    }
+  },
+  "steps": {
+    "PortaldotGateway.setRemote": {
+      "tx": "0x5f9ca709857ff2d79adfc196f608996f7d88e5d349e9f5f4d65d109126618f39",
+      "block": 318542,
+      "at": "2026-11-04T09:32:07.389Z"
+    },
+    "fund.relayer": {
+      "tx": "0xd9ab98843e56ef284cf1c801b2cc125cffa08e0ebb846a2bb3ee986a2d513751",
+      "block": 318543,
+      "at": "2026-11-04T09:32:16.769Z",
+      "to": "0x378a4FeffE00ea432EF314ab20866be8e3499010",
+      "value": "100000000000000000000"
+    }
+  },
+  "meta": {
+    "bnbb": {
+      "assetId": 9797,
+      "precompile": "0x0000264500000000000000000000000000010000"
+    },
+    "noncePlan": {
+      "chain": "portaldot",
+      "deployer": "0xaA3b93a16647e193C74200F9178378454fDc3876",
+      "startNonce": 0,
+      "reserved": [
+        {
+          "nonce": 0,
+          "phase": "A",
+          "step": "deploy Outbox",
+          "kind": "deploy",
+          "name": "Outbox",
+          "address": "0x788eb8bd959A995EA980E0477d5CBAD650bd09d5"
+        },
+        {
+          "nonce": 1,
+          "phase": "A",
+          "step": "deploy PortaldotGateway",
+          "kind": "deploy",
+          "name": "PortaldotGateway",
+          "address": "0x4a832A5EC6045FdCF9Ef5B448128fE07d21723F3"
+        },
+        {
+          "nonce": 2,
+          "phase": "A",
+          "step": "PortaldotGateway.setRemote",
+          "kind": "call"
+        },
+        {
+          "nonce": 3,
+          "phase": "A",
+          "step": "fund.relayer",
+          "kind": "transfer"
+        },
+        {
+          "nonce": 4,
+          "phase": "B",
+          "step": "deploy ParliaClient",
+          "kind": "deploy",
+          "name": "ParliaClient",
+          "address": "0xb05f345f2FBFeb891985D729aFF6C09A13f5daeB"
+        },
+        {
+          "nonce": 5,
+          "phase": "B",
+          "step": "deploy BscVerifier",
+          "kind": "deploy",
+          "name": "BscVerifier",
+          "address": "0x30cc25b79b28b7d482200C6e86c9b828E4958d53"
+        },
+        {
+          "nonce": 6,
+          "phase": "B",
+          "step": "deploy OriginSettler",
+          "kind": "deploy",
+          "name": "OriginSettler",
+          "address": "0x296DB40A17178d7ea1533fBeaC4D5EB4529519e2"
+        },
+        {
+          "nonce": 7,
+          "phase": "B",
+          "step": "deploy DestinationSettler",
+          "kind": "deploy",
+          "name": "DestinationSettler",
+          "address": "0x2cAeA09D2B2b8E8f5068aEF20cc92058ccf38f5f"
+        },
+        {
+          "nonce": 8,
+          "phase": "B",
+          "step": "deploy PotVault",
+          "kind": "deploy",
+          "name": "PotVault",
+          "address": "0xe88790CF3a8c3669eE0D7a5c7F997b7D4CdD8838"
+        },
+        {
+          "nonce": 9,
+          "phase": "B",
+          "step": "deploy PotForwarder",
+          "kind": "deploy",
+          "name": "PotForwarder",
+          "address": "0x7f5bB841D0D9aE37dafE96c86bc7EC05e2332FE5"
+        },
+        {
+          "nonce": 10,
+          "phase": "B",
+          "step": "OriginSettler.setRemoteDestination",
+          "kind": "call"
+        },
+        {
+          "nonce": 11,
+          "phase": "B",
+          "step": "PotVault.setRemote",
+          "kind": "call"
+        },
+        {
+          "nonce": 12,
+          "phase": "B",
+          "step": "seed.gasPool",
+          "kind": "call"
+        },
+        {
+          "nonce": 13,
+          "phase": "B",
+          "step": "seed.potVault",
+          "kind": "call"
+        }
+      ]
+    },
+    "reserved": [
+      {
+        "nonce": 0,
+        "name": "Outbox",
+        "address": "0x788eb8bd959A995EA980E0477d5CBAD650bd09d5",
+        "phase": "A"
+      },
+      {
+        "nonce": 1,
+        "name": "PortaldotGateway",
+        "address": "0x4a832A5EC6045FdCF9Ef5B448128fE07d21723F3",
+        "phase": "A"
+      },
+      {
+        "nonce": 2,
+        "name": "PortaldotGateway.setRemote",
+        "address": null,
+        "phase": "A"
+      },
+      {
+        "nonce": 3,
+        "name": "fund.relayer",
+        "address": null,
+        "phase": "A"
+      },
+      {
+        "nonce": 4,
+        "name": "ParliaClient",
+        "address": "0xb05f345f2FBFeb891985D729aFF6C09A13f5daeB",
+        "phase": "B"
+      },
+      {
+        "nonce": 5,
+        "name": "BscVerifier",
+        "address": "0x30cc25b79b28b7d482200C6e86c9b828E4958d53",
+        "phase": "B"
+      },
+      {
+        "nonce": 6,
+        "name": "OriginSettler",
+        "address": "0x296DB40A17178d7ea1533fBeaC4D5EB4529519e2",
+        "phase": "B"
+      },
+      {
+        "nonce": 7,
+        "name": "DestinationSettler",
+        "address": "0x2cAeA09D2B2b8E8f5068aEF20cc92058ccf38f5f",
+        "phase": "B"
+      },
+      {
+        "nonce": 8,
+        "name": "PotVault",
+        "address": "0xe88790CF3a8c3669eE0D7a5c7F997b7D4CdD8838",
+        "phase": "B"
+      },
+      {
+        "nonce": 9,
+        "name": "PotForwarder",
+        "address": "0x7f5bB841D0D9aE37dafE96c86bc7EC05e2332FE5",
+        "phase": "B"
+      },
+      {
+        "nonce": 10,
+        "name": "OriginSettler.setRemoteDestination",
+        "address": null,
+        "phase": "B"
+      },
+      {
+        "nonce": 11,
+        "name": "PotVault.setRemote",
+        "address": null,
+        "phase": "B"
+      },
+      {
+        "nonce": 12,
+        "name": "seed.gasPool",
+        "address": null,
+        "phase": "B"
+      },
+      {
+        "nonce": 13,
+        "name": "seed.potVault",
+        "address": null,
+        "phase": "B"
+      }
+    ]
+  },
+  "updatedAt": "2026-11-04T09:32:16.769Z",
+  "deployer": "0xaA3b93a16647e193C74200F9178378454fDc3876"
+}

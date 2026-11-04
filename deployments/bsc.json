@@ -1,0 +1,213 @@
+{
+  "chain": "bsc",
+  "chainId": 97,
+  "contracts": {
+    "Outbox": {
+      "artifact": "Outbox",
+      "address": "0x788eb8bd959A995EA980E0477d5CBAD650bd09d5",
+      "tx": "0xf57cf01218404e5fd4db24939aa830d380d28905f96c0912d5975a98cbd1deb0",
+      "block": 140741866,
+      "args": [],
+      "codeBytes": 454
+    },
+    "PortaldotLightClient": {
+      "artifact": "PortaldotLightClient",
+      "address": "0x4a832A5EC6045FdCF9Ef5B448128fE07d21723F3",
+      "tx": "0xf233204e6b8bc3eeed3d623aff00414604bb4b5a98a1b157833c53666e92b9c5",
+      "block": 140741914,
+      "args": [
+        "536",
+        [
+          "0x4d13b6aea6cd423cc48d7159ac10b26927c2b421",
+          "0x4a69b8f722a9b486f9db0d243c908170012d7413"
+        ],
+        318167,
+        "0x2b0da996bf45131ef0404542c54ec9f4245de1fd5862c821c31bda0b86b880d8"
+      ],
+      "codeBytes": 12510
+    },
+    "PortaldotVerifier": {
+      "artifact": "PortaldotVerifier",
+      "address": "0x10012862AB2f1325Bb3667EC49fC35172d0F3a51",
+      "tx": "0x5adcfd40fcbe749824d6e9acc8cbddbf44355d689a3a78ddf3e84469e5c062e8",
+      "block": 140741928,
+      "args": [
+        "0x4a832A5EC6045FdCF9Ef5B448128fE07d21723F3",
+        "0x788eb8bd959A995EA980E0477d5CBAD650bd09d5"
+      ],
+      "codeBytes": 9316
+    },
+    "PPOT": {
+      "artifact": "PPOT",
+      "address": "0x188b132f9b54008a2208552f38638EdE9DEa594D",
+      "tx": "0x45f09ce6ae3fe849a5cfd12d4189bf86f56996c294d69e4a2b2975f2b64b7502",
+      "block": 140741934,
+      "args": [
+        "0xb05f345f2FBFeb891985D729aFF6C09A13f5daeB"
+      ],
+      "codeBytes": 2057
+    },
+    "BscGateway": {
+      "artifact": "BscGateway",
+      "address": "0xb05f345f2FBFeb891985D729aFF6C09A13f5daeB",
+      "tx": "0x454b2b065e1377771848f0ce79c82e524cae4ae3c5b38b9679db5dcd9220bbad",
+      "block": 140741946,
+      "args": [
+        "0x788eb8bd959A995EA980E0477d5CBAD650bd09d5",
+        "0x10012862AB2f1325Bb3667EC49fC35172d0F3a51",
+        "0x188b132f9b54008a2208552f38638EdE9DEa594D"
+      ],
+      "codeBytes": 2895
+    },
+    "OriginSettler": {
+      "artifact": "OriginSettler",
+      "address": "0x296DB40A17178d7ea1533fBeaC4D5EB4529519e2",
+      "tx": "0x2e3fdf333051b07efe656ace1315ff388e56561af4b361918e00e5aca08abbef",
+      "block": 140741968,
+      "args": [
+        "0x10012862AB2f1325Bb3667EC49fC35172d0F3a51",
+        "0x788eb8bd959A995EA980E0477d5CBAD650bd09d5"
+      ],
+      "codeBytes": 5036
+    },
+    "DestinationSettler": {
+      "artifact": "DestinationSettler",
+      "address": "0x2cAeA09D2B2b8E8f5068aEF20cc92058ccf38f5f",
+      "tx": "0x6e5642d76e3286f887ea23e67f75308c663fde04bfe86ddb9e175e278b710ee9",
+      "block": 140741977,
+      "args": [
+        "0x788eb8bd959A995EA980E0477d5CBAD650bd09d5",
+        "97"
+      ],
+      "codeBytes": 1876
+    },
+    "PpotVault": {
+      "artifact": "LPVault",
+      "address": "0xe88790CF3a8c3669eE0D7a5c7F997b7D4CdD8838",
+      "tx": "0x05b075cc06c8345351bec8e81bc13fe3852b06e8c610f1765b76259dfe8b668b",
+      "block": 140741988,
+      "args": [
+        "0x188b132f9b54008a2208552f38638EdE9DEa594D",
+        "0x2cAeA09D2B2b8E8f5068aEF20cc92058ccf38f5f",
+        "0x10012862AB2f1325Bb3667EC49fC35172d0F3a51",
+        30
+      ],
+      "codeBytes": 5998
+    }
+  },
+  "steps": {
+    "BscGateway.setRemote": {
+      "tx": "0x06f13713dc20fc5349eef715257b095f8931537e8c485e59416905f5158d0f0d",
+      "block": 140741956,
+      "at": "2026-11-04T09:31:40.319Z"
+    },
+    "fund.relayer.bsc": {
+      "tx": "0x23b4e8665624ccdb469cc8031c92e8efb4c35c38abec3ae34a220144c26536c3",
+      "block": 140742000,
+      "at": "2026-11-04T09:31:59.240Z",
+      "to": "0x378a4FeffE00ea432EF314ab20866be8e3499010",
+      "value": "20000000000000000"
+    },
+    "PortaldotVerifier.bindTrieId": {
+      "tx": "0xe6e9f7de6f197d7567598cb42e68968b70bf2ef1350923dfba150d0b5260060b",
+      "block": 140742166,
+      "at": "2026-11-04T09:33:14.869Z"
+    }
+  },
+  "meta": {
+    "noncePlan": {
+      "chain": "bsc",
+      "deployer": "0xaA3b93a16647e193C74200F9178378454fDc3876",
+      "startNonce": 0,
+      "reserved": [
+        {
+          "nonce": 0,
+          "phase": "A",
+          "step": "deploy Outbox",
+          "kind": "deploy",
+          "name": "Outbox",
+          "address": "0x788eb8bd959A995EA980E0477d5CBAD650bd09d5"
+        },
+        {
+          "nonce": 1,
+          "phase": "A",
+          "step": "deploy PortaldotLightClient",
+          "kind": "deploy",
+          "name": "PortaldotLightClient",
+          "address": "0x4a832A5EC6045FdCF9Ef5B448128fE07d21723F3"
+        },
+        {
+          "nonce": 2,
+          "phase": "A",
+          "step": "deploy PortaldotVerifier",
+          "kind": "deploy",
+          "name": "PortaldotVerifier",
+          "address": "0x10012862AB2f1325Bb3667EC49fC35172d0F3a51"
+        },
+        {
+          "nonce": 3,
+          "phase": "A",
+          "step": "deploy PPOT",
+          "kind": "deploy",
+          "name": "PPOT",
+          "address": "0x188b132f9b54008a2208552f38638EdE9DEa594D"
+        },
+        {
+          "nonce": 4,
+          "phase": "A",
+          "step": "deploy BscGateway",
+          "kind": "deploy",
+          "name": "BscGateway",
+          "address": "0xb05f345f2FBFeb891985D729aFF6C09A13f5daeB"
+        },
+        {
+          "nonce": 5,
+          "phase": "A",
+          "step": "BscGateway.setRemote",
+          "kind": "call"
+        },
+        {
+          "nonce": 6,
+          "phase": "A",
+          "step": "deploy OriginSettler",
+          "kind": "deploy",
+          "name": "OriginSettler",
+          "address": "0x296DB40A17178d7ea1533fBeaC4D5EB4529519e2"
+        },
+        {
+          "nonce": 7,
+          "phase": "A",
+          "step": "deploy DestinationSettler",
+          "kind": "deploy",
+          "name": "DestinationSettler",
+          "address": "0x2cAeA09D2B2b8E8f5068aEF20cc92058ccf38f5f"
+        },
+        {
+          "nonce": 8,
+          "phase": "A",
+          "step": "deploy PpotVault",
+          "kind": "deploy",
+          "name": "PpotVault",
+          "address": "0xe88790CF3a8c3669eE0D7a5c7F997b7D4CdD8838"
+        },
+        {
+          "nonce": 9,
+          "phase": "A",
+          "step": "fund.relayer.bsc",
+          "kind": "transfer"
+        }
+      ]
+    },
+    "beefyCheckpoint": {
+      "setId": "536",
+      "signers": [
+        "0x4d13b6aea6cd423cc48d7159ac10b26927c2b421",
+        "0x4a69b8f722a9b486f9db0d243c908170012d7413"
+      ],
+      "checkpointBlock": 318167,
+      "checkpointMmrRoot": "0x2b0da996bf45131ef0404542c54ec9f4245de1fd5862c821c31bda0b86b880d8"
+    }
+  },
+  "updatedAt": "2026-11-04T09:33:14.870Z",
+  "deployer": "0xaA3b93a16647e193C74200F9178378454fDc3876"
+}
