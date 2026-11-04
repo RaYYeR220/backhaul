@@ -9,7 +9,7 @@
   "windows": {
     "window16": {
       "calldataBytes": 15492,
-      "executionGas": 610060,
+      "executionGas": 609382,
       "finalizes": false,
       "firstBlock": 140342002,
       "headers": 16,
@@ -18,7 +18,7 @@
     },
     "window32": {
       "calldataBytes": 30916,
-      "executionGas": 1177358,
+      "executionGas": 1175820,
       "finalizes": false,
       "firstBlock": 140342002,
       "headers": 32,
@@ -27,7 +27,7 @@
     },
     "window48": {
       "calldataBytes": 46308,
-      "executionGas": 1827194,
+      "executionGas": 1824797,
       "finalizes": true,
       "firstBlock": 140342002,
       "headers": 48,

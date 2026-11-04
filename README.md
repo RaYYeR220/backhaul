@@ -7,7 +7,7 @@ Bridges secured by a handful of keys have lost about **$806M** in three incident
 Built for the Portaldot Hacker House 2026, Multi-Chain & Cross-Chain Infra track. Portaldot V3 testnet and BNB Chain testnet only.
 
 <!-- render:status -->
-**Status, 2026-11-03 20:22 UTC:** built, tested and rehearsed against live data from both chains; **not deployed yet** on the testnets (the deployer wallets are waiting for testnet funds). Every on-chain link in these docs comes from `deployments/*.json` and reads "not deployed yet" until those files exist.
+**Status, 2026-11-04 00:02 UTC:** built, tested and rehearsed against live data from both chains; **not deployed yet** on the testnets (the deployer wallets are waiting for testnet funds). Every on-chain link in these docs comes from `deployments/*.json` and reads "not deployed yet" until those files exist.
 <!-- /render:status -->
 
 ## What it does
@@ -61,7 +61,7 @@ flowchart LR
   PVAL -->|"signed commitments,<br/>block hashes"| RL
   BVAL -->|"sealed headers"| RL
   POB -.->|"child-trie proof"| RL
-  BOB -.->|"receipt proof"| RL
+  BOB -.->|"receipt / storage proof"| RL
   RL -.->|"commitments · headers · rotations"| BLC
   RL -.->|"finality windows"| PLC
   RL -.->|"same windows"| PINK
@@ -98,8 +98,8 @@ The public nodes can't serve MMR proofs, so the SDK rebuilds the MMR from block 
 
 1. **Seals.** Every BSC header carries its sealer's ECDSA signature. The client rebuilds the seal hash, recovers the signer (low-s only) and requires it to be the header's coinbase.
 2. **Finality.** A window of consecutive, parent-linked headers finalizes its first header once it carries seals from at least ⌈2N/3⌉ distinct validators of the trusted set: 6 of 9 on the testnet. That is the same two-thirds threshold BSC's own fast finality uses.
-3. **Skipping, with a trusting period.** Like IBC light clients, it need not follow every epoch. A window verifies while its first header is within 7 days of the trusted set's epoch block. A new set takes effect at `E + (⌊N/2⌋+1) · turnLength`, as BSC's `snapshot.go` does. The last 256 finalized headers live in a ring buffer, so storage deposits stop growing once it is full.
-4. **Proofs.** Locks and fills are proven with a receipt proof of the Outbox's `Committed` log against `receiptsRoot`. Refunds and data reads use account and storage proofs against `stateRoot`.
+3. **Skipping, with a trusting period.** Like IBC light clients, it need not follow every epoch. A window verifies while its first header is within 14 days of the trusted set's epoch block and it lands on Portaldot within 14 days of the moment the client installed that set, so a stale set's keys are worthless after two weeks whatever they stamp into a header. A new set takes effect at `E + (⌊N/2⌋+1) · turnLength`, as BSC's `snapshot.go` does. The last 256 finalized headers live in a ring buffer, so storage deposits stop growing once it is full.
+4. **Proofs.** Locks and fills are proven with a receipt proof of the Outbox's `Committed` log against `receiptsRoot`, or, if that block can no longer be finalized, with a storage proof of the same write-once Outbox slot at any later finalized block. Refunds and data reads use account and storage proofs against `stateRoot`.
 
 ### Fast fills: ERC-7683, repaid after proof
 
@@ -107,7 +107,7 @@ The public nodes can't serve MMR proofs, so the SDK rebuilds the MMR from block 
 
 ### Proof-gated LP vaults
 
-An `LPVault` on each chain pools liquidity for fills. It fills an order only with a light-client proof that the order was opened on the origin chain, so there is no operator key, and it earns the fill fee. Repayments travel home over the canonical bridge through `RepayForwarder`.
+An `LPVault` on each chain pools liquidity for fills. It fills an order only with a light-client proof that the order was opened on the origin chain, so there is no operator key, and it earns the fill fee. Repayments travel home over the canonical bridge through `RepayForwarder`. Each fee vests over 6 hours, so a deposit and a withdrawal wrapped around the repayment get none of it.
 
 ### BNB.b: a native asset, not a wrapped contract
 
@@ -127,7 +127,7 @@ Bridged tBNB arrives as BNB.b, a `pallet-assets` asset. Its whole fixed supply i
 |  | Number | Source |
 | --- | --- | --- |
 | Keys that can release bridged funds | 0 on either chain | No owner, admin, pause or upgrade path in any contract: [TRUST.md](docs/TRUST.md) |
-| Tests | 401 passing, 0 failing: Foundry 249 · SDK 86 (+2 live-only, skipped offline) · relayer 34 · ink! 32 | `npm run test:counts` → [results/test-counts.json](results/test-counts.json) at `68a1b32` |
+| Tests | 434 passing, 0 failing: Foundry 263 · SDK 92 (+2 live-only, skipped offline) · relayer 44 · ink! 35 | `npm run test:counts` → [results/test-counts.json](results/test-counts.json) at `e77b97d` |
 | Forged proofs rejected, local rehearsals | 11 of 11 fired; `replayed-nonce` needs a live transfer (forge: `test_finalizeTwiceReverts`) | [rehearsal-beefy.json](results/rehearsal-beefy.json) · [rehearsal-parlia.json](results/rehearsal-parlia.json) |
 | Forged proofs rejected, testnet | not deployed yet | [results/attacks.json](results/attacks.json) |
 | BEEFY on BNB Chain: commitment · header import · set rotation | 103,370 · 109,482 · 420,353 gas | Foundry on recorded Portaldot data ([beefy-gas-local.json](results/beefy-gas-local.json)); the BSC-fork rehearsal rotated set 520 → 521 on live Portaldot data |
@@ -137,7 +137,7 @@ Bridged tBNB arrives as BNB.b, a `pallet-assets` asset. Its whole fixed supply i
 | Wait for BNB Chain finality | 42–44 headers ≈ 19–20 s | MODELED: header counts from the rehearsal windows × 0.45 s blocks |
 | Time to funds, canonical (median) | not deployed yet | [live-transfers.json](results/live-transfers.json) |
 | Time to funds, fast fill (median) | not deployed yet | [live-transfers.json](results/live-transfers.json) |
-| Deploy cost, full | 3,030 tPOT + 0.0112 tBNB, of which 26 tPOT and 0.01 tBNB seed the gas pool and vaults | Dry-run: live `eth_estimateGas` on Portaldot, fork gas on BSC ([deploy-cost-estimate.json](results/deploy-cost-estimate.json)) |
+| Deploy cost, full | 3,138 tPOT + 0.0112 tBNB, of which 26 tPOT and 0.01 tBNB seed the gas pool and vaults | Dry-run: live `eth_estimateGas` on Portaldot, fork gas on BSC ([deploy-cost-estimate.json](results/deploy-cost-estimate.json)) |
 | User cost on Portaldot | bridge tPOT 3.92 tPOT · open an order 7.86 tPOT | Fees plus storage deposit, same dry-run |
 <!-- /render:numbers -->
 
@@ -166,9 +166,9 @@ The full trust model, direction by direction: [docs/TRUST.md](docs/TRUST.md).
 
 - **Testnet only, not audited.** No mainnet deployment.
 - **Portaldot's own validators are trusted.** The testnet has 2 BEEFY validators, and the chain's sudo key can change its runtime.
-- **BNB Chain finality is checked from ECDSA seals, not BLS votes.** Portaldot has no BLS12-381 precompile. The client trusts that two thirds of the last proven BSC validator set stay honest for 7 days.
+- **BNB Chain finality is checked from ECDSA seals, not BLS votes.** Portaldot has no BLS12-381 precompile. The client trusts that two thirds of each BSC validator set it installs stay honest for 14 days.
 - **Immutable on purpose.** If a light client ever stops accepting updates, the fix is a new deployment, not an admin key.
-- **Liveness needs a relayer.** If nobody relays, transfers wait. Ours runs on one small VM; anyone can run another.
+- **Liveness needs a relayer.** If nobody relays, transfers wait. Ours runs on one small VM; anyone can run another. If nobody moves the Parlia client to a newer epoch for 14 days, it needs a new deployment; the relayer does it every 3 days.
 - **Fast fills need liquidity.** A solver with its own funds fills in seconds. A vault fill waits for the proof that the order was opened, so it is only as fast as origin finality.
 
 ## Repository

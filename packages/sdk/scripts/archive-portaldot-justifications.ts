@@ -1,6 +1,6 @@
 /**
  * Records every BEEFY justification the Portaldot node streams into a JSONL archive, and backfills
- * the justifications the node still keeps for the current session.
+ * the justifications the node still keeps (past sessions too, at least about a day back).
  *
  *   npx tsx packages/sdk/scripts/archive-portaldot-justifications.ts [archivePath] [--until-set N]
  *

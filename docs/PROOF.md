@@ -7,7 +7,7 @@ BNB Chain links go to [testnet.bscscan.com](https://testnet.bscscan.com). The Po
 To re-check any transfer below without trusting this page: `npx tsx packages/sdk/scripts/verify-onchain.ts <source tx>`.
 
 <!-- render:status -->
-**Status, 2026-11-03 20:22 UTC:** built, tested and rehearsed against live data from both chains; **not deployed yet** on the testnets (the deployer wallets are waiting for testnet funds). Every on-chain link in these docs comes from `deployments/*.json` and reads "not deployed yet" until those files exist.
+**Status, 2026-11-04 00:02 UTC:** built, tested and rehearsed against live data from both chains; **not deployed yet** on the testnets (the deployer wallets are waiting for testnet funds). Every on-chain link in these docs comes from `deployments/*.json` and reads "not deployed yet" until those files exist.
 <!-- /render:status -->
 
 ## Contracts

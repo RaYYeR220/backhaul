@@ -377,7 +377,7 @@ regions.architecture = () => {
     `  PVAL ${L(!!rehB, 'signed commitments,<br/>block hashes')} RL`,
     `  BVAL ${L(!!rehP, 'sealed headers')} RL`,
     `  POB ${L(isLive.mintBsc, 'child-trie proof')} RL`,
-    `  BOB ${L(isLive.releasePortaldot, 'receipt proof')} RL`,
+    `  BOB ${L(isLive.releasePortaldot, 'receipt / storage proof')} RL`,
     `  RL ${L(isLive.beefy, 'commitments · headers · rotations')} BLC`,
     `  RL ${L(isLive.parlia, 'finality windows')} PLC`,
     `  RL ${L(isLive.ink, 'same windows')} PINK`,
@@ -631,9 +631,9 @@ regions.claims = () => {
     ),
     liveOr(
       isLive.releasePortaldot,
-      'tBNB locked on BNB Chain is released as BNB.b on Portaldot only against a Parlia window + receipt proof',
+      'tBNB locked on BNB Chain is released as BNB.b on Portaldot only against a Parlia window + a receipt proof, or a storage proof of the same Outbox slot at a later block',
       '`docs/PROOF.md` (hero transfer) and `verify-onchain.ts <lock tx>`',
-      { tier: 'REPRODUCIBLE', how: 'locally: `Gateways.t.sol::test_bnbRoundTrip`, `BscVerifier.t.sol` on recorded BSC receipts; testnet: not deployed yet' },
+      { tier: 'REPRODUCIBLE', how: 'locally: `Gateways.t.sol::test_bnbRoundTrip`, `BscVerifier.t.sol` on recorded BSC receipts and synthetic Outbox storage, `ParliaStranding.t.sol`; testnet: not deployed yet' },
     ),
     {
       claim: 'Supply invariants hold: pPOT supply equals locked tPOT, circulating BNB.b equals locked tBNB, no transfer finalizes twice',

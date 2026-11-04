@@ -1,50 +1,51 @@
 {
-  "bscVerifierCodeBytes": 4885,
+  "bscVerifierCodeBytes": 5258,
   "note": "Local forge measurements (solc 0.8.28, via-IR, optimizer 200). executionGas is the callee's gas (vm.lastCallGas) on a fresh client, so the finalized header goes to an empty ring slot; intrinsicGas = 21000 + 16/4 gas per non-zero/zero calldata byte. proofs: library calls through an external harness. Real windows: BSC testnet epoch 140342000 (rotation) and blocks from E+2.",
-  "parliaClientCodeBytes": 5765,
+  "parliaClientCodeBytes": 5957,
   "proofs": {
     "receiptLogLegacy": 43324,
     "receiptLogTyped": 30687,
     "storageAtAbsent": 245826,
     "storageAtExisting": 274019,
-    "verifyAbsenceReal": 261258,
-    "verifyAbsenceSynthetic": 72513,
-    "verifyCommitmentSynthetic": 44588
+    "verifyAbsenceReal": 261344,
+    "verifyAbsenceSynthetic": 72599,
+    "verifyCommitmentStorageSynthetic": 121392,
+    "verifyCommitmentSynthetic": 44737
   },
   "submitWindow": {
     "realEpochRotation41": {
       "calldataBytes": 40228,
-      "executionGas": 1873440,
+      "executionGas": 1870519,
       "headers": 41,
       "intrinsicGas": 487024
     },
     "realEpochRotation48": {
       "calldataBytes": 46948,
-      "executionGas": 2117649,
+      "executionGas": 2114269,
       "headers": 48,
       "intrinsicGas": 563524
     },
     "realSkip48": {
       "calldataBytes": 46308,
-      "executionGas": 1827194,
+      "executionGas": 1824797,
       "headers": 48,
       "intrinsicGas": 552216
     },
     "synthetic16": {
       "calldataBytes": 15428,
-      "executionGas": 682820,
+      "executionGas": 682142,
       "headers": 16,
       "intrinsicGas": 184712
     },
     "synthetic32": {
       "calldataBytes": 30788,
-      "executionGas": 1231357,
+      "executionGas": 1229820,
       "headers": 32,
       "intrinsicGas": 348044
     },
     "synthetic48": {
       "calldataBytes": 46148,
-      "executionGas": 1785664,
+      "executionGas": 1783267,
       "headers": 48,
       "intrinsicGas": 511388
     }

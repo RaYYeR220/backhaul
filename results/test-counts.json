@@ -1,49 +1,49 @@
 {
-  "at": "2026-11-03T20:22:52.335Z",
-  "commit": "68a1b32",
+  "at": "2026-11-04T00:02:57.942Z",
+  "commit": "e77b97d",
   "suites": {
     "forge": {
       "command": "forge test",
       "cwd": "contracts",
-      "files": 19,
-      "passed": 249,
+      "files": 21,
+      "passed": 263,
       "failed": 0,
       "skipped": 0,
-      "total": 249,
-      "ms": 19167
+      "total": 263,
+      "ms": 16302
     },
     "sdk": {
       "command": "vitest run",
       "cwd": "packages/sdk",
       "files": 13,
-      "passed": 86,
+      "passed": 92,
       "failed": 0,
       "skipped": 2,
-      "total": 88,
-      "ms": 12707
+      "total": 94,
+      "ms": 8705
     },
     "relayer": {
       "command": "vitest run",
       "cwd": "services/relayer",
-      "files": 5,
-      "passed": 34,
+      "files": 6,
+      "passed": 44,
       "failed": 0,
       "skipped": 0,
-      "total": 34,
-      "ms": 6425
+      "total": 44,
+      "ms": 5164
     },
     "ink": {
       "command": "cargo test --release",
       "cwd": "ink/parlia_client",
-      "passed": 32,
+      "passed": 35,
       "failed": 0,
       "skipped": 0,
-      "total": 32,
-      "ms": 8715
+      "total": 35,
+      "ms": 40548
     }
   },
-  "total": 403,
-  "passed": 401,
+  "total": 436,
+  "passed": 434,
   "failed": 0,
   "skipped": 2
 }

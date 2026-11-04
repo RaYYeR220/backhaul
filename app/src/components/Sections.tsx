@@ -221,7 +221,7 @@ const TRUSTED = [
   { what: "Portaldot's validators", body: "There are 2 of them, and the chain has a sudo key." },
   {
     what: "BNB Chain's validator set",
-    body: "Under a 2/3 seal rule. Its BLS fast-finality votes are not checked, because Portaldot has no BLS precompile, and 2/3 of the last proven set must stay honest for 7 days after it was proven.",
+    body: "Under a 2/3 seal rule. Its BLS fast-finality votes are not checked, because Portaldot has no BLS precompile, and 2/3 of each set the client installs must stay honest for 14 days, counted on Portaldot's clock.",
   },
   { what: "The deploy checkpoint", body: "Each light client starts from a checkpoint chosen at deploy. A wrong one means a fresh deploy, not an admin fix." },
   { what: "Unaudited code", body: "Including the vendored Merkle trie and BLAKE2 verifiers." },

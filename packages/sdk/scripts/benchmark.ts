@@ -177,7 +177,7 @@ async function measureLive() {
     const head0 = await bscForCp.blockNumber();
     const cpEpoch = head0 - 200n - ((head0 - 200n) % 1000n);
     const cp = await checkpointAt(bscForCp, cpEpoch);
-    const q = await quoteInkDeploy(portaldot.api, origin, cp, 7n * 86_400n);
+    const q = await quoteInkDeploy(portaldot.api, origin, cp, 14n * 86_400n);
     chain.inkInstantiate = {
       checkpointEpoch: Number(cp.epoch),
       ok: q.ok,

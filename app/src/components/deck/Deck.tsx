@@ -691,7 +691,7 @@ const NEXT = [
   },
   {
     what: "Findings filed for the platform",
-    body: "Public nodes run without off-chain indexing, so mmr_generateProof fails, and keep BEEFY justifications only for the current session.",
+    body: "Public nodes run without off-chain indexing, so mmr_generateProof fails, and pallet-revive's Ethereum blocks report stateRoot equal to transactionsRoot.",
   },
 ];
 

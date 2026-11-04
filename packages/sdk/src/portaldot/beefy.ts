@@ -154,8 +154,9 @@ export interface ArchiveEntry {
 /**
  * Append-only JSONL archive of BEEFY justifications.
  *
- * The node keeps non-mandatory justifications only for the current session, so a relayer that
- * wants to prove headers from a past session must have recorded a commitment while it was fresh.
+ * The node keeps non-mandatory justifications (one every 8 blocks) for past sessions too, at
+ * least about a day back on test-node-v3, but not forever, so a relayer that wants to prove
+ * headers from an older session must have recorded a commitment while it was still served.
  * Mandatory justifications (first block of each session) stay in block bodies and can be
  * backfilled with `recordFromBlock`.
  */

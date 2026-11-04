@@ -1,7 +1,8 @@
 // Driving the BEEFY light client of Portaldot (PortaldotLightClient on BSC).
 //
-// The node only keeps justifications for the current session, so the relay archives every one
-// it sees. Rotation follows PortaldotLightClient.rotate: once session k+1 has begun, prove a
+// The node keeps BEEFY justifications for past sessions as well (non-mandatory ones every 8
+// blocks, at least about a day back on test-node-v3), but not forever, so the relay archives
+// every one it sees. Rotation follows PortaldotLightClient.rotate: once session k+1 has begun, prove a
 // header of session k with the last archived set-k commitment, rotate, then submit session
 // k+1's mandatory commitment straight away so headers stay provable without a gap.
 
