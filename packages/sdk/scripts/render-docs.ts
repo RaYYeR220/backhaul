@@ -334,7 +334,9 @@ regions['live-links'] = () => {
     ['What', 'Link', 'State'],
     [
       ['Landing', `[backhaul-bridge.vercel.app](${SITE})`, 'live; reads both chains directly'],
-      ['App: bridge both ways', `[/app](${SITE}/app)`, anyDeployed ? 'live' : `page is up; contracts ${NOT_DEPLOYED}`],
+      ['Demo video (2:43)', '[youtu.be/4hP-T-AT-XU](https://youtu.be/4hP-T-AT-XU)', 'a live transfer, the status page and the attack lab'],
+      ['Pitch deck', `[backhaul-deck.pdf](${SITE}/backhaul-deck.pdf)`, '11 slides, numbers from results/'],
+      ['App: bridge', `[/app](${SITE}/app)`, anyDeployed ? (dep.portaldot?.contracts?.ParliaClient ? 'live, both ways' : 'live for Portaldot → BNB Chain; BNB Chain → Portaldot not deployed yet') : `page is up; contracts ${NOT_DEPLOYED}`],
       ['Attack lab', `[/attacks](${SITE}/attacks)`, anyDeployed ? 'live; Fire all runs every forged proof' : `page is up; contracts ${NOT_DEPLOYED}`],
       ['Light-client status', `[/status](${SITE}/status)`, anyDeployed ? 'live' : `page is up; contracts ${NOT_DEPLOYED}`],
       ['Relayer API', `[${RELAYER.replace('https://', '')}](${RELAYER}/status) ([API.md](services/relayer/API.md))`, relayerState],

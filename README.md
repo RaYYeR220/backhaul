@@ -24,7 +24,9 @@ Built for the Portaldot Hacker House 2026, Multi-Chain & Cross-Chain Infra track
 | What | Link | State |
 | --- | --- | --- |
 | Landing | [backhaul-bridge.vercel.app](https://backhaul-bridge.vercel.app) | live; reads both chains directly |
-| App: bridge both ways | [/app](https://backhaul-bridge.vercel.app/app) | live |
+| Demo video (2:43) | [youtu.be/4hP-T-AT-XU](https://youtu.be/4hP-T-AT-XU) | a live transfer, the status page and the attack lab |
+| Pitch deck | [backhaul-deck.pdf](https://backhaul-bridge.vercel.app/backhaul-deck.pdf) | 11 slides, numbers from results/ |
+| App: bridge | [/app](https://backhaul-bridge.vercel.app/app) | live for Portaldot → BNB Chain; BNB Chain → Portaldot not deployed yet |
 | Attack lab | [/attacks](https://backhaul-bridge.vercel.app/attacks) | live; Fire all runs every forged proof |
 | Light-client status | [/status](https://backhaul-bridge.vercel.app/status) | live |
 | Relayer API | [35-205-62-150.sslip.io](https://35-205-62-150.sslip.io/status) ([API.md](services/relayer/API.md)) | live |
