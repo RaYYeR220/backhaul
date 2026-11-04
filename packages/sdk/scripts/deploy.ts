@@ -1,10 +1,19 @@
 /**
  * Deploys Backhaul to the Portaldot V3 testnet and the BNB Chain testnet, resuming from
- * deployments/<chain>.json.
+ * deployments/<chain>.json, in two budget phases (see src/deploy/plan.ts):
  *
- *   npx tsx packages/sdk/scripts/deploy.ts --env <path/to/.env> [--chain all|portaldot|bsc]
- *   npx tsx packages/sdk/scripts/deploy.ts --env <path> --dry-run     # cost estimate, nothing sent
+ *   npx tsx packages/sdk/scripts/deploy.ts --env <path> --print-plan       # reserved nonces and addresses
+ *   npx tsx packages/sdk/scripts/deploy.ts --env <path> --phase A [--minimal]
+ *   npx tsx packages/sdk/scripts/deploy.ts --env <path> --phase B [--minimal]
+ *   npx tsx packages/sdk/scripts/deploy.ts --env <path> --dry-run [--phase A|B] [--minimal]
  *   npx tsx packages/sdk/scripts/deploy.ts --env <path> --local       # full rehearsal on local nodes
+ *
+ * Phase A fits about 400 tPOT: Portaldot Outbox + PortaldotGateway (whose verifier is the address
+ * BscVerifier is reserved at) + the whole BSC side, enough for a proven Portaldot → BSC transfer.
+ * Phase B deploys the rest on Portaldot, BscVerifier landing exactly where the gateway expects it.
+ * The deployer's Portaldot nonces are reserved in deployments/portaldot.json and every send checks
+ * them: between the phases NOTHING else may send from the deployer key on Portaldot (the relayer
+ * has its own key, BACKHAUL_RELAYER_PK).
  *
  * --dry-run and --local run the whole plan on two local anvil nodes (a fork of BSC testnet and a
  * plain EVM node standing in for Portaldot), with light-client checkpoints taken from the live
@@ -17,6 +26,7 @@
  *          --estimate-from <0x funded Portaldot address>  --keep (leave local nodes running)
  *          --minimal (= --no-bnb-vaults: no LP vaults on the BNB routes; BNB still bridges)
  *          --with-feed  also deploy BscFeed (Chainlink BNB/USD proven from BSC storage)
+ *          --fund-relayer <tPOT>  phase A sends this to the relayer's key (default 100)
  *          --with-ink   also upload the ink! ParliaClient to pallet-contracts with the ops key
  *                       (PORTALDOT_OPS_MNEMONIC), from the EVM client's checkpoint; the dry-run
  *                       prices it with ContractsApi_instantiate. Build it first with
@@ -47,7 +57,8 @@ import { BSC_CHAIN_ID, BSC_RPC, PORTALDOT_CHAIN_ID, PORTALDOT_EVM_RPC, PORTALDOT
 import { calibratePortaldot, fmtUnits, modelCost, type PortaldotRates } from '../src/deploy/cost.js';
 import { checkpointFromMeta, quoteInkDeploy } from '../src/deploy/ink.js';
 import { impersonate, setBalance, startAnvil, stateDiff, type Anvil } from '../src/deploy/anvil.js';
-import { runPlan, type PlanConfig } from '../src/deploy/plan.js';
+import { formatPlan, planNonces, type NoncePlan, type Phase } from '../src/deploy/nonces.js';
+import { deploySteps, plannedTxs, runPhases, type PlanConfig } from '../src/deploy/plan.js';
 import { Side, type TxLog } from '../src/deploy/side.js';
 import { DEFAULT_DEPLOYMENTS_DIR, jsonReplacer, loadDeployment } from '../src/deployments.js';
 import { loadEnvFromArgs } from '../src/env.js';
@@ -79,6 +90,13 @@ const seeds = {
   approvalFund: parseEther(opt('approval-fund', '0.5')!) / 10_000n,
 };
 const minFeeBps = Number(opt('min-fee-bps', '30'));
+const phaseArg = opt('phase')?.toUpperCase();
+if (phaseArg && phaseArg !== 'A' && phaseArg !== 'B') throw new Error('--phase is A or B');
+/** Phases this run executes (a dry-run of B still runs A first on the local nodes). */
+const phases: Phase[] = phaseArg === 'A' ? ['A'] : phaseArg === 'B' && mode === 'live' ? ['B'] : ['A', 'B'];
+/** Phases the cost report prices. */
+const pricedPhases: Phase[] = phaseArg ? [phaseArg as Phase] : ['A', 'B'];
+const fundRelayerValue = parseEther(opt('fund-relayer', '100')!);
 /** Parlia trusting period, on both clocks: the relayer refreshes every 3 days, 14 leaves room for a long outage. */
 const TRUSTING_PERIOD = 14n * 86_400n;
 const SUPPLY = 1_000_000n * 10n ** 18n;
@@ -105,12 +123,51 @@ function deployerKey(): { key?: Hex; address: Address } {
   };
 }
 
+/** The relayer's own key: never the deployer, whose Portaldot nonces are reserved. */
+function relayerAddress(deployer: Address): Address | undefined {
+  const pk = process.env.BACKHAUL_RELAYER_PK ?? process.env.RELAYER_PK;
+  const addr = process.env.BACKHAUL_RELAYER_ADDRESS
+    ? getAddress(process.env.BACKHAUL_RELAYER_ADDRESS)
+    : pk
+      ? privateKeyToAccount((pk.startsWith('0x') ? pk : `0x${pk}`) as Hex).address
+      : mode === 'live'
+        ? undefined
+        : getAddress('0x70997970C51812dc3A010C7d01b50e0d17dc79C8'); // anvil's second account
+  if (addr && addr === getAddress(deployer)) throw new Error('the relayer key must not be the deployer key (its Portaldot nonces are reserved)');
+  return addr;
+}
+
+/** Prints the reserved nonces and addresses for both chains from the deployer's live nonces. */
+async function printPlan(deployer: Address, cfg: PlanConfig) {
+  const pd = createPublicClient({ transport: http(pdRpc) }) as PublicClient;
+  const b = createPublicClient({ transport: http(bscRpc) }) as PublicClient;
+  const P = new Side('portaldot', loadDeployment('portaldot', outDir), outDir, undefined, { log });
+  const B = new Side('bsc', loadDeployment('bsc', outDir), outDir, undefined, { log });
+  const steps = deploySteps(P, B, cfg);
+  const saved = P.dep.meta.noncePlan as NoncePlan | undefined;
+  const [pn, bn] = await Promise.all([pd.getTransactionCount({ address: deployer }), b.getTransactionCount({ address: deployer })]);
+  const pPlan = saved ?? planNonces('portaldot', deployer, pn, plannedTxs(steps, 'portaldot'));
+  // BSC phase B is planned when it starts; shown here as if phase A's relay transactions were none.
+  const bPlan = planNonces('bsc', deployer, bn, plannedTxs(steps, 'bsc'));
+  log(`deployer ${deployer}: Portaldot nonce ${pn}${saved ? ' (plan saved earlier)' : ''}, BSC nonce ${bn}`);
+  for (const line of [...formatPlan(pPlan), ...formatPlan(bPlan)]) console.log(line);
+  console.log('  (BSC phase B addresses shift by the number of BEEFY relay transactions bindTrieId sends at the end of phase A)');
+}
+
 async function main() {
   const dep = deployerKey();
-  if (mode === 'live' && !dep.key) throw new Error('live deploy needs PORTALDOT_DEPLOYER_PK');
+  if (mode === 'live' && !dep.key && !flag('print-plan')) throw new Error('live deploy needs PORTALDOT_DEPLOYER_PK');
   let anvils: Anvil[] = [];
   let pdUrl = pdRpc;
   let bscUrl = bscRpc;
+  const relayer = relayerAddress(dep.address);
+
+  if (flag('print-plan')) {
+    // the steps only need the options, not the chains
+    const offline = { ...planOptions(relayer), mode: 'live', portaldot: undefined as never, bsc: undefined as never } as PlanConfig;
+    await printPlan(dep.address, offline);
+    return;
+  }
 
   if (mode !== 'live') {
     if (existsSync(outDir)) rmSync(outDir, { recursive: true });
@@ -148,37 +205,50 @@ async function main() {
   const P = new Side('portaldot', loadDeployment('portaldot', outDir), outDir, pdSender, { trace: mode !== 'live', log, artifactsDir: pdOut });
   const B = new Side('bsc', loadDeployment('bsc', outDir), outDir, bscSender, { trace: mode !== 'live', log });
 
+  // A plan saved in phase A that funds the relayer keeps that step, whatever this run's flags say.
+  const savedPlan = P.dep.meta.noncePlan as NoncePlan | undefined;
+  const plannedFunding = savedPlan?.reserved.some((r) => r.step === 'fund.relayer');
   const cfg: PlanConfig = {
+    ...planOptions(relayer, plannedFunding ? ((P.dep.steps['fund.relayer']?.to as Address | undefined) ?? relayer) : undefined),
     mode: mode === 'live' ? 'live' : 'local',
-    assetId,
-    bnbbSupply: SUPPLY,
-    minFeeBps,
-    bnbVaults: !flag('no-bnb-vaults') && !flag('minimal'),
-    withFeed: flag('with-feed'),
-    withInk: flag('with-ink'),
-    trustingPeriod: TRUSTING_PERIOD,
-    seeds,
     portaldot,
     bsc,
     ops,
     localPortaldotUrl: mode === 'live' ? undefined : pdUrl,
-    archivePath: resolve(DATA, 'portaldot-justifications.jsonl'),
-    hashCachePath: resolve(DATA, 'portaldot-block-hashes.bin'),
-    log,
   };
+  if (phases.includes('A') && !cfg.fundRelayer) log('note: no relayer key to fund (set BACKHAUL_RELAYER_PK); phase A plans no funding transfer');
 
   try {
-    await runPlan(P, B, cfg);
+    await runPhases(phases, P, B, cfg);
     const txs = [...P.txs, ...B.txs];
     writeFileSync(resolve(outDir, 'txs.json'), JSON.stringify(txs, jsonReplacer, 2) + '\n');
     const ink = mode === 'dry' && flag('with-ink') ? await inkLine(portaldot.api, P) : undefined;
-    if (mode === 'dry') await costReport(P.txs, B.txs, portaldot.api, await sampleOps(P, B), ink);
+    if (mode === 'dry') await costReport(P.txs, B.txs, portaldot.api, phases.includes('B') ? await sampleOps(P, B) : [], ink);
     else summary(P, B);
   } finally {
     await disconnectPortaldot(portaldot);
     if (!flag('keep')) anvils.forEach((a) => a.stop());
     else if (anvils.length) log(`local nodes left running: bsc ${bscUrl}, portaldot ${pdUrl}`);
   }
+}
+
+/** Plan options from the command line (everything but the chain connections). */
+function planOptions(relayer: Address | undefined, forceFundTo?: Address) {
+  const to = forceFundTo ?? relayer;
+  return {
+    assetId,
+    bnbbSupply: SUPPLY,
+    minFeeBps,
+    bnbVaults: !flag('no-bnb-vaults') && !flag('minimal'),
+    withFeed: flag('with-feed'),
+    withInk: flag('with-ink'),
+    fundRelayer: to && (fundRelayerValue > 0n || forceFundTo) ? { to, value: fundRelayerValue > 0n ? fundRelayerValue : 1n } : undefined,
+    trustingPeriod: TRUSTING_PERIOD,
+    seeds,
+    archivePath: resolve(DATA, 'portaldot-justifications.jsonl'),
+    hashCachePath: resolve(DATA, 'portaldot-block-hashes.bin'),
+    log,
+  };
 }
 
 async function preflight(deployer: Address, opsAddress: string | undefined, api: any) {
@@ -207,6 +277,7 @@ function summary(P: Side, B: Side) {
 // ------------------------------------------------------------------ dry-run pricing
 
 interface Line {
+  phase: Phase;
   step: string;
   method: string;
   fee: bigint;
@@ -232,6 +303,7 @@ async function sampleOps(P: Side, B: Side): Promise<SampleOp[]> {
   const gw = P.addr('PortaldotGateway');
   await run('lockPOT (first ever)', gw, portaldotGatewayAbi, 'lockPOT', [s.address], parseEther('1'));
   await run('lockPOT', gw, portaldotGatewayAbi, 'lockPOT', [s.address], parseEther('1'));
+  if (!P.has('OriginSettler')) return out;
   const order = [s.address, zeroAddress, parseEther('1'), B.addr('PPOT'), parseEther('0.99'), s.address, 97n, 1n] as const;
   const orderData = encodeAbiParameters(
     [{ type: 'tuple', components: ['address', 'address', 'uint256', 'address', 'uint256', 'address', 'uint64', 'uint64'].map((type, i) => ({ type, name: `f${i}` })) }],
@@ -252,6 +324,7 @@ async function inkLine(api: any, P: Side): Promise<Line> {
   const wei = (planck: bigint) => planck * 10_000n; // 14 → 18 decimals, like every other line
   log(`ink! ParliaClient: ${q.wasmBytes} B wasm, ${q.ok ? 'accepted by the dry-run' : `refused by the dry-run: ${q.reason}`}`);
   return {
+    phase: 'B',
     step: 'ParliaClient ink! (ops key, instantiateWithCode)',
     method: `${q.depositMethod}${q.ok ? '' : `; chain refuses it now: ${q.reason}`} + paymentInfo`,
     fee: wei(q.deposit + q.fee),
@@ -274,8 +347,6 @@ async function costReport(ptxs: TxLog[], btxs: TxLog[], api: any, ops: SampleOp[
   const pLines: Line[] = [];
   const seen = new Set<string>();
   for (const t of ptxs) {
-    // The local run mints BNB.b on a mock ERC-20; live, that is a substrate extrinsic (priced below).
-    if (t.step.startsWith('bnbb.')) continue;
     let fee: bigint | undefined;
     let method = 'model';
     const reused = t.kind === 'deploy' && !!t.runtimeHash && seen.has(t.runtimeHash);
@@ -291,35 +362,44 @@ async function costReport(ptxs: TxLog[], btxs: TxLog[], api: any, ops: SampleOp[
         method = `model (live estimate failed: ${(e as Error).message.split('\n')[0].slice(0, 60)})`;
       }
     }
-    fee ??= modelCost(rates, { kind: t.kind, dataBytes: (t.data.length - 2) / 2, codeBytes: t.codeBytes, newSlots: t.newSlots ?? 0 });
+    fee ??= modelCost(rates, { kind: t.kind === 'deploy' ? 'deploy' : 'call', dataBytes: (t.data.length - 2) / 2, codeBytes: t.codeBytes, newSlots: t.newSlots ?? 0 });
     if (method === 'model') method = `model: ${t.newSlots ?? 0} new items${t.codeBytes ? `, ${t.codeBytes} B code` : ''}`;
-    pLines.push({ step: t.step, method, fee, value: t.value });
+    pLines.push({ phase: t.phase, step: t.step, method, fee, value: t.value });
   }
-  // Substrate-side steps (ops key): BNB.b and the approval-deposit top-ups.
-  const sub = await substrateCosts(api);
-  pLines.push(...sub);
+  // Substrate-side steps (ops key, phase B): BNB.b and the approval-deposit top-ups.
+  if (pricedPhases.includes('B')) pLines.push(...(await substrateCosts(api)));
   if (ink) pLines.push(ink);
 
   const bscPrice = await bscLive.getGasPrice();
-  const bLines: Line[] = btxs.map((t) => ({ step: t.step, method: `fork gas ${t.gasUsed}`, fee: t.gasUsed * bscPrice, value: t.value }));
+  const bLines: Line[] = btxs.map((t) => ({ phase: t.phase, step: t.step, method: `fork gas ${t.gasUsed}`, fee: t.gasUsed * bscPrice, value: t.value }));
   if (!btxs.some((t) => t.step === 'PortaldotVerifier.bindTrieId')) {
     // Measured in forge on live fixtures (results/beefy-gas-local.json); needs the live Outbox.
     // The bind first needs a BEEFY commitment and a header import above the Outbox's block.
     bLines.push(
-      { step: 'beefy submitCommitment (for the bind)', method: 'forge gas 103370', fee: 103_370n * bscPrice, value: 0n },
-      { step: 'beefy importHeader (for the bind)', method: 'forge gas 109482', fee: 109_482n * bscPrice, value: 0n },
-      { step: 'PortaldotVerifier.bindTrieId', method: 'forge gas 470638', fee: 470_638n * bscPrice, value: 0n },
+      { phase: 'A', step: 'beefy submitCommitment (for the bind)', method: 'forge gas 103370', fee: 103_370n * bscPrice, value: 0n },
+      { phase: 'A', step: 'beefy importHeader (for the bind)', method: 'forge gas 109482', fee: 109_482n * bscPrice, value: 0n },
+      { phase: 'A', step: 'PortaldotVerifier.bindTrieId', method: 'forge gas 470638', fee: 470_638n * bscPrice, value: 0n },
     );
   }
 
-  const table = (name: string, unit: string, lines: Line[]) => {
+  const table = (name: string, unit: string, all: Line[]) => {
+    const lines = all.filter((l) => pricedPhases.includes(l.phase));
     console.log(`\n${name}`);
     console.log(`${'step'.padEnd(44)} ${'fee+deposit'.padStart(14)} ${'value'.padStart(10)}  method`);
-    for (const l of lines) console.log(`${l.step.padEnd(44)} ${r(l.fee).padStart(14)} ${r(l.value).padStart(10)}  ${l.method}`);
+    const phaseTotals: Record<string, { fee: bigint; value: bigint }> = {};
+    for (const ph of pricedPhases) {
+      const of = lines.filter((l) => l.phase === ph);
+      console.log(`  phase ${ph}`);
+      for (const l of of) console.log(`${l.step.padEnd(44)} ${r(l.fee).padStart(14)} ${r(l.value).padStart(10)}  ${l.method}`);
+      const fee = of.reduce((a, l) => a + l.fee, 0n);
+      const value = of.reduce((a, l) => a + l.value, 0n);
+      phaseTotals[ph] = { fee, value };
+      console.log(`${`phase ${ph} total`.padEnd(44)} ${r(fee).padStart(14)} ${r(value).padStart(10)}  = ${r(fee + value)} ${unit}`);
+    }
     const fee = lines.reduce((a, l) => a + l.fee, 0n);
     const value = lines.reduce((a, l) => a + l.value, 0n);
     console.log(`${'TOTAL'.padEnd(44)} ${r(fee).padStart(14)} ${r(value).padStart(10)}  = ${r(fee + value)} ${unit}`);
-    return { fee, value };
+    return { fee, value, phases: phaseTotals, lines };
   };
   const pt = table('Portaldot (tPOT)', 'tPOT', pLines);
   const bt = table(`BSC (tBNB, gas price ${bscPrice} wei)`, 'tBNB', bLines);
@@ -336,14 +416,16 @@ async function costReport(ptxs: TxLog[], btxs: TxLog[], api: any, ops: SampleOp[
 
   const out = {
     at: new Date().toISOString(),
+    phases: pricedPhases,
     rates,
-    portaldot: { lines: pLines, ...pt },
-    bsc: { gasPrice: bscPrice, lines: bLines, ...bt },
+    portaldot: pt,
+    bsc: { gasPrice: bscPrice, ...bt },
     running: { parliaWindowFresh: window, parliaWindowWarm: windowWarm, storageItem: rates.slotRate, userOps },
   };
   const minimal = flag('no-bnb-vaults') || flag('minimal');
   const extras = [flag('with-feed') && 'feed', flag('with-ink') && 'ink'].filter(Boolean).join('-');
-  const name = `deploy-cost-estimate${minimal ? '-minimal' : ''}${extras ? `-with-${extras}` : ''}.json`;
+  const phaseTag = phaseArg ? `-phase-${phaseArg.toLowerCase()}` : '';
+  const name = `deploy-cost-estimate${minimal ? '-minimal' : ''}${extras ? `-with-${extras}` : ''}${phaseTag}.json`;
   const path = resolve(ROOT, 'results', name);
   writeFileSync(path, JSON.stringify(out, jsonReplacer, 2) + '\n');
   log(`wrote ${path}`);
@@ -358,19 +440,21 @@ async function substrateCosts(api: any): Promise<Line[]> {
   const name = 'Bridged BNB';
   const symbol = 'BNB.b';
   const lines: Line[] = [
-    { step: 'bnbb.create (ops key)', method: 'paymentInfo + AssetDeposit', fee: (await fee(api.tx.assets.create(assetId, opsAddr, 1))) + planck(c.assetDeposit), value: 0n },
+    { phase: 'B', step: 'bnbb.create (ops key)', method: 'paymentInfo + AssetDeposit', fee: (await fee(api.tx.assets.create(assetId, opsAddr, 1))) + planck(c.assetDeposit), value: 0n },
     {
+      phase: 'B',
       step: 'bnbb.setMetadata (ops key)',
       method: 'paymentInfo + metadata deposit',
       fee: (await fee(api.tx.assets.setMetadata(assetId, name, symbol, 18))) + planck(c.metadataDepositBase) + planck(c.metadataDepositPerByte) * BigInt(name.length + symbol.length),
       value: 0n,
     },
-    { step: 'bnbb.mint (ops key)', method: 'paymentInfo', fee: await fee(api.tx.assets.mint(assetId, gw, SUPPLY)), value: 0n },
-    { step: 'bnbb.setTeam (ops key)', method: 'paymentInfo', fee: await fee(api.tx.assets.setTeam(assetId, gw, gw, gw)), value: 0n },
-    { step: 'bnbb.transferOwnership (ops key)', method: 'paymentInfo', fee: await fee(api.tx.assets.transferOwnership(assetId, gw)), value: 0n },
+    { phase: 'B', step: 'bnbb.mint (ops key)', method: 'paymentInfo', fee: await fee(api.tx.assets.mint(assetId, gw, SUPPLY)), value: 0n },
+    { phase: 'B', step: 'bnbb.setTeam (ops key)', method: 'paymentInfo', fee: await fee(api.tx.assets.setTeam(assetId, gw, gw, gw)), value: 0n },
+    { phase: 'B', step: 'bnbb.transferOwnership (ops key)', method: 'paymentInfo', fee: await fee(api.tx.assets.transferOwnership(assetId, gw)), value: 0n },
   ];
   for (const k of flag('minimal') || flag('no-bnb-vaults') ? [] : ['BnbbVault', 'BnbbForwarder']) {
     lines.push({
+      phase: 'B',
       step: `seed.approvalFund.${k} (ops key)`,
       method: 'paymentInfo',
       fee: await fee(api.tx.balances.transferKeepAlive(gw, seeds.approvalFund)),
