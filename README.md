@@ -7,7 +7,7 @@ Bridges secured by a handful of keys have lost about **$806M** in three incident
 Built for the Portaldot Hacker House 2026, Multi-Chain & Cross-Chain Infra track. Portaldot V3 testnet and BNB Chain testnet only.
 
 <!-- render:status -->
-**Status, 2026-11-04 00:02 UTC:** built, tested and rehearsed against live data from both chains; **not deployed yet** on the testnets (the deployer wallets are waiting for testnet funds). Every on-chain link in these docs comes from `deployments/*.json` and reads "not deployed yet" until those files exist.
+**Status, 2026-11-04 09:39 UTC:** deployed, 2 contracts on Portaldot V3 testnet and 8 on BNB Chain testnet; 1 proven transfer and 0 fast fills recorded. Every address and transaction: [docs/PROOF.md](docs/PROOF.md).
 <!-- /render:status -->
 
 ## What it does
@@ -24,10 +24,10 @@ Built for the Portaldot Hacker House 2026, Multi-Chain & Cross-Chain Infra track
 | What | Link | State |
 | --- | --- | --- |
 | Landing | [backhaul-bridge.vercel.app](https://backhaul-bridge.vercel.app) | live; reads both chains directly |
-| App: bridge both ways | [/app](https://backhaul-bridge.vercel.app/app) | page is up; contracts not deployed yet |
-| Attack lab | [/attacks](https://backhaul-bridge.vercel.app/attacks) | page is up; contracts not deployed yet |
-| Light-client status | [/status](https://backhaul-bridge.vercel.app/status) | page is up; contracts not deployed yet |
-| Relayer API | [35-205-62-150.sslip.io](https://35-205-62-150.sslip.io/status) ([API.md](services/relayer/API.md)) | starts with the deploy |
+| App: bridge both ways | [/app](https://backhaul-bridge.vercel.app/app) | live |
+| Attack lab | [/attacks](https://backhaul-bridge.vercel.app/attacks) | live; Fire all runs every forged proof |
+| Light-client status | [/status](https://backhaul-bridge.vercel.app/status) | live |
+| Relayer API | [35-205-62-150.sslip.io](https://35-205-62-150.sslip.io/status) ([API.md](services/relayer/API.md)) | live |
 <!-- /render:live-links -->
 
 Reviewing? Take the five-minute path in [docs/JUDGES.md](docs/JUDGES.md). Every claim and its evidence tier: [docs/CLAIMS.md](docs/CLAIMS.md).
@@ -40,8 +40,8 @@ flowchart LR
   subgraph PD["Portaldot V3 testnet"]
     direction TB
     PVAL(["Portaldot validators<br/>BEEFY · MMR"])
-    PGW["PortaldotGateway<br/>locks tPOT · holds BNB.b"]:::pending
-    POB["Outbox"]:::pending
+    PGW["PortaldotGateway<br/>locks tPOT · holds BNB.b"]:::live
+    POB["Outbox"]:::live
     PLC["ParliaClient · EVM"]:::pending
     PINK["parlia_client · ink! WASM"]:::pending
     PVF["BscVerifier<br/>receipt + storage MPT"]:::pending
@@ -51,24 +51,24 @@ flowchart LR
   subgraph BN["BNB Chain testnet"]
     direction TB
     BVAL(["BNB Chain validators<br/>Parlia seals"])
-    BGW["BscGateway · pPOT<br/>locks tBNB"]:::pending
-    BOB["Outbox"]:::pending
-    BLC["PortaldotLightClient<br/>BEEFY + MMR"]:::pending
-    BVF["PortaldotVerifier<br/>Substrate child trie"]:::pending
-    BSET["ERC-7683 settlers<br/>+ LP vaults"]:::pending
+    BGW["BscGateway · pPOT<br/>locks tBNB"]:::live
+    BOB["Outbox"]:::live
+    BLC["PortaldotLightClient<br/>BEEFY + MMR"]:::live
+    BVF["PortaldotVerifier<br/>Substrate child trie"]:::live
+    BSET["ERC-7683 settlers<br/>+ LP vaults"]:::live
   end
   RL{{"Relayer · solver<br/>anyone can run one"}}
   PVAL -->|"signed commitments,<br/>block hashes"| RL
   BVAL -->|"sealed headers"| RL
-  POB -.->|"child-trie proof"| RL
+  POB -->|"child-trie proof"| RL
   BOB -.->|"receipt / storage proof"| RL
-  RL -.->|"commitments · headers · rotations"| BLC
+  RL -->|"commitments · headers · rotations"| BLC
   RL -.->|"finality windows"| PLC
   RL -.->|"same windows"| PINK
-  PGW -.->|"lock → commit"| POB
+  PGW -->|"lock → commit"| POB
   BGW -.->|"lock / burn → commit"| BOB
-  BLC -.->|"state root"| BVF
-  BVF -.->|"mint pPOT · release tBNB"| BGW
+  BLC -->|"state root"| BVF
+  BVF -->|"mint pPOT · release tBNB"| BGW
   PLC -.->|"receipts root"| PVF
   PVF -.->|"release tPOT · BNB.b"| PGW
   PVF -.->|"Chainlink storage"| PFD
@@ -78,7 +78,7 @@ flowchart LR
   classDef pending stroke-dasharray: 5 4
 ```
 
-Solid: built and executed against the live testnets. Dotted: built and tested, not yet executed on a testnet. Dashed boxes: not deployed yet. Before the deploy only the reads from the two live chains are solid: both rehearsals pulled real BEEFY commitments, block hashes for the MMR, Substrate storage proofs, sealed BSC headers and receipts from them.
+Solid: built and executed against the live testnets. Dotted: built and tested, not yet executed on a testnet. Dashed boxes: not deployed yet.
 <!-- /render:architecture -->
 
 ### Portaldot → BNB Chain: a BEEFY light client on BNB Chain
@@ -129,14 +129,14 @@ Bridged tBNB arrives as BNB.b, a `pallet-assets` asset. Its whole fixed supply i
 | Keys that can release bridged funds | 0 on either chain | No owner, admin, pause or upgrade path in any contract: [TRUST.md](docs/TRUST.md) |
 | Tests | 434 passing, 0 failing: Foundry 263 · SDK 92 (+2 live-only, skipped offline) · relayer 44 · ink! 35 | `npm run test:counts` → [results/test-counts.json](results/test-counts.json) at `e77b97d` |
 | Forged proofs rejected, local rehearsals | 11 of 11 fired; `replayed-nonce` needs a live transfer (forge: `test_finalizeTwiceReverts`) | [rehearsal-beefy.json](results/rehearsal-beefy.json) · [rehearsal-parlia.json](results/rehearsal-parlia.json) |
-| Forged proofs rejected, testnet | not deployed yet | [results/attacks.json](results/attacks.json) |
+| Forged proofs rejected, testnet | 6 of 6 (eth_call) | [results/attacks.json](results/attacks.json) |
 | BEEFY on BNB Chain: commitment · header import · set rotation | 103,370 · 109,482 · 420,353 gas | Foundry on recorded Portaldot data ([beefy-gas-local.json](results/beefy-gas-local.json)); the BSC-fork rehearsal rotated set 520 → 521 on live Portaldot data |
 | Portaldot contract storage proven on BNB Chain | 573,322 gas (main trie + child trie, 3,428 B calldata) | [beefy-gas-local.json](results/beefy-gas-local.json) |
 | BNB Chain finality on Portaldot (EVM) | 44 real headers, 39.3 kB, 7 distinct sealers → final for 1,669,820 gas | [rehearsal-parlia.json](results/rehearsal-parlia.json) |
 | EVM vs WASM, 48 real headers, same input | 1,827,194 execution gas vs 12.32 ms refTime, 30.8 kB proofSize | [BENCHMARK.md](docs/BENCHMARK.md) |
 | Wait for BNB Chain finality | 42–44 headers ≈ 19–20 s | MODELED: header counts from the rehearsal windows × 0.45 s blocks |
-| Time to funds, canonical (median) | not deployed yet | [live-transfers.json](results/live-transfers.json) |
-| Time to funds, fast fill (median) | not deployed yet | [live-transfers.json](results/live-transfers.json) |
+| Time to funds, canonical (median) | Portaldot → BNB Chain 40 s · BNB Chain → Portaldot not measured yet | [live-transfers.json](results/live-transfers.json) |
+| Time to funds, fast fill (median) | Portaldot → BNB Chain not measured yet · BNB Chain → Portaldot not measured yet | [live-transfers.json](results/live-transfers.json) |
 | Deploy cost, full | 3,138 tPOT + 0.0112 tBNB, of which 26 tPOT and 0.01 tBNB seed the gas pool and vaults | Dry-run: live `eth_estimateGas` on Portaldot, fork gas on BSC ([deploy-cost-estimate.json](results/deploy-cost-estimate.json)) |
 | User cost on Portaldot | bridge tPOT 3.92 tPOT · open an order 7.86 tPOT | Fees plus storage deposit, same dry-run |
 <!-- /render:numbers -->

@@ -3,7 +3,7 @@
 The Portaldot Hacker House 2026 rubric, line by line, with the evidence for each. Cells with numbers or deployment state are rendered by `npm run docs`; they say "not deployed yet" until the testnet records exist.
 
 <!-- render:status -->
-**Status, 2026-11-04 00:02 UTC:** built, tested and rehearsed against live data from both chains; **not deployed yet** on the testnets (the deployer wallets are waiting for testnet funds). Every on-chain link in these docs comes from `deployments/*.json` and reads "not deployed yet" until those files exist.
+**Status, 2026-11-04 09:39 UTC:** deployed, 2 contracts on Portaldot V3 testnet and 8 on BNB Chain testnet; 1 proven transfer and 0 fast fills recorded. Every address and transaction: [docs/PROOF.md](PROOF.md).
 <!-- /render:status -->
 
 ## Rubric
@@ -13,8 +13,8 @@ The Portaldot Hacker House 2026 rubric, line by line, with the evidence for each
 | --- | --- | --- |
 | Technical Feasibility 30% | Architecture | [README → How it works](../README.md#how-it-works), [TRUST.md](TRUST.md) |
 |  | Code completeness | Both light clients, both gateways, ERC-7683 settlers, LP vaults, data feed, ink! twin, relayer, SDK, app. Tests: 434 passing, 0 failing: Foundry 263 · SDK 92 (+2 live-only, skipped offline) · relayer 44 · ink! 35 |
-|  | Genuine, sustained development activity | At the last render: 88 commits from 2026-11-02 22:55 UTC to 2026-11-03 23:52 UTC, on 2 distinct days (UTC); 88 of them inside the event window (Oct 14 – Nov 6, 2026). History: [github.com/RaYYeR220/backhaul/commits](https://github.com/RaYYeR220/backhaul/commits/main). When each core module first landed: [below](#core-modules). |
-|  | Testnet deployment with verifiable on-chain interactions | **not deployed yet** (testnet funds pending). Ready: `npm run deploy:dry` prices every step against the live chains (3,138 tPOT + 0.0112 tBNB); [PROOF.md](PROOF.md) fills itself from `deployments/*.json` |
+|  | Genuine, sustained development activity | At the last render: 95 commits from 2026-11-02 22:55 UTC to 2026-11-04 09:36 UTC, on 3 distinct days (UTC); 95 of them inside the event window (Oct 14 – Nov 6, 2026). History: [github.com/RaYYeR220/backhaul/commits](https://github.com/RaYYeR220/backhaul/commits/main). When each core module first landed: [below](#core-modules). |
+|  | Testnet deployment with verifiable on-chain interactions | [PROOF.md](PROOF.md): 2 contracts on Portaldot, 8 on BNB Chain, 1 recorded transfers and orders |
 |  | Proof the mechanisms work | 11 of 11 forged proofs rejected in the rehearsals; [JUDGES.md](JUDGES.md) step 6; `verify-onchain.ts` re-checks any transfer |
 | Innovation 30% | V3: WASM | `ink/parlia_client`, the ink! twin of the Parlia client, and [BENCHMARK.md](BENCHMARK.md) (EVM vs WASM on identical inputs) |
 |  | V3: EVM compatibility | Every Portaldot contract runs on pallet-revive; `PortaldotVerifier` reads revive contract storage from its child trie |

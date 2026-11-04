@@ -3,22 +3,22 @@
 Backhaul is a bridge between the Portaldot V3 testnet and the BNB Chain testnet in which no key, relayer or server can release funds: each chain checks the other chain's consensus in a contract. This page is the shortest path to checking that for yourself. Every link and number below is rendered from `results/*.json` and `deployments/*.json` by `npm run docs`.
 
 <!-- render:status -->
-**Status, 2026-11-04 00:02 UTC:** built, tested and rehearsed against live data from both chains; **not deployed yet** on the testnets (the deployer wallets are waiting for testnet funds). Every on-chain link in these docs comes from `deployments/*.json` and reads "not deployed yet" until those files exist.
+**Status, 2026-11-04 09:39 UTC:** deployed, 2 contracts on Portaldot V3 testnet and 8 on BNB Chain testnet; 1 proven transfer and 0 fast fills recorded. Every address and transaction: [docs/PROOF.md](PROOF.md).
 <!-- /render:status -->
 
 ## The path
 
 <!-- render:judges-path -->
 1. **Landing, 30 s.** Open [backhaul-bridge.vercel.app](https://backhaul-bridge.vercel.app). The live strip at the top reads both chains directly.
-2. **Bridge, 2 min.** Open [/app](https://backhaul-bridge.vercel.app/app), pick a direction and send with the demo wallet (no wallet or funds needed). The transfer page shows every proof step with its transaction. _Contracts not deployed yet; until then the page is a placeholder._
-3. **Attack lab, 1 min.** Open [/attacks](https://backhaul-bridge.vercel.app/attacks) and press **Fire all**. Each attack takes real proof material, changes one thing and sends it to the deployed contract as an `eth_call`; the scoreboard counts the reverts. _Contracts not deployed yet; the rehearsal results are in step 6._
-4. **Status, 30 s.** [/status](https://backhaul-bridge.vercel.app/status) shows both light clients facing each other: the BEEFY set on BNB Chain, the BSC epoch and trusting period left on Portaldot. _Contracts not deployed yet._
+2. **Bridge, 2 min.** Open [/app](https://backhaul-bridge.vercel.app/app), pick a direction and send with the demo wallet (no wallet or funds needed). The transfer page shows every proof step with its transaction.
+3. **Attack lab, 1 min.** Open [/attacks](https://backhaul-bridge.vercel.app/attacks) and press **Fire all**. Each attack takes real proof material, changes one thing and sends it to the deployed contract as an `eth_call`; the scoreboard counts the reverts.
+4. **Status, 30 s.** [/status](https://backhaul-bridge.vercel.app/status) shows both light clients facing each other: the BEEFY set on BNB Chain, the BSC epoch and trusting period left on Portaldot.
 5. **The hero transfers on the explorers.**
-   - Portaldot V3 testnet → BNB Chain testnet: not deployed yet.
+   - Portaldot V3 testnet → BNB Chain testnet (`portaldot:0`, tPOT): source `0xe91cf0…bacf30` ([block 318,574](https://scanner-testnet-v3.portaldot.dev/#/blocks/318574)) → paid out [`0xea9874…6a3f78`](https://testnet.bscscan.com/tx/0xea9874bdeb4b6d1cb4b22faa99e887d28156e20ce14897b8dc58e1ff6c6a3f78), 40 s.
    - BNB Chain testnet → Portaldot V3 testnet: not deployed yet.
    - Reverted attack transactions: not deployed yet. Until then the rehearsal records name each revert: 11 of 11 fired attacks rejected, listed in [PROOF.md](PROOF.md#forged-proofs-in-the-rehearsals).
 6. **The two rehearsals, 1 min.** [rehearsal-beefy.json](../results/rehearsal-beefy.json): BEEFY client on a BSC-testnet fork fed live Portaldot data, a live set rotation 520 → 521, a child-trie storage proof of a live contract accepted, and the same proof with another value rejected. [rehearsal-parlia.json](../results/rehearsal-parlia.json): a real 44-header BSC window finalized by 7 distinct sealers with 8 headers from a validator outside the trusted set, then a receipt proof and an absence proof. Re-run them with `npm run rehearse`.
-7. **Re-verify a transfer yourself, 1 min.** `npx tsx packages/sdk/scripts/verify-onchain.ts <tx>` rebuilds the proof from the source chain and checks it against the deployed light client with `eth_call`, plus a tampered copy that must fail. _Before the deploy it says there is nothing to check against yet._
+7. **Re-verify a transfer yourself, 1 min.** `npx tsx packages/sdk/scripts/verify-onchain.ts 0xe91cf0dd49c50deae2f9db19f0d46d87e0a4be8cd29e101bb8b34100a0bacf30` rebuilds the proof from the source chain and checks it against the deployed light client with `eth_call`, plus a tampered copy that must fail.
 8. **Tests, 3 min.** `npm ci && npm run test:counts`: 434 passing, 0 failing: Foundry 263 · SDK 92 (+2 live-only, skipped offline) · relayer 44 · ink! 35.
 <!-- /render:judges-path -->
 

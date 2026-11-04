@@ -3,23 +3,23 @@
     "suites": [
       {
         "name": "forge",
-        "count": 249
+        "count": 263
       },
       {
         "name": "sdk",
-        "count": 86
+        "count": 92
       },
       {
         "name": "relayer",
-        "count": 34
+        "count": 44
       },
       {
         "name": "ink",
-        "count": 32
+        "count": 35
       }
     ],
-    "total": 401,
-    "source": "last full suite run"
+    "total": 434,
+    "source": "results/test-counts.json"
   },
   "gas": {
     "network": "local forge EVM (cancun), live Portaldot V3 testnet fixtures",
@@ -144,20 +144,120 @@
     "window48Headers": 48,
     "window48RefTimeMs": 12.32,
     "window48ProofSize": 30837,
-    "evmWindow48Gas": 1827194
+    "evmWindow48Gas": 1824797
   },
   "deployCost": {
-    "portaldotTpot": 3004.243327,
-    "bscTbnb": 0.001233
+    "portaldotTpot": 3112.044708,
+    "bscTbnb": 0.001249
   },
-  "deployment": null,
-  "transfers": [],
+  "deployment": {
+    "portaldot": {
+      "updatedAt": "2026-11-04T09:32:16.769Z",
+      "contracts": [
+        {
+          "name": "PortaldotGateway",
+          "address": "0x4a832A5EC6045FdCF9Ef5B448128fE07d21723F3",
+          "tx": "0x5ca6bdd10eb1887e4222198e4367c399a1bfb4b01f286bbe3e100c98073044ae",
+          "block": 318530
+        },
+        {
+          "name": "Outbox",
+          "address": "0x788eb8bd959A995EA980E0477d5CBAD650bd09d5",
+          "tx": "0x63be19e45f30eb6c76512238500ccfeaf0d74606fc243e8d8b8a9cf1f0807e96",
+          "block": 318529
+        }
+      ]
+    },
+    "bsc": {
+      "updatedAt": "2026-11-04T09:33:14.870Z",
+      "contracts": [
+        {
+          "name": "PortaldotLightClient",
+          "address": "0x4a832A5EC6045FdCF9Ef5B448128fE07d21723F3",
+          "tx": "0xf233204e6b8bc3eeed3d623aff00414604bb4b5a98a1b157833c53666e92b9c5",
+          "block": 140741914
+        },
+        {
+          "name": "PortaldotVerifier",
+          "address": "0x10012862AB2f1325Bb3667EC49fC35172d0F3a51",
+          "tx": "0x5adcfd40fcbe749824d6e9acc8cbddbf44355d689a3a78ddf3e84469e5c062e8",
+          "block": 140741928
+        },
+        {
+          "name": "BscGateway",
+          "address": "0xb05f345f2FBFeb891985D729aFF6C09A13f5daeB",
+          "tx": "0x454b2b065e1377771848f0ce79c82e524cae4ae3c5b38b9679db5dcd9220bbad",
+          "block": 140741946
+        },
+        {
+          "name": "PPOT",
+          "address": "0x188b132f9b54008a2208552f38638EdE9DEa594D",
+          "tx": "0x45f09ce6ae3fe849a5cfd12d4189bf86f56996c294d69e4a2b2975f2b64b7502",
+          "block": 140741934
+        },
+        {
+          "name": "OriginSettler",
+          "address": "0x296DB40A17178d7ea1533fBeaC4D5EB4529519e2",
+          "tx": "0x2e3fdf333051b07efe656ace1315ff388e56561af4b361918e00e5aca08abbef",
+          "block": 140741968
+        },
+        {
+          "name": "DestinationSettler",
+          "address": "0x2cAeA09D2B2b8E8f5068aEF20cc92058ccf38f5f",
+          "tx": "0x6e5642d76e3286f887ea23e67f75308c663fde04bfe86ddb9e175e278b710ee9",
+          "block": 140741977
+        },
+        {
+          "name": "PpotVault",
+          "address": "0xe88790CF3a8c3669eE0D7a5c7F997b7D4CdD8838",
+          "tx": "0x05b075cc06c8345351bec8e81bc13fe3852b06e8c610f1765b76259dfe8b668b",
+          "block": 140741988
+        },
+        {
+          "name": "Outbox",
+          "address": "0x788eb8bd959A995EA980E0477d5CBAD650bd09d5",
+          "tx": "0xf57cf01218404e5fd4db24939aa830d380d28905f96c0912d5975a98cbd1deb0",
+          "block": 140741866
+        }
+      ]
+    }
+  },
+  "transfers": [
+    {
+      "label": "canonical · locked",
+      "chain": "portaldot",
+      "tx": "0xe91cf0dd49c50deae2f9db19f0d46d87e0a4be8cd29e101bb8b34100a0bacf30",
+      "block": 318574
+    },
+    {
+      "label": "canonical · beefy",
+      "chain": "bsc",
+      "tx": "0x532abe5c375b32482cfcede49fad2c2e6cf4608142eabcf1033d35a87a10eb78",
+      "block": null
+    },
+    {
+      "label": "canonical · beefy",
+      "chain": "bsc",
+      "tx": "0x178a6fd65f855628225cbcc0011b88020710089e2eaa98b29ee4e04b947a8d51",
+      "block": null
+    },
+    {
+      "label": "canonical · finalized",
+      "chain": "bsc",
+      "tx": "0xea9874bdeb4b6d1cb4b22faa99e887d28156e20ce14897b8dc58e1ff6c6a3f78",
+      "block": 140742532
+    }
+  ],
   "sources": [
     "results/rehearsal-beefy.json",
     "results/rehearsal-parlia.json",
+    "results/test-counts.json",
     "results/beefy-gas-local.json",
     "results/benchmark-wasm-local.json",
     "results/benchmark-evm-local.json",
-    "results/deploy-cost-estimate.json"
+    "results/deploy-cost-estimate.json",
+    "deployments/portaldot.json",
+    "deployments/bsc.json",
+    "results/live-transfers.json"
   ]
 }

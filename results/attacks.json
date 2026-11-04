@@ -1,0 +1,62 @@
+{
+  "at": "2026-11-04T09:39:14.044Z",
+  "relayer": "https://35-205-62-150.sslip.io",
+  "attacks": [
+    {
+      "id": "beefy-forged-signature",
+      "title": "Forged BEEFY signature",
+      "chain": "bsc",
+      "reason": "InvalidSignature(0)",
+      "target": "PortaldotLightClient.submitCommitment",
+      "defended": true
+    },
+    {
+      "id": "mmr-wrong-leaf",
+      "title": "MMR proof for the wrong leaf",
+      "chain": "bsc",
+      "reason": "HeaderNotInMmr",
+      "target": "PortaldotLightClient.importHeader",
+      "defended": true
+    },
+    {
+      "id": "header-not-in-mmr",
+      "title": "Header that does not hash to its leaf",
+      "chain": "bsc",
+      "reason": "HeaderNotInMmr",
+      "target": "PortaldotLightClient.importHeader",
+      "defended": true
+    },
+    {
+      "id": "tampered-storage-proof",
+      "title": "Tampered storage value",
+      "chain": "bsc",
+      "reason": "false",
+      "target": "PortaldotVerifier.verifyCommitment",
+      "defended": true
+    },
+    {
+      "id": "replayed-nonce",
+      "title": "Replayed transfer",
+      "chain": "bsc",
+      "reason": "AlreadyFinalized(0)",
+      "target": "BscGateway.finalize",
+      "defended": true
+    },
+    {
+      "id": "refund-filled-order",
+      "title": "Refund for a filled order",
+      "chain": "bsc",
+      "reason": "false",
+      "target": "PortaldotVerifier.verifyAbsence",
+      "defended": true
+    }
+  ],
+  "notReady": [
+    "beefy-stale-set",
+    "parlia-forged-header",
+    "parlia-too-few-sealers",
+    "receipt-not-included",
+    "settle-unfilled-order",
+    "bnbb-beyond-locked"
+  ]
+}

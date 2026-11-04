@@ -59,7 +59,7 @@ Measured 2026-11-03 23:58 UTC on the Portaldot V3 testnet (gas price 22,870), by
 
 Chain constants read the same day: pallet-revive and pallet-contracts both charge DepositPerByte 0.06 tPOT and DepositPerItem 0.15 tPOT; pallet-contracts adds a code-hash lockup of 30.00%. The probe prices above are what transactions actually pay on top of those constants.
 
-What that means for a full Backhaul deployment: 3,138 tPOT + 0.0112 tBNB (2,505 tPOT + 0.0011 tBNB without the BNB LP vaults, 4,940 tPOT + 0.0112 tBNB with the data feed and the ink! twin). Parlia windows cost 20.30 tPOT while they fill a fresh ring slot and 4.69 tPOT once the 256-slot ring is warm. That is why the Parlia client verifies windows on demand with a trusting period instead of following every BSC epoch.
+What that means for a full Backhaul deployment: 3,138 tPOT + 0.0112 tBNB (2,605 tPOT + 0.0011 tBNB without the BNB LP vaults, 4,940 tPOT + 0.0112 tBNB with the data feed and the ink! twin). Parlia windows cost 20.30 tPOT while they fill a fresh ring slot and 4.69 tPOT once the 256-slot ring is warm. That is why the Parlia client verifies windows on demand with a trusting period instead of following every BSC epoch.
 <!-- /render:deploy-costs -->
 
 How we designed around it, in case it helps:
