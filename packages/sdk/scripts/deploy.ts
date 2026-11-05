@@ -24,6 +24,7 @@
  * Options: --out <dir>  --asset-id <n>  --seed-gas <tPOT>  --seed-pot-vault <tPOT>
  *          --seed-bnb-vault <tBNB>  --approval-fund <tPOT>  --min-fee-bps <n>
  *          --estimate-from <0x funded Portaldot address>  --keep (leave local nodes running)
+ *          --stop-after <text>  stop after the first step whose id contains <text>
  *          --minimal (= --no-bnb-vaults: no LP vaults on the BNB routes; BNB still bridges)
  *          --with-feed  also deploy BscFeed (Chainlink BNB/USD proven from BSC storage)
  *          --fund-relayer <tPOT>  phase A sends this to the relayer's key on Portaldot (default 100)
@@ -247,6 +248,7 @@ function planOptions(relayer: Address | undefined, forceFundTo?: Address) {
     fundRelayer: to && (fundRelayerValue > 0n || forceFundTo) ? { to, value: fundRelayerValue > 0n ? fundRelayerValue : 1n } : undefined,
     fundRelayerBsc: relayer && fundRelayerBnb > 0n ? { to: relayer, value: fundRelayerBnb } : undefined,
     trustingPeriod: TRUSTING_PERIOD,
+    stopAfter: opt('stop-after'),
     seeds,
     archivePath: resolve(DATA, 'portaldot-justifications.jsonl'),
     hashCachePath: resolve(DATA, 'portaldot-block-hashes.bin'),

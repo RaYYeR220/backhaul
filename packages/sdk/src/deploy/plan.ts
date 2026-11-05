@@ -75,6 +75,8 @@ export interface PlanConfig {
   /** Phase A also sends this much tBNB to the relayer's key on BSC (BEEFY commits, finalize). */
   fundRelayerBsc?: { to: Address; value: bigint };
   seeds: Seeds;
+  /** Stop the run after the first step whose id contains this text (later runs resume from deployments/). */
+  stopAfter?: string;
   /** Live Portaldot substrate client (BEEFY checkpoint, BNB.b, bindTrieId). */
   portaldot: PortaldotClient;
   /** Live BSC client (Parlia checkpoint). */
@@ -470,6 +472,10 @@ export async function runPhases(phases: Phase[], P: Side, B: Side, cfg: PlanConf
       P.phase = phase;
       B.phase = phase;
       await guarded(cfg, s.id, () => s.run());
+      if (cfg.stopAfter && s.id.includes(cfg.stopAfter)) {
+        cfg.log(`stopping after "${s.id}" (--stop-after); run again without it to continue`);
+        return;
+      }
     }
   }
 }
