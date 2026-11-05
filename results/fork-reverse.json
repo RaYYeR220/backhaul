@@ -1,0 +1,327 @@
+{
+  "forkOf": "PortaldotV3 Test",
+  "forkEndpoint": "wss://test-node-v3.portaldot.dev",
+  "forkBlock": 340402,
+  "forkBlockHash": "0x647fee7aebe1dd0efa927b723c835b45d4106c83ef139d04be709eeeff4efdc8",
+  "forkTool": "Chopsticks (Instant block mode, --allow-unresolved-imports)",
+  "recordedAt": "2026-11-05T22:15:41.567Z",
+  "onlyChangeToForkState": {
+    "method": "dev_setStorage System.Account (free balance only; nonce kept)",
+    "deployerFree": "5000 tPOT",
+    "relayerFree": "1000 tPOT",
+    "why": "the live deployer lacks the ~948 tPOT storage deposit for ParliaClient + BscVerifier",
+    "blockProduction": "TransactionStorage.RetentionPeriod set to 2000000000 (Chopsticks cannot supply the storage-proof inherent the live block author does; unrelated to the bridge)"
+  },
+  "deployer": "0xaA3b93a16647e193C74200F9178378454fDc3876",
+  "relayer": "0x378a4FeffE00ea432EF314ab20866be8e3499010",
+  "portaldotGateway": {
+    "address": "0x4a832A5EC6045FdCF9Ef5B448128fE07d21723F3",
+    "codeHash": "0xfa838eaf2328fe84fd6c483d554054b483132aa7207db227c567eeeb79dea765",
+    "codeBytes": 3218,
+    "verifier": "0x30cc25b79b28b7d482200C6e86c9b828E4958d53",
+    "lockedPOTBefore": "1998000000000000000"
+  },
+  "parliaClient": "0xb05f345f2FBFeb891985D729aFF6C09A13f5daeB",
+  "bscVerifier": "0x30cc25b79b28b7d482200C6e86c9b828E4958d53",
+  "checkpoint": {
+    "epoch": "141034000",
+    "timestamp": "1793916178",
+    "activeFrom": "141034040",
+    "turnLength": 8,
+    "validators": [
+      "0x08265dA01E1A65d62b903c7B34c08cB389bF3D99",
+      "0x1a3d9D7A717D64e6088aC937d5aAcDD3E20ca963",
+      "0x32415e630B9B3489639dEE7de21274Ab64016226",
+      "0x53387F3321FD69d1E030BB921230dFb188826AFF",
+      "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3",
+      "0x798443fb327CaD5dFD47CA4dDB15BB876D6C40E0",
+      "0x7f5f2cF1aec83bF0c74DF566a41aa7ed65EA84Ea",
+      "0xd447b49CD040D20BC21e49ffEa6487F5638e4346",
+      "0xF9a1Db0d6f22Bd78ffAECCbc8F47c83Df9FBdbCf"
+    ]
+  },
+  "deployTxs": [
+    {
+      "contract": "ParliaClient",
+      "nonce": 4,
+      "ethTx": "0x4e80394db33d3ae40ce23bbd0f98324529fd9e896f5f9ad2284de05e786b59e6",
+      "extrinsic": "0xf6e86f38c5e28c78cd679cb9cdc53930bcb7f0b5122428d8de00c86ae544c27b",
+      "forkBlock": 340403,
+      "forkBlockHash": "0xc172e9058dbd3130e930c98933cfb71d6074e214eb9d74897b6163e477d8fa86"
+    },
+    {
+      "contract": "BscVerifier",
+      "nonce": 5,
+      "ethTx": "0x1497ba78923183434ee09275446e74ab9a013f7f434ee430cc97c7423a639f49",
+      "extrinsic": "0x36a1a9ad4ffa91852c42e9e2931042371fae8e135f8861018733ebb519df13cc",
+      "forkBlock": 340404,
+      "forkBlockHash": "0xe948e14fcc239062e84a97d59814c72a750513bcf2fcf9955df311e20a06c4cf"
+    }
+  ],
+  "deployCostWei": "932966729378766314400",
+  "bscBurn": {
+    "tx": "0x391e7436ec98e3ef2b71ccac1750c6d14019e3d298ac9a29e58677eb75c31e28",
+    "block": "141034970",
+    "blockHash": "0x8c28abdee2d56298432914e557b1ca1815c5cd08ea68acf45408dcccc50fcdf8",
+    "link": "https://testnet.bscscan.com/tx/0x391e7436ec98e3ef2b71ccac1750c6d14019e3d298ac9a29e58677eb75c31e28",
+    "transfer": {
+      "nonce": "0",
+      "kind": 2,
+      "recipient": "0xaA3b93a16647e193C74200F9178378454fDc3876",
+      "amount": "500000000000000000"
+    },
+    "outboxKey": "0x449a5515d1df26fa1823ed1d23d0204ba7ddd9052b845067e6808fc935b9bdce"
+  },
+  "window": {
+    "firstBlock": "141034970",
+    "headers": 39,
+    "bytes": 35486,
+    "trustedSetSize": 9,
+    "quorum": 6,
+    "trustedSigners": [
+      "0x08265dA01E1A65d62b903c7B34c08cB389bF3D99",
+      "0x1a3d9D7A717D64e6088aC937d5aAcDD3E20ca963",
+      "0x32415e630B9B3489639dEE7de21274Ab64016226",
+      "0x53387F3321FD69d1E030BB921230dFb188826AFF",
+      "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3",
+      "0x798443fb327CaD5dFD47CA4dDB15BB876D6C40E0"
+    ],
+    "sealers": [
+      {
+        "block": "141034970",
+        "signer": "0x08265dA01E1A65d62b903c7B34c08cB389bF3D99",
+        "trusted": true
+      },
+      {
+        "block": "141034971",
+        "signer": "0x08265dA01E1A65d62b903c7B34c08cB389bF3D99",
+        "trusted": true
+      },
+      {
+        "block": "141034972",
+        "signer": "0x08265dA01E1A65d62b903c7B34c08cB389bF3D99",
+        "trusted": true
+      },
+      {
+        "block": "141034973",
+        "signer": "0x08265dA01E1A65d62b903c7B34c08cB389bF3D99",
+        "trusted": true
+      },
+      {
+        "block": "141034974",
+        "signer": "0x08265dA01E1A65d62b903c7B34c08cB389bF3D99",
+        "trusted": true
+      },
+      {
+        "block": "141034975",
+        "signer": "0x08265dA01E1A65d62b903c7B34c08cB389bF3D99",
+        "trusted": true
+      },
+      {
+        "block": "141034976",
+        "signer": "0x1a3d9D7A717D64e6088aC937d5aAcDD3E20ca963",
+        "trusted": true
+      },
+      {
+        "block": "141034977",
+        "signer": "0x1a3d9D7A717D64e6088aC937d5aAcDD3E20ca963",
+        "trusted": true
+      },
+      {
+        "block": "141034978",
+        "signer": "0x1a3d9D7A717D64e6088aC937d5aAcDD3E20ca963",
+        "trusted": true
+      },
+      {
+        "block": "141034979",
+        "signer": "0x1a3d9D7A717D64e6088aC937d5aAcDD3E20ca963",
+        "trusted": true
+      },
+      {
+        "block": "141034980",
+        "signer": "0x1a3d9D7A717D64e6088aC937d5aAcDD3E20ca963",
+        "trusted": true
+      },
+      {
+        "block": "141034981",
+        "signer": "0x1a3d9D7A717D64e6088aC937d5aAcDD3E20ca963",
+        "trusted": true
+      },
+      {
+        "block": "141034982",
+        "signer": "0x1a3d9D7A717D64e6088aC937d5aAcDD3E20ca963",
+        "trusted": true
+      },
+      {
+        "block": "141034983",
+        "signer": "0x1a3d9D7A717D64e6088aC937d5aAcDD3E20ca963",
+        "trusted": true
+      },
+      {
+        "block": "141034984",
+        "signer": "0x32415e630B9B3489639dEE7de21274Ab64016226",
+        "trusted": true
+      },
+      {
+        "block": "141034985",
+        "signer": "0x32415e630B9B3489639dEE7de21274Ab64016226",
+        "trusted": true
+      },
+      {
+        "block": "141034986",
+        "signer": "0x32415e630B9B3489639dEE7de21274Ab64016226",
+        "trusted": true
+      },
+      {
+        "block": "141034987",
+        "signer": "0x32415e630B9B3489639dEE7de21274Ab64016226",
+        "trusted": true
+      },
+      {
+        "block": "141034988",
+        "signer": "0x32415e630B9B3489639dEE7de21274Ab64016226",
+        "trusted": true
+      },
+      {
+        "block": "141034989",
+        "signer": "0x32415e630B9B3489639dEE7de21274Ab64016226",
+        "trusted": true
+      },
+      {
+        "block": "141034990",
+        "signer": "0x32415e630B9B3489639dEE7de21274Ab64016226",
+        "trusted": true
+      },
+      {
+        "block": "141034991",
+        "signer": "0x32415e630B9B3489639dEE7de21274Ab64016226",
+        "trusted": true
+      },
+      {
+        "block": "141034992",
+        "signer": "0x53387F3321FD69d1E030BB921230dFb188826AFF",
+        "trusted": true
+      },
+      {
+        "block": "141034993",
+        "signer": "0x53387F3321FD69d1E030BB921230dFb188826AFF",
+        "trusted": true
+      },
+      {
+        "block": "141034994",
+        "signer": "0x53387F3321FD69d1E030BB921230dFb188826AFF",
+        "trusted": true
+      },
+      {
+        "block": "141034995",
+        "signer": "0x53387F3321FD69d1E030BB921230dFb188826AFF",
+        "trusted": true
+      },
+      {
+        "block": "141034996",
+        "signer": "0x53387F3321FD69d1E030BB921230dFb188826AFF",
+        "trusted": true
+      },
+      {
+        "block": "141034997",
+        "signer": "0x53387F3321FD69d1E030BB921230dFb188826AFF",
+        "trusted": true
+      },
+      {
+        "block": "141034998",
+        "signer": "0x53387F3321FD69d1E030BB921230dFb188826AFF",
+        "trusted": true
+      },
+      {
+        "block": "141034999",
+        "signer": "0x53387F3321FD69d1E030BB921230dFb188826AFF",
+        "trusted": true
+      },
+      {
+        "block": "141035000",
+        "signer": "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3",
+        "trusted": true
+      },
+      {
+        "block": "141035001",
+        "signer": "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3",
+        "trusted": true
+      },
+      {
+        "block": "141035002",
+        "signer": "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3",
+        "trusted": true
+      },
+      {
+        "block": "141035003",
+        "signer": "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3",
+        "trusted": true
+      },
+      {
+        "block": "141035004",
+        "signer": "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3",
+        "trusted": true
+      },
+      {
+        "block": "141035005",
+        "signer": "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3",
+        "trusted": true
+      },
+      {
+        "block": "141035006",
+        "signer": "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3",
+        "trusted": true
+      },
+      {
+        "block": "141035007",
+        "signer": "0x76D76ee8823dE52A1A431884c2ca930C5e72bff3",
+        "trusted": true
+      },
+      {
+        "block": "141035008",
+        "signer": "0x798443fb327CaD5dFD47CA4dDB15BB876D6C40E0",
+        "trusted": true
+      }
+    ],
+    "submitTx": {
+      "ethTx": "0x4efdb186073d778c0d0cb9a064b0ee18ecc5016033a99cc340e14a26638521f1",
+      "forkBlock": 340405,
+      "forkBlockHash": "0x35ba9ca5cdd295e6e9bf3805eb9bbaf0f80c9ab756561e111b98b65ece6f352e"
+    },
+    "finalizedHash": "0x8c28abdee2d56298432914e557b1ca1815c5cd08ea68acf45408dcccc50fcdf8"
+  },
+  "receiptProof": {
+    "nodes": 2,
+    "logIndex": "1",
+    "bytes": 1249
+  },
+  "finalize": {
+    "forkTx": "0x87ee0564ab3aef5fa1f4771b62b8f5f39d57bdbc16c9c6fe55178ffb3d485cb0",
+    "extrinsic": "0xaf9ad73294a630acb2116fdaf6013ffff9fde9c1469e541772d01a3421ab7c87",
+    "forkBlock": 340407,
+    "forkBlockHash": "0x5833d6c322f4bef316a8d6630cfea1735fd48d556dadf57e68c55589ff91963b",
+    "recipient": "0xaA3b93a16647e193C74200F9178378454fDc3876",
+    "released": "500000000000000000",
+    "releasedTPOT": "0.5",
+    "finalizedEvent": {
+      "nonce": "0",
+      "recipient": "0xaA3b93a16647e193C74200F9178378454fDc3876"
+    },
+    "lockedPOTAfter": "1498000000000000000"
+  },
+  "negative": {
+    "tamper": "one byte flipped in the receipt (leaf node of the receipts trie, byte 769 of 777)",
+    "reason": "IncompleteProof()",
+    "verifyCommitment": "reverts: IncompleteProof()",
+    "sent": {
+      "ethTx": "0xc26f1ade061636069d2b2b30dbc61d579d799fc55eb2dd55dd1d4a8ba297588d",
+      "forkBlock": 340406,
+      "forkBlockHash": "0x9c5c090023f8cc2162c4e5bf56eb745af41c9bb4a143d3981be744fd5d4b99fe",
+      "included": true,
+      "reverted": true,
+      "moduleError": "revive.ContractReverted"
+    },
+    "transferStillOpenAfter": true,
+    "replay": "AlreadyFinalized(0)"
+  }
+}
