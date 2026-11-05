@@ -7,7 +7,7 @@ BNB Chain links go to [testnet.bscscan.com](https://testnet.bscscan.com). The Po
 To re-check any transfer below without trusting this page: `npx tsx packages/sdk/scripts/verify-onchain.ts <source tx>`.
 
 <!-- render:status -->
-**Status, 2026-11-04 11:35 UTC:** deployed, 2 contracts on Portaldot V3 testnet and 8 on BNB Chain testnet; 2 proven transfers and 0 fast fills recorded. Every address and transaction: [docs/PROOF.md](PROOF.md).
+**Status, 2026-11-05 22:22 UTC:** deployed, 2 contracts on Portaldot V3 testnet and 8 on BNB Chain testnet; 2 proven transfers and 0 fast fills recorded. Every address and transaction: [docs/PROOF.md](PROOF.md).
 <!-- /render:status -->
 
 ## Contracts
@@ -70,7 +70,7 @@ Wiring and seeding:
 
 not measured yet: no finalized transfer in this direction yet.
 
-1 more jobs in [results/live-transfers.json](../results/live-transfers.json), recorded 2026-11-04 11:35 UTC.
+2 more jobs in [results/live-transfers.json](../results/live-transfers.json), recorded 2026-11-05 22:22 UTC.
 <!-- /render:proof-transfers -->
 
 ### BNB Chain → Portaldot (on a fork of the V3 testnet)
@@ -91,12 +91,12 @@ ParliaClient and BscVerifier are not on the live testnet yet: together they need
 ## Forged proofs against the deployed contracts
 
 <!-- render:proof-attacks -->
-Recorded 2026-11-04 11:35 UTC from https://35-205-62-150.sslip.io: 7 of 7 rejected.
+Recorded 2026-11-05 22:22 UTC from https://35-205-62-150.sslip.io: 7 of 7 rejected.
 
 | Attack | Target | Rejected with | Reverted transaction |
 | --- | --- | --- | --- |
 | Forged BEEFY signature | `PortaldotLightClient.submitCommitment` | `InvalidSignature(0)` | eth_call only |
-| Commitment signed by a stale validator set | `PortaldotLightClient.submitCommitment` | `UnknownValidatorSet(537, 538)` | eth_call only |
+| Commitment signed by a stale validator set | `PortaldotLightClient.submitCommitment` | `UnknownValidatorSet(572, 573)` | eth_call only |
 | MMR proof for the wrong leaf | `PortaldotLightClient.importHeader` | `HeaderNotInMmr` | eth_call only |
 | Header that does not hash to its leaf | `PortaldotLightClient.importHeader` | `HeaderNotInMmr` | eth_call only |
 | Tampered storage value | `PortaldotVerifier.verifyCommitment` | `false` | eth_call only |

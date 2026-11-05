@@ -565,7 +565,7 @@ function OnTestnet({ f }: { f: DeckFacts }) {
     ...pick(d.bsc?.contracts, ["PortaldotLightClient", "BscGateway"]).map((c) => ({ chain: "bsc" as const, c })),
   ];
   const all = (d.portaldot?.contracts.length ?? 0) + (d.bsc?.contracts.length ?? 0);
-  const txs = f.transfers.slice(0, 3);
+  const txs = f.transfers.slice(0, f.fork ? 2 : 3);
   return (
     <div className={s.testnet}>
       <p className={s.colHead}>On testnet · {all} contracts</p>
@@ -579,6 +579,15 @@ function OnTestnet({ f }: { f: DeckFacts }) {
             </a>
           </li>
         ))}
+        {f.fork && (
+          <li key="fork">
+            <span className={s.chainTag}>BNB Chain → Portaldot</span>
+            <span>burn proven on a fork of V3 at #{f.fork.forkBlock.toLocaleString("en-US")}</span>
+            <a className="mono" href={txUrl("bsc", f.fork.burnTx, f.fork.burnBlock) ?? undefined}>
+              {shortHex(f.fork.burnTx)}
+            </a>
+          </li>
+        )}
         {txs.map((t) => {
           const url = txUrl(t.chain, t.tx, t.block);
           return (

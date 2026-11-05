@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-04T11:35:55.744Z",
+  "at": "2026-11-05T22:22:02.449Z",
   "relayer": "https://35-205-62-150.sslip.io",
   "attacks": [
     {
@@ -14,7 +14,7 @@
       "id": "beefy-stale-set",
       "title": "Commitment signed by a stale validator set",
       "chain": "bsc",
-      "reason": "UnknownValidatorSet(537, 538)",
+      "reason": "UnknownValidatorSet(572, 573)",
       "target": "PortaldotLightClient.submitCommitment",
       "defended": true
     },

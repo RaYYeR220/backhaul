@@ -338,7 +338,7 @@ regions['live-links'] = () => {
       ['Landing', `[backhaul-bridge.vercel.app](${SITE})`, 'live; reads both chains directly'],
       ['Demo video (2:43)', '[youtu.be/4hP-T-AT-XU](https://youtu.be/4hP-T-AT-XU)', 'a live transfer, the status page and the attack lab'],
       ['Pitch deck', `[backhaul-deck.pdf](${SITE}/backhaul-deck.pdf)`, '11 slides, numbers from results/'],
-      ['App: bridge', `[/app](${SITE}/app)`, anyDeployed ? (dep.portaldot?.contracts?.ParliaClient ? 'live, both ways' : 'live for Portaldot → BNB Chain; BNB Chain → Portaldot not deployed yet') : `page is up; contracts ${NOT_DEPLOYED}`],
+      ['App: bridge', `[/app](${SITE}/app)`, anyDeployed ? (dep.portaldot?.contracts?.ParliaClient ? 'live, both ways' : (existsSync(resolve(ROOT, 'results/fork-reverse.json')) ? 'live for Portaldot → BNB Chain; BNB Chain → Portaldot proven end to end on a fork of the V3 testnet (its 948 tPOT storage deposit is not funded on the testnet)' : 'live for Portaldot → BNB Chain; BNB Chain → Portaldot not deployed yet')) : `page is up; contracts ${NOT_DEPLOYED}`],
       ['Attack lab', `[/attacks](${SITE}/attacks)`, anyDeployed ? 'live; Fire all runs every forged proof' : `page is up; contracts ${NOT_DEPLOYED}`],
       ['Light-client status', `[/status](${SITE}/status)`, anyDeployed ? 'live' : `page is up; contracts ${NOT_DEPLOYED}`],
       ['Relayer API', `[${RELAYER.replace('https://', '')}](${RELAYER}/status) ([API.md](services/relayer/API.md))`, relayerState],

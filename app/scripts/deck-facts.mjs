@@ -211,8 +211,21 @@ export function collect(repo = REPO) {
     deployCost: deployCost(read("results/deploy-cost-estimate.json")),
     deployment: deployment(read),
     transfers: transfers(read("results/live-transfers.json")),
+    fork: forkReverse(read("results/fork-reverse.json")),
   };
   return { ...facts, sources: used };
+}
+
+/** The BNB Chain → Portaldot run on a fork of the V3 testnet: the real burn and the forked finalize. */
+function forkReverse(r) {
+  if (!r?.bscBurn?.tx) return null;
+  return {
+    burnTx: r.bscBurn.tx,
+    burnBlock: Number(r.bscBurn.block),
+    forkBlock: Number(r.forkBlock),
+    finalizeTx: r.finalize?.forkTx ?? null,
+    released: r.finalize?.released ?? null,
+  };
 }
 
 /** Writes facts.json when the repo's results/ is reachable; otherwise keeps the committed one. */

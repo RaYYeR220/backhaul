@@ -7,7 +7,7 @@ Bridges secured by a handful of keys have lost about **$806M** in three incident
 Built for the Portaldot Hacker House 2026, Multi-Chain & Cross-Chain Infra track. Portaldot V3 testnet and BNB Chain testnet only.
 
 <!-- render:status -->
-**Status, 2026-11-04 11:35 UTC:** deployed, 2 contracts on Portaldot V3 testnet and 8 on BNB Chain testnet; 2 proven transfers and 0 fast fills recorded. Every address and transaction: [docs/PROOF.md](docs/PROOF.md).
+**Status, 2026-11-05 22:22 UTC:** deployed, 2 contracts on Portaldot V3 testnet and 8 on BNB Chain testnet; 2 proven transfers and 0 fast fills recorded. Every address and transaction: [docs/PROOF.md](docs/PROOF.md).
 <!-- /render:status -->
 
 ## What it does
@@ -26,7 +26,7 @@ Built for the Portaldot Hacker House 2026, Multi-Chain & Cross-Chain Infra track
 | Landing | [backhaul-bridge.vercel.app](https://backhaul-bridge.vercel.app) | live; reads both chains directly |
 | Demo video (2:43) | [youtu.be/4hP-T-AT-XU](https://youtu.be/4hP-T-AT-XU) | a live transfer, the status page and the attack lab |
 | Pitch deck | [backhaul-deck.pdf](https://backhaul-bridge.vercel.app/backhaul-deck.pdf) | 11 slides, numbers from results/ |
-| App: bridge | [/app](https://backhaul-bridge.vercel.app/app) | live for Portaldot → BNB Chain; BNB Chain → Portaldot not deployed yet |
+| App: bridge | [/app](https://backhaul-bridge.vercel.app/app) | live for Portaldot → BNB Chain; BNB Chain → Portaldot proven end to end on a fork of the V3 testnet (its 948 tPOT storage deposit is not funded on the testnet) |
 | Attack lab | [/attacks](https://backhaul-bridge.vercel.app/attacks) | live; Fire all runs every forged proof |
 | Light-client status | [/status](https://backhaul-bridge.vercel.app/status) | live |
 | Relayer API | [35-205-62-150.sslip.io](https://35-205-62-150.sslip.io/status) ([API.md](services/relayer/API.md)) | live |
@@ -68,7 +68,7 @@ flowchart LR
   RL -.->|"finality windows"| PLC
   RL -.->|"same windows"| PINK
   PGW -->|"lock → commit"| POB
-  BGW -.->|"lock / burn → commit"| BOB
+  BGW -->|"lock / burn → commit"| BOB
   BLC -->|"state root"| BVF
   BVF -->|"mint pPOT · release tBNB"| BGW
   PLC -.->|"receipts root"| PVF

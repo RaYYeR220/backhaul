@@ -1,0 +1,194 @@
+{
+  "at": "2026-11-05T10:48:41.410Z",
+  "phases": [
+    "B"
+  ],
+  "rates": {
+    "reuseCodeRate": "18373871909372303",
+    "gasPrice": "21715",
+    "deployBase": "9079596072438892660",
+    "codeRate": "83647179811649115",
+    "slotRate": "3902133565693248555",
+    "callBase": "12307202196507635",
+    "byteRate": "101612249220809"
+  },
+  "portaldot": {
+    "fee": "2162905122390507857287",
+    "value": "25000000000000000000",
+    "phases": {
+      "B": {
+        "fee": "2162905122390507857287",
+        "value": "25000000000000000000"
+      }
+    },
+    "lines": [
+      {
+        "phase": "B",
+        "step": "deploy ParliaClient",
+        "method": "live estimate",
+        "fee": "521802347628746498570",
+        "value": "0"
+      },
+      {
+        "phase": "B",
+        "step": "deploy BscVerifier",
+        "method": "live estimate",
+        "fee": "425743612398869055440",
+        "value": "0"
+      },
+      {
+        "phase": "B",
+        "step": "deploy OriginSettler",
+        "method": "live estimate",
+        "fee": "408367487364399875515",
+        "value": "0"
+      },
+      {
+        "phase": "B",
+        "step": "deploy DestinationSettler",
+        "method": "live estimate",
+        "fee": "156365330715907851895",
+        "value": "0"
+      },
+      {
+        "phase": "B",
+        "step": "deploy PotVault",
+        "method": "live estimate",
+        "fee": "483819182825246438625",
+        "value": "0"
+      },
+      {
+        "phase": "B",
+        "step": "deploy PotForwarder",
+        "method": "live estimate",
+        "fee": "137281940112453678545",
+        "value": "0"
+      },
+      {
+        "phase": "B",
+        "step": "OriginSettler.setRemoteDestination",
+        "method": "model: 1 new items",
+        "fee": "3918098808861705314",
+        "value": "0"
+      },
+      {
+        "phase": "B",
+        "step": "PotVault.setRemote",
+        "method": "model: 3 new items",
+        "fee": "11732120716173400088",
+        "value": "0"
+      },
+      {
+        "phase": "B",
+        "step": "seed.gasPool",
+        "method": "model: 0 new items",
+        "fee": "12713651193390871",
+        "value": "5000000000000000000"
+      },
+      {
+        "phase": "B",
+        "step": "seed.potVault",
+        "method": "model: 3 new items",
+        "fee": "11722365940248202424",
+        "value": "20000000000000000000"
+      },
+      {
+        "phase": "B",
+        "step": "bnbb.create (ops key)",
+        "method": "paymentInfo + AssetDeposit",
+        "fee": "1016006003265940000",
+        "value": "0"
+      },
+      {
+        "phase": "B",
+        "step": "bnbb.setMetadata (ops key)",
+        "method": "paymentInfo + metadata deposit",
+        "fee": "1073004018324050000",
+        "value": "0"
+      },
+      {
+        "phase": "B",
+        "step": "bnbb.mint (ops key)",
+        "method": "paymentInfo",
+        "fee": "15504425641420000",
+        "value": "0"
+      },
+      {
+        "phase": "B",
+        "step": "bnbb.setTeam (ops key)",
+        "method": "paymentInfo",
+        "fee": "21003832409960000",
+        "value": "0"
+      },
+      {
+        "phase": "B",
+        "step": "bnbb.transferOwnership (ops key)",
+        "method": "paymentInfo",
+        "fee": "14403948766390000",
+        "value": "0"
+      }
+    ]
+  },
+  "bsc": {
+    "gasPrice": "100000000",
+    "fee": "52742400000000",
+    "value": "0",
+    "phases": {
+      "B": {
+        "fee": "52742400000000",
+        "value": "0"
+      }
+    },
+    "lines": [
+      {
+        "phase": "B",
+        "step": "OriginSettler.setRemoteDestination",
+        "method": "fork gas 45044",
+        "fee": "4504400000000",
+        "value": "0"
+      },
+      {
+        "phase": "B",
+        "step": "deploy PpotForwarder",
+        "method": "fork gas 411173",
+        "fee": "41117300000000",
+        "value": "0"
+      },
+      {
+        "phase": "B",
+        "step": "PpotVault.setRemote",
+        "method": "fork gas 71207",
+        "fee": "7120700000000",
+        "value": "0"
+      }
+    ]
+  },
+  "running": {
+    "parliaWindowFresh": "20295004929126715855",
+    "parliaWindowWarm": "4686470666353721635",
+    "storageItem": "3902133565693248555",
+    "userOps": [
+      {
+        "step": "lockPOT (first ever)",
+        "dataBytes": 36,
+        "newSlots": 2,
+        "value": "1000000000000000000",
+        "fee": "7820232374554953869"
+      },
+      {
+        "step": "lockPOT",
+        "dataBytes": 36,
+        "newSlots": 1,
+        "value": "1000000000000000000",
+        "fee": "3918098808861705314"
+      },
+      {
+        "step": "OriginSettler.open (tPOT in)",
+        "dataBytes": 420,
+        "newSlots": 2,
+        "value": "1000000000000000000",
+        "fee": "7859251478255744525"
+      }
+    ]
+  }
+}

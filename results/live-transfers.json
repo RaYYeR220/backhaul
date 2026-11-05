@@ -1,7 +1,24 @@
 {
-  "at": "2026-11-04T11:35:55.744Z",
+  "at": "2026-11-05T22:22:02.449Z",
   "relayer": "https://35-205-62-150.sslip.io",
   "transfers": [
+    {
+      "id": "bsc:0",
+      "direction": "bsc-to-portaldot",
+      "kind": "canonical",
+      "asset": "pPOT",
+      "amount": "500000000000000000",
+      "state": "locked",
+      "steps": [
+        {
+          "label": "locked",
+          "chain": "bsc",
+          "tx": "0x391e7436ec98e3ef2b71ccac1750c6d14019e3d298ac9a29e58677eb75c31e28",
+          "block": 141034970,
+          "at": "2026-11-05T22:10:30.450Z"
+        }
+      ]
+    },
     {
       "id": "portaldot:1",
       "direction": "portaldot-to-bsc",

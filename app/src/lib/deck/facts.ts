@@ -65,6 +65,7 @@ export interface DeckFacts {
     bsc: { updatedAt: string | null; contracts: DeployedContract[] } | null;
   } | null;
   transfers: { label: string; chain: "portaldot" | "bsc"; tx: string; block: number | null }[];
+  fork?: { burnTx: string; burnBlock: number; forkBlock: number; finalizeTx: string | null; released: string | null } | null;
   sources: string[];
 }
 

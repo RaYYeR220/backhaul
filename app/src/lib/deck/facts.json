@@ -225,6 +225,12 @@
   "transfers": [
     {
       "label": "canonical · locked",
+      "chain": "bsc",
+      "tx": "0x391e7436ec98e3ef2b71ccac1750c6d14019e3d298ac9a29e58677eb75c31e28",
+      "block": 141034970
+    },
+    {
+      "label": "canonical · locked",
       "chain": "portaldot",
       "tx": "0xddc0cafb8bba236cd4d62941c32024a037f00606587801c4b96a3ecfbbc6fb3d",
       "block": 319008
@@ -264,14 +270,15 @@
       "chain": "bsc",
       "tx": "0x532abe5c375b32482cfcede49fad2c2e6cf4608142eabcf1033d35a87a10eb78",
       "block": null
-    },
-    {
-      "label": "canonical · beefy",
-      "chain": "bsc",
-      "tx": "0x178a6fd65f855628225cbcc0011b88020710089e2eaa98b29ee4e04b947a8d51",
-      "block": null
     }
   ],
+  "fork": {
+    "burnTx": "0x391e7436ec98e3ef2b71ccac1750c6d14019e3d298ac9a29e58677eb75c31e28",
+    "burnBlock": 141034970,
+    "forkBlock": 340402,
+    "finalizeTx": "0x87ee0564ab3aef5fa1f4771b62b8f5f39d57bdbc16c9c6fe55178ffb3d485cb0",
+    "released": "500000000000000000"
+  },
   "sources": [
     "results/rehearsal-beefy.json",
     "results/rehearsal-parlia.json",
@@ -282,6 +289,7 @@
     "results/deploy-cost-estimate.json",
     "deployments/portaldot.json",
     "deployments/bsc.json",
-    "results/live-transfers.json"
+    "results/live-transfers.json",
+    "results/fork-reverse.json"
   ]
 }

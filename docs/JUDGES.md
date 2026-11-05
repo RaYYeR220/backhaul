@@ -3,7 +3,7 @@
 Backhaul is a bridge between the Portaldot V3 testnet and the BNB Chain testnet in which no key, relayer or server can release funds: each chain checks the other chain's consensus in a contract. This page is the shortest path to checking that for yourself. Every link and number below is rendered from `results/*.json` and `deployments/*.json` by `npm run docs`.
 
 <!-- render:status -->
-**Status, 2026-11-04 11:35 UTC:** deployed, 2 contracts on Portaldot V3 testnet and 8 on BNB Chain testnet; 2 proven transfers and 0 fast fills recorded. Every address and transaction: [docs/PROOF.md](PROOF.md).
+**Status, 2026-11-05 22:22 UTC:** deployed, 2 contracts on Portaldot V3 testnet and 8 on BNB Chain testnet; 2 proven transfers and 0 fast fills recorded. Every address and transaction: [docs/PROOF.md](PROOF.md).
 <!-- /render:status -->
 
 ## The path
