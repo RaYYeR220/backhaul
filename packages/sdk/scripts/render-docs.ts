@@ -54,6 +54,8 @@ const cost = read('results/deploy-cost-estimate.json');
 const costMin = read('results/deploy-cost-estimate-minimal.json');
 const costAll = read('results/deploy-cost-estimate-with-feed-ink.json');
 const findings = read('results/findings.json');
+/** BNB Chain → Portaldot run on a Chopsticks fork of the V3 testnet (fork-reverse.ts). */
+const forkRev = read('results/fork-reverse.json');
 
 interface Contract {
   artifact?: string;
@@ -560,6 +562,32 @@ regions['proof-transfers'] = () => {
   return out.join('\n').trimEnd();
 };
 
+regions['proof-fork-reverse'] = () => {
+  const f = forkRev;
+  if (!f) return `${NOT_MEASURED}: \`packages/sdk/scripts/fork-reverse.ts\` writes \`results/fork-reverse.json\`.`;
+  const fk = (tx: string, block: number) => `\`${tx}\` (fork block ${int(block)})`;
+  const signers = f.window.trustedSigners.length;
+  return [
+    `ParliaClient and BscVerifier are not on the live testnet yet: together they need ~948 tPOT of storage deposit the deployer does not have. So this direction ran against a [Chopsticks](https://github.com/AcalaNetwork/chopsticks) fork of the V3 testnet at block ${int(f.forkBlock)} (\`${f.forkBlockHash}\`, the same hash on the live chain): the deployed PortaldotGateway, its code and its escrow are the live ones, unmodified. The burn, the BSC headers, their seals and the receipt proof are real BNB Chain testnet data. The only state set by hand on the fork: the deployer's and the relayer's free balance (to pay that deposit), and the transaction-storage retention period (Chopsticks cannot supply that pallet's storage-proof inherent, so its blocks would not build otherwise). Recorded ${day(f.recordedAt)}; rerun with \`npx tsx packages/sdk/scripts/fork-reverse.ts --env <file> --burn-tx ${f.bscBurn.tx}\` against a fresh fork.`,
+    '',
+    table(
+      ['Step', 'Chain', 'Transaction', 'Detail'],
+      [
+        ['burn', CHAIN_NAME.bsc, txLink('bsc', f.bscBurn.tx, f.bscBurn.block, true), `\`burnPPOT\`: ${units(f.bscBurn.transfer.amount)} pPOT to ${f.bscBurn.transfer.recipient}, transfer nonce ${f.bscBurn.transfer.nonce}, block ${int(f.bscBurn.block)}`],
+        ...f.deployTxs.map((d: any) => [
+          `deploy ${d.contract}`,
+          'fork of Portaldot V3 testnet',
+          fk(d.ethTx, d.forkBlock),
+          `deployer nonce ${d.nonce} → ${d.contract === 'ParliaClient' ? f.parliaClient : f.bscVerifier}${d.contract === 'BscVerifier' ? ', the verifier PortaldotGateway was deployed with' : `, checkpoint epoch ${int(f.checkpoint.epoch)} (${f.checkpoint.validators.length} validators)`}`,
+        ]),
+        ['window', 'fork of Portaldot V3 testnet', fk(f.window.submitTx.ethTx, f.window.submitTx.forkBlock), `\`ParliaClient.submitWindow\`: ${f.window.headers} real BSC headers from ${int(f.window.firstBlock)}, ${signers} distinct trusted sealers (quorum ${f.window.quorum} of ${f.window.trustedSetSize})`],
+        ['tampered', 'fork of Portaldot V3 testnet', f.negative.sent?.ethTx ? fk(f.negative.sent.ethTx, f.negative.sent.forkBlock) : 'dry run', `\`PortaldotGateway.finalize\` with ${f.negative.tamper}: reverted with \`${f.negative.reason}\`, transfer still open`],
+        ['finalize', 'fork of Portaldot V3 testnet', fk(f.finalize.forkTx, f.finalize.forkBlock), `\`PortaldotGateway.finalize\` with the genuine ${f.receiptProof.nodes}-node receipt proof: \`Finalized\` emitted, ${f.finalize.recipient} +${units(f.finalize.released, 4)} tPOT, lockedPOT ${units(f.portaldotGateway.lockedPOTBefore, 3)} → ${units(f.finalize.lockedPOTAfter, 3)}; a replay reverts with \`${f.negative.replay}\``],
+      ],
+    ),
+  ].join('\n');
+};
+
 regions['proof-attacks'] = () => {
   if (!liveRuns.length) return `${NOT_DEPLOYED}: the attack lab runs against the deployed contracts.`;
   return [
@@ -595,7 +623,7 @@ regions['proof-rehearsals'] = () => {
 /** One claim and its evidence tier, which follows the data that backs it. */
 interface Claim {
   claim: string;
-  tier: 'REPRODUCIBLE' | 'VERIFIED-LIVE' | 'MODELED' | 'NOT-CLAIMED';
+  tier: 'REPRODUCIBLE' | 'VERIFIED-LIVE' | 'FORK-VERIFIED' | 'MODELED' | 'NOT-CLAIMED';
   how: string;
 }
 
@@ -642,6 +670,13 @@ regions.claims = () => {
       '`docs/PROOF.md` (hero transfer) and `verify-onchain.ts <lock tx>`',
       { tier: 'REPRODUCIBLE', how: 'locally: `Gateways.t.sol::test_bnbRoundTrip`, `BscVerifier.t.sol` on recorded BSC receipts and synthetic Outbox storage, `ParliaStranding.t.sol`; testnet: not deployed yet' },
     ),
+    forkRev
+      ? {
+          claim: `pPOT burned on BNB Chain testnet is released as tPOT by the deployed PortaldotGateway only against a Parlia window + a receipt proof (${units(forkRev.finalize.released)} tPOT released; a receipt with one byte flipped is rejected)`,
+          tier: 'FORK-VERIFIED',
+          how: `real burn [\`${short(forkRev.bscBurn.tx)}\`](${bscTx(forkRev.bscBurn.tx)}), real BSC window and proof; ParliaClient + BscVerifier deployed at the reserved addresses on a fork of the V3 testnet at block ${int(forkRev.forkBlock)}: \`npx tsx packages/sdk/scripts/fork-reverse.ts\` → \`results/fork-reverse.json\`; \`docs/PROOF.md\``,
+        }
+      : { claim: 'pPOT burned on BNB Chain is released as tPOT on Portaldot only against a Parlia window + a receipt proof', tier: 'NOT-CLAIMED', how: NOT_DEPLOYED },
     {
       claim: 'Supply invariants hold: pPOT supply equals locked tPOT, circulating BNB.b equals locked tBNB, no transfer finalizes twice',
       tier: 'REPRODUCIBLE',

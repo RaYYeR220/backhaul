@@ -4,6 +4,7 @@ Every public statement Backhaul makes, tagged by how you can check it:
 
 - **REPRODUCIBLE**: run the command or test named next to it and get the same result.
 - **VERIFIED-LIVE**: observed on a live chain or a public record; the link or file says where.
+- **FORK-VERIFIED**: observed end to end on a fork of the live Portaldot V3 testnet (the deployed contracts and their state, unmodified) with real BNB Chain testnet transactions and data; the file says exactly what the fork changed by hand.
 - **MODELED**: computed from measured inputs, not observed end to end.
 - **NOT-CLAIMED**: not shown yet, or out of scope. Listed so nobody reads it into the rest.
 
@@ -20,6 +21,7 @@ The table is rendered by `npm run docs`: a claim moves from REPRODUCIBLE (local)
 | The attack lab rejects every forged proof against the deployed contracts (7 of 7) | **VERIFIED-LIVE** | `results/attacks.json`; /attacks on the site |
 | tPOT locked on Portaldot is minted as pPOT on BNB Chain only against a BEEFY + MMR + child-trie proof | **VERIFIED-LIVE** | `docs/PROOF.md` (hero transfer) and `verify-onchain.ts <lock tx>` |
 | tBNB locked on BNB Chain is released as BNB.b on Portaldot only against a Parlia window + a receipt proof, or a storage proof of the same Outbox slot at a later block | **REPRODUCIBLE** | locally: `Gateways.t.sol::test_bnbRoundTrip`, `BscVerifier.t.sol` on recorded BSC receipts and synthetic Outbox storage, `ParliaStranding.t.sol`; testnet: not deployed yet |
+| pPOT burned on BNB Chain testnet is released as tPOT by the deployed PortaldotGateway only against a Parlia window + a receipt proof (0.50 tPOT released; a receipt with one byte flipped is rejected) | **FORK-VERIFIED** | real burn [`0x391e74…c31e28`](https://testnet.bscscan.com/tx/0x391e7436ec98e3ef2b71ccac1750c6d14019e3d298ac9a29e58677eb75c31e28), real BSC window and proof; ParliaClient + BscVerifier deployed at the reserved addresses on a fork of the V3 testnet at block 340,402: `npx tsx packages/sdk/scripts/fork-reverse.ts` → `results/fork-reverse.json`; `docs/PROOF.md` |
 | Supply invariants hold: pPOT supply equals locked tPOT, circulating BNB.b equals locked tBNB, no transfer finalizes twice | **REPRODUCIBLE** | `contracts/test/core/GatewaysInvariant.t.sol` (Foundry invariant runs) |
 | Solvers fill ERC-7683 orders on the destination at once and are repaid only after a light-client proof of the fill | **REPRODUCIBLE** | locally: `contracts/test/intents/Settlers.t.sol`, `Routes.t.sol`, `LPVault.t.sol`; testnet: not deployed yet |
 | The Chainlink BNB/USD feed of BNB Chain testnet is readable on Portaldot from storage proofs | **REPRODUCIBLE** | locally: `contracts/test/portaldot/BscFeed.t.sol` on recorded BSC storage proofs; testnet: not deployed yet |

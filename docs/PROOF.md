@@ -73,6 +73,21 @@ not measured yet: no finalized transfer in this direction yet.
 1 more jobs in [results/live-transfers.json](../results/live-transfers.json), recorded 2026-11-04 11:35 UTC.
 <!-- /render:proof-transfers -->
 
+### BNB Chain → Portaldot (on a fork of the V3 testnet)
+
+<!-- render:proof-fork-reverse -->
+ParliaClient and BscVerifier are not on the live testnet yet: together they need ~948 tPOT of storage deposit the deployer does not have. So this direction ran against a [Chopsticks](https://github.com/AcalaNetwork/chopsticks) fork of the V3 testnet at block 340,402 (`0x647fee7aebe1dd0efa927b723c835b45d4106c83ef139d04be709eeeff4efdc8`, the same hash on the live chain): the deployed PortaldotGateway, its code and its escrow are the live ones, unmodified. The burn, the BSC headers, their seals and the receipt proof are real BNB Chain testnet data. The only state set by hand on the fork: the deployer's and the relayer's free balance (to pay that deposit), and the transaction-storage retention period (Chopsticks cannot supply that pallet's storage-proof inherent, so its blocks would not build otherwise). Recorded 2026-11-05 22:15 UTC; rerun with `npx tsx packages/sdk/scripts/fork-reverse.ts --env <file> --burn-tx 0x391e7436ec98e3ef2b71ccac1750c6d14019e3d298ac9a29e58677eb75c31e28` against a fresh fork.
+
+| Step | Chain | Transaction | Detail |
+| --- | --- | --- | --- |
+| burn | BNB Chain testnet | [`0x391e7436ec98e3ef2b71ccac1750c6d14019e3d298ac9a29e58677eb75c31e28`](https://testnet.bscscan.com/tx/0x391e7436ec98e3ef2b71ccac1750c6d14019e3d298ac9a29e58677eb75c31e28) | `burnPPOT`: 0.50 pPOT to 0xaA3b93a16647e193C74200F9178378454fDc3876, transfer nonce 0, block 141,034,970 |
+| deploy ParliaClient | fork of Portaldot V3 testnet | `0x4e80394db33d3ae40ce23bbd0f98324529fd9e896f5f9ad2284de05e786b59e6` (fork block 340,403) | deployer nonce 4 → 0xb05f345f2FBFeb891985D729aFF6C09A13f5daeB, checkpoint epoch 141,034,000 (9 validators) |
+| deploy BscVerifier | fork of Portaldot V3 testnet | `0x1497ba78923183434ee09275446e74ab9a013f7f434ee430cc97c7423a639f49` (fork block 340,404) | deployer nonce 5 → 0x30cc25b79b28b7d482200C6e86c9b828E4958d53, the verifier PortaldotGateway was deployed with |
+| window | fork of Portaldot V3 testnet | `0x4efdb186073d778c0d0cb9a064b0ee18ecc5016033a99cc340e14a26638521f1` (fork block 340,405) | `ParliaClient.submitWindow`: 39 real BSC headers from 141,034,970, 6 distinct trusted sealers (quorum 6 of 9) |
+| tampered | fork of Portaldot V3 testnet | `0xc26f1ade061636069d2b2b30dbc61d579d799fc55eb2dd55dd1d4a8ba297588d` (fork block 340,406) | `PortaldotGateway.finalize` with one byte flipped in the receipt (leaf node of the receipts trie, byte 769 of 777): reverted with `IncompleteProof()`, transfer still open |
+| finalize | fork of Portaldot V3 testnet | `0x87ee0564ab3aef5fa1f4771b62b8f5f39d57bdbc16c9c6fe55178ffb3d485cb0` (fork block 340,407) | `PortaldotGateway.finalize` with the genuine 2-node receipt proof: `Finalized` emitted, 0xaA3b93a16647e193C74200F9178378454fDc3876 +0.5000 tPOT, lockedPOT 1.998 → 1.498; a replay reverts with `AlreadyFinalized(0)` |
+<!-- /render:proof-fork-reverse -->
+
 ## Forged proofs against the deployed contracts
 
 <!-- render:proof-attacks -->

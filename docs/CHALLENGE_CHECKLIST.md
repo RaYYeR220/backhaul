@@ -13,7 +13,7 @@ The Portaldot Hacker House 2026 rubric, line by line, with the evidence for each
 | --- | --- | --- |
 | Technical Feasibility 30% | Architecture | [README → How it works](../README.md#how-it-works), [TRUST.md](TRUST.md) |
 |  | Code completeness | Both light clients, both gateways, ERC-7683 settlers, LP vaults, data feed, ink! twin, relayer, SDK, app. Tests: 434 passing, 0 failing: Foundry 263 · SDK 92 (+2 live-only, skipped offline) · relayer 44 · ink! 35 |
-|  | Genuine, sustained development activity | At the last render: 98 commits from 2026-11-02 22:55 UTC to 2026-11-04 16:54 UTC, on 3 distinct days (UTC); 98 of them inside the event window (Oct 14 – Nov 6, 2026). History: [github.com/RaYYeR220/backhaul/commits](https://github.com/RaYYeR220/backhaul/commits/main). When each core module first landed: [below](#core-modules). |
+|  | Genuine, sustained development activity | At the last render: 100 commits from 2026-11-02 22:55 UTC to 2026-11-05 10:48 UTC, on 4 distinct days (UTC); 100 of them inside the event window (Oct 14 – Nov 6, 2026). History: [github.com/RaYYeR220/backhaul/commits](https://github.com/RaYYeR220/backhaul/commits/main). When each core module first landed: [below](#core-modules). |
 |  | Testnet deployment with verifiable on-chain interactions | [PROOF.md](PROOF.md): 2 contracts on Portaldot, 8 on BNB Chain, 2 recorded transfers and orders |
 |  | Proof the mechanisms work | 11 of 11 forged proofs rejected in the rehearsals; [JUDGES.md](JUDGES.md) step 6; `verify-onchain.ts` re-checks any transfer |
 | Innovation 30% | V3: WASM | `ink/parlia_client`, the ink! twin of the Parlia client, and [BENCHMARK.md](BENCHMARK.md) (EVM vs WASM on identical inputs) |
