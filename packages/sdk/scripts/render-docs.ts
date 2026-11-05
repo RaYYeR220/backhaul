@@ -506,8 +506,13 @@ regions['proof-contracts'] = () => {
     }
     out.push(
       table(
-        ['Contract', 'Address', 'Deploy transaction', 'Code'],
-        list.map(([name, k]) => [name, addrLink(c, k.address), txLink(c, k.tx, k.block), k.codeBytes ? `${int(k.codeBytes)} B` : '—']),
+        c === 'bsc' ? ['Contract', 'Address', 'Deploy transaction', 'Code', 'Source'] : ['Contract', 'Address', 'Deploy transaction', 'Code'],
+        list.map(([name, k]) => {
+          const row = [name, addrLink(c, k.address), txLink(c, k.tx, k.block), k.codeBytes ? `${int(k.codeBytes)} B` : '—'];
+          // BNB Chain sources are verified on Sourcify (exact match); Portaldot's explorer has no verification yet.
+          if (c === 'bsc') row.push(`[verified](https://repo.sourcify.dev/97/${k.address})`);
+          return row;
+        }),
       ),
       '',
     );
